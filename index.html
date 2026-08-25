@@ -61,6 +61,11 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
   <div class="logo">Yeni Kullanıcı Kaydı</div>
   <div class="field"><label>Ad Soyad</label><input id="regName"></div>
   <div class="field" style="margin-top:10px"><label>E-posta</label><input id="regEmail" type="email"></div>
+  <div class="formgrid" style="margin-top:10px">
+    <div class="field"><label>Doğum Tarihi</label><input id="regBirthDate" type="date"></div>
+    <div class="field"><label>Cinsiyet</label><select id="regGender"><option value="">Seçiniz</option><option value="Kadın">Kadın</option><option value="Erkek">Erkek</option><option value="Belirtmek istemiyor">Belirtmek istemiyor</option></select></div>
+  </div>
+  <div class="field" style="margin-top:10px"><label>Eğitim Durumu</label><select id="regEducation"><option value="">Seçiniz</option><option value="İlköğretim">İlköğretim</option><option value="Lise">Lise</option><option value="Ön lisans">Ön lisans</option><option value="Lisans">Lisans</option><option value="Yüksek lisans">Yüksek lisans</option><option value="Doktora">Doktora</option><option value="Diğer">Diğer</option></select></div>
   <div class="field" style="margin-top:10px"><label>Şifre</label><input id="regPassword" type="password"></div>
   <div class="field" style="margin-top:10px"><label>Rol</label><select id="regRole"><option value="hemsire">Hemşire</option><option value="doktor">Hekim</option></select></div>
   <div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="registerUser()">Kayıt Talebi</button><button class="btn btn-light" onclick="showLogin()">Geri</button></div>
@@ -245,8 +250,19 @@ async function login(){
 }
 async function registerUser(){
  const name=v('regName').trim(),email=v('regEmail').trim().toLowerCase(),password=document.getElementById('regPassword').value;
- if(!name||!email||!password){document.getElementById('regMsg').textContent='Tüm alanları doldurun.';return}
- const {error}=await sb.auth.signUp({email,password,options:{data:{full_name:name}}});
+ const birth=v('regBirthDate'),gender=v('regGender'),education=v('regEducation');
+ if(!name||!email||!password||!birth||!gender||!education){
+   document.getElementById('regMsg').textContent='Ad soyad, e-posta, doğum tarihi, cinsiyet, eğitim durumu ve şifre alanlarını doldurun.';return
+ }
+ const {error}=await sb.auth.signUp({
+   email,password,
+   options:{data:{
+     full_name:name,
+     birth_date:birth,
+     gender:gender,
+     education_status:education
+   }}
+ });
  document.getElementById('regMsg').textContent=error?'Kayıt başarısız: '+error.message:'Kayıt oluşturuldu. E-posta doğrulaması ve yönetici onayı gerekiyor.';
  if(!error)showLogin()
 }

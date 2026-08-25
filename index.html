@@ -111,7 +111,7 @@ button,input,select{touch-action:manipulation}
   <p style="margin-top:0;color:#64748b">Cerrahi Klinik Kötüleşme ve Alarm Önceliklendirme Sistemi</p>
   <div class="field"><label>E-posta</label><input id="loginEmail" type="email" value="ismaildeniz0192@gmail.com"></div>
   <div class="field" style="margin-top:10px"><label>Şifre</label><input id="loginPassword" type="password"></div>
-  <div id="loginTurnstile" class="turnstile-box"></div>
+  <div id="loginTurnstile" class="turnstile-box"></div><div id="turnstileStatus" class="notice" style="margin-top:8px">Güvenlik doğrulaması yükleniyor…</div>
   <div class="actions" style="margin-top:14px">
     <button class="btn btn-primary" onclick="login()">Giriş Yap</button>
     <button class="btn btn-light" onclick="showRegister()">Yeni Kayıt</button>
@@ -300,20 +300,19 @@ function showRegister(){document.getElementById('loginPage').classList.add('hidd
 function showLogin(){document.getElementById('registerPage').classList.add('hidden');document.getElementById('loginPage').classList.remove('hidden');setTimeout(()=>{renderTurnstileWidgets();if(loginTurnstileWidgetId!==null)try{window.turnstile.reset(loginTurnstileWidgetId)}catch(e){}},50)}
 function go(id,btn){if(id==='assessment' && !document.getElementById('pid').value){document.getElementById('assessmentPatientIdentifier').value='';document.getElementById('assessmentPatientName').value=''} if(id==='admin'&&(!currentProfile||currentProfile.role!=='admin')){toast('Yönetici yetkisi gerekir');return}document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');refresh()}
 function retryTurnstile(){
-  try{
-    ['loginTurnstile','registerTurnstile'].forEach(id=>{
-      const el=document.getElementById(id);
-      if(el) delete el.dataset.rendered;
-    });
-    renderTurnstileWidgets();
-  }catch(e){console.error('Turnstile yeniden başlatılamadı:',e)}
+ try{
+  if(!window.turnstile){return}
+  if(loginTurnstileWidgetId!==null){window.turnstile.reset(loginTurnstileWidgetId);loginTurnstileToken=''}
+  if(registerTurnstileWidgetId!==null){window.turnstile.reset(registerTurnstileWidgetId);registerTurnstileToken=''}
+  renderTurnstileWidgets();
+ }catch(e){console.error('Turnstile yeniden başlatılamadı:',e)}
 }
 async function login(){
  const email=v('loginEmail').trim().toLowerCase(), password=document.getElementById('loginPassword').value;
  const msg=document.getElementById('loginMsg');msg.textContent='Giriş yapılıyor...';
  if(!email||!password){msg.textContent='E-posta ve şifre gerekli.';return}
- const authOptions = loginTurnstileToken ? {captchaToken:loginTurnstileToken} : {};
-const {data,error}=await sb.auth.signInWithPassword({email,password,options:authOptions});
+ const authOptions=loginTurnstileToken?{captchaToken:loginTurnstileToken}:{};
+ const {data,error}=await sb.auth.signInWithPassword({email,password,options:authOptions});
  if(error){msg.textContent='Giriş başarısız: '+error.message;return}
  currentUser=data.user;
  const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',currentUser.id).maybeSingle();
@@ -345,9 +344,10 @@ async function registerUser(){
    document.getElementById('regMsg').textContent='Tüm kayıt bilgilerini doldurun.';return
  }
  const role=profession==='Hekim'?'doktor':'hemsire';
- " const {error}=await sb.auth.signUp({
+ const signupOptions=registerTurnstileToken?{captchaToken:registerTurnstileToken}:{};
+ const {error}=await sb.auth.signUp({
    email,password,
-   options:{...(registerTurnstileToken?{captchaToken:registerTurnstileToken}:{}),data:{
+   options:{...signupOptions,data:{
      full_name:name,
      birth_date:birth,
      gender:gender,
@@ -721,7 +721,7 @@ if ('serviceWorker' in navigator) {
 
 let loginTurnstileWidgetId=null, registerTurnstileWidgetId=null;
 
-function onLoginTurnstile(token){ loginTurnstileToken=token||''; }
+function onLoginTurnstile(token){ loginTurnstileToken=token||''; const s=document.getElementById('turnstileStatus'); if(s) s.textContent='Güvenlik doğrulaması tamamlandı.'; }
 function onRegisterTurnstile(token){ registerTurnstileToken=token||''; }
 
 function turnstileError(which, code){

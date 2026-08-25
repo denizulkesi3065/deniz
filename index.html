@@ -361,13 +361,29 @@ async function addPatient(){
  toast('Hasta kaydedildi'); refresh()
 }
 async function deletePatient(id){
- if(!currentProfile||currentProfile.role!=='admin'){toast('Sadece yönetici hasta silebilir.');return}
+ if(!currentProfile||currentProfile.role!=='admin'){
+   toast('Sadece yönetici hasta silebilir.');return
+ }
  if(!confirm('Bu hastayı ve bağlı değerlendirmelerini silmek istediğinize emin misiniz?'))return;
+
+ // Assessments are deleted first because they reference the patient.
  const {error:aerr}=await sb.from('assessments').delete().eq('patient_id',id);
- if(aerr){toast('Değerlendirmeler silinemedi: '+aerr.message);return}
- const {error:perr}=await sb.from('patients').delete().eq('id',id);
- if(perr){toast('Hasta silinemedi: '+perr.message);return}
- toast('Hasta silindi');refresh()
+ if(aerr){
+   console.error(aerr);
+   toast('Değerlendirmeler silinemedi: '+aerr.message);return
+ }
+
+ const {data, error:perr}=await sb.from('patients').delete().eq('id',id).select('id');
+ if(perr){
+   console.error(perr);
+   toast('Hasta silinemedi: '+perr.message);return
+ }
+ if(!data || data.length===0){
+   toast('Hasta silinemedi. Yönetici yetkisi veya kayıt bulunamadı.');return
+ }
+
+ toast('Hasta silindi');
+ await refresh();
 }
 
 async function evaluateAndSave(){

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>S-CDIAPS v2.2</title>
+<title>S-CDIAPS v2.4</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -104,9 +104,13 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
   <div class="toolbar"><div class="page-title"><h2>Hastalar</h2><p>Hasta kayıtları ve hızlı klinik erişim</p></div></div>
   <div class="card"><h3>Yeni hasta</h3><div class="formgrid">
     <div class="field"><label>Hasta kodu</label><input id="newPid" placeholder="SC-001"></div>
-    <div class="field"><label>Yaş</label><input id="newAge" type="number"></div>
-    <div class="field"><label>Postoperatif gün</label><input id="newPod" type="number"></div>
-  </div><div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="addPatient()">Hasta Kaydet</button></div></div>
+    <div class="field"><label>Yaş</label><input id="newAge" type="number" min="0" max="120"></div>
+    <div class="field"><label>Cinsiyet</label><select id="newGender"><option value="">Seçiniz</option><option value="Kadın">Kadın</option><option value="Erkek">Erkek</option><option value="Belirtmek istemiyor">Belirtmek istemiyor</option></select></div>
+    <div class="field"><label>Dosya No</label><input id="newMRN" placeholder="Dosya numarası"></div>
+    <div class="field"><label>T.C. Kimlik No</label><input id="newNationalId" inputmode="numeric" maxlength="11" placeholder="11 haneli"></div>
+    <div class="field"><label>Postoperatif gün</label><input id="newPod" type="number" min="0"></div>
+  </div><div class="notice" style="margin-top:12px">T.C. Kimlik No hassas kişisel veridir; yalnızca yetkili kullanıcıların erişebileceği şekilde kullanılmalıdır.</div>
+  <div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="addPatient()">Hasta Kaydet</button></div></div>
   <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Yaş</th><th>Cinsiyet</th><th>Dosya No</th><th>Postop gün</th><th>Oluşturulma</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
 </section>
 
@@ -215,14 +219,21 @@ async function addPatient(){
  const mrn=v('newMRN').trim();
  const nationalId=v('newNationalId').trim();
  if(!code){toast('Hasta kodu gerekli');return}
- if(nationalId && !/^\\d{11}$/.test(nationalId)){toast('T.C. Kimlik No 11 haneli olmalıdır.');return}
- const payload={patient_code:code,age:n('newAge'),postoperative_day:n('newPod'),gender:gender||null,medical_record_no:mrn||null,national_id:nationalId||null,created_by:currentUser.id};
+ if(nationalId && !/^\d{11}$/.test(nationalId)){toast('T.C. Kimlik No 11 haneli olmalıdır.');return}
+ const payload={
+   patient_code:code,
+   age:n('newAge'),
+   postoperative_day:n('newPod'),
+   gender:gender||null,
+   medical_record_no:mrn||null,
+   national_id:nationalId||null,
+   created_by:currentUser.id
+ };
  const {error}=await sb.from('patients').insert(payload);
  if(error){toast('Hasta kaydedilemedi: '+error.message);return}
  ['newPid','newAge','newMRN','newNationalId','newPod'].forEach(id=>document.getElementById(id).value='');
  document.getElementById('newGender').value='';
- toast('Hasta kaydedildi');
- refresh()
+ toast('Hasta kaydedildi'); refresh()
 }
 function clearAssessment(){document.querySelectorAll('#assessment input').forEach(e=>{if(e.type==='checkbox')e.checked=false});document.getElementById('result').innerHTML=''}
 async function refresh(){
@@ -232,11 +243,7 @@ async function refresh(){
  document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('rLow').textContent=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code}</option>`).join('');
- document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr>
-<td><b>${p.patient_code}</b></td><td>${p.age??'-'}</td><td>${p.gender??'-'}</td><td>${p.medical_record_no??'-'}</td>
-<td>${p.postoperative_day??'-'}</td><td>${new Date(p.created_at).toLocaleString('tr-TR')}</td>
-<td><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>
-${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="7">Hasta bulunmuyor.</td></tr>';
+ document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.age??'-'}</td><td>${p.gender??'-'}</td><td>${p.medical_record_no??'-'}</td><td>${p.postoperative_day??'-'}</td><td>${new Date(p.created_at).toLocaleString('tr-TR')}</td><td><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="7">Hasta bulunmuyor.</td></tr>';
  const rows=records.slice(0,15).map(x=>`<tr><td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td><td>${x.patient_id}</td><td><span class="badge ${x.scdiaps_risk==='YÜKSEK'?'r':x.scdiaps_risk==='ORTA'?'y':'g'}">${x.scdiaps_risk}</span></td><td>${x.news2_score}</td><td>${x.risk_reasons||'-'}</td></tr>`).join('')||'<tr><td colspan="5">Kayıt yok.</td></tr>';
  document.getElementById('dashTable').innerHTML=rows;document.getElementById('historyTable').innerHTML=rows;
  if(currentProfile&&currentProfile.role==='admin')renderAdmin()
@@ -244,29 +251,20 @@ ${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" 
 function selectPatient(id){document.getElementById('pid').value=id;go('assessment')}
 async function renderAdmin(){
  const {data,error}=await sb.rpc('admin_list_profiles');
- if(error){
-   document.getElementById('adminMsg').textContent='Kullanıcı listesi okunamadı: '+error.message;
-   return;
- }
- const pending=(data||[]).filter(u=>u.approval_status==='pending').length;
- const pc=document.getElementById('pendingCount'); if(pc) pc.textContent='Bekleyen kayıt: '+pending;
+ if(error){document.getElementById('adminMsg').textContent='Kullanıcı listesi okunamadı: '+error.message;return}
  document.getElementById('userTable').innerHTML=(data||[]).map(u=>`<tr>
- <td>${u.full_name||'-'}</td><td>${u.role}</td>
+ <td>${u.full_name||'-'}</td>
+ <td>${u.role}</td>
  <td><span class="badge ${u.approval_status==='approved'?'g':u.approval_status==='pending'?'y':'r'}">${u.approval_status}</span></td>
- <td>${u.approval_status==='pending'
- ?`<button class="btn btn-success" onclick="approveUser('${u.id}')">Onayla</button>
-   <button class="btn btn-danger" onclick="rejectUser('${u.id}')">Reddet</button>`:'-'}</td>
- </tr>`).join('')||'<tr><td colspan="4">Kullanıcı kaydı yok.</td></tr>';
+ <td>
+   ${u.approval_status==='pending'?`<button class="btn btn-success" onclick="approveUser('${u.id}')">Onayla</button><button class="btn btn-danger" onclick="rejectUser('${u.id}')">Reddet</button>`:''}
+   ${u.role!=='admin'?`<button class="btn btn-danger" onclick="deleteUser('${u.id}')">Kullanıcıyı Sil</button>`:''}
+ </td>
+ </tr>`).join('')||'<tr><td colspan="4">Kullanıcı yok.</td></tr>';
 }
-async function approveUser(id){const {error}=await sb.from('profiles').update({approval_status:'approved',approved_at:new Date().toISOString()}).eq('id',id);if(error)toast(error.message);else{toast('Kullanıcı onaylandı');renderAdmin()}}
-async function rejectUser(id){const {error}=await sb.from('profiles').update({approval_status:'rejected'}).eq('id',id);if(error)toast(error.message);else{toast('Kullanıcı reddedildi');renderAdmin()}}
-
-async function deleteUser(id){
- if(!currentProfile||currentProfile.role!=='admin'){toast('Yetki yok');return}
- if(!confirm('Bu kullanıcıyı kalıcı olarak silmek istediğinize emin misiniz?')) return;
- const {error}=await sb.rpc('admin_delete_user',{target_id:id});
- if(error){toast('Kullanıcı silinemedi: '+error.message);return}
- toast('Kullanıcı silindi'); renderAdmin()
+async function approveUser(id){
+ const {error}=await sb.rpc('admin_set_user_status',{target_id:id,new_status:'approved'});
+ if(error)toast('Onay başarısız: '+error.message);else{toast('Kullanıcı onaylandı');renderAdmin()}
 }
 (async()=>{const {data}=await sb.auth.getSession();if(data.session){const u=data.session.user;const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',u.id).maybeSingle();if((u.email||'').toLowerCase()===ADMIN_EMAIL){currentUser=u;currentProfile={id:u.id,full_name:(p&&p.full_name)||'Sistem Yöneticisi',role:'admin',approval_status:'approved'};document.getElementById('loginPage').classList.add('hidden');document.getElementById('app').classList.remove('hidden');document.getElementById('userText').textContent='Sistem Yöneticisi • admin';document.getElementById('avatar').textContent='S';document.getElementById('adminNav').classList.remove('hidden');refresh()}}})();
 </script>

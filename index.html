@@ -109,8 +109,9 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
     <div class="field"><label>Hastahane Adı</label><input id="newHospitalName" placeholder="Hastane adı"></div>
     <div class="field"><label>Doğum Tarihi</label><input id="newBirthDate" type="date"></div>
     <div class="field"><label>Cinsiyet</label><select id="newGender"><option value="">Seçiniz</option><option value="Kadın">Kadın</option><option value="Erkek">Erkek</option><option value="Belirtmek istemiyor">Belirtmek istemiyor</option></select></div>
-    <div class="field"><label>Boy (cm)</label><input id="newHeight" type="number" min="30" max="250" step="0.1" placeholder="cm"></div>
-    <div class="field"><label>Kilo (kg)</label><input id="newWeight" type="number" min="1" max="400" step="0.1" placeholder="kg"></div>
+    <div class="field"><label>Boy (cm)</label><input id="newHeight" type="number" min="30" max="250" step="0.1" placeholder="cm" oninput="updatePatientBMI()"></div>
+    <div class="field"><label>Kilo (kg)</label><input id="newWeight" type="number" min="1" max="400" step="0.1" placeholder="kg" oninput="updatePatientBMI()"></div>
+    <div class="field"><label>VKİ</label><input id="newBMI" type="text" readonly placeholder="Otomatik hesaplanır"></div>
     <div class="field"><label>Postoperatif gün</label><input id="newPod" type="number" min="0" placeholder="Gün"></div>
   </div>
   <div class="notice" style="margin-top:12px">Hasta T.C. Kimlik No / Dosya No bilgisi, kurumunuzun yetkilendirme ve veri koruma kurallarına uygun şekilde kullanılmalıdır.</div>
@@ -122,9 +123,11 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
   <div class="toolbar"><div class="page-title"><h2>Klinik Değerlendirme</h2><p>Vardiya değerlendirmesi ve otomatik risk analizi</p></div></div>
   <div class="card">
     <div class="formgrid">
-      <div class="field"><label>Hasta</label><select id="pid"></select></div>
+      <div class="field"><label>Hasta Dosya No / T.C. Kimlik No</label><input id="assessmentPatientIdentifier" type="text" readonly placeholder="Hasta seçiniz"></div>
+      <div class="field"><label>Hasta Adı Soyadı</label><input id="assessmentPatientName" type="text" readonly placeholder="Hasta seçiniz"></div>
       <div class="field"><label>Postoperatif gün</label><input id="pod" type="number" value="2"></div>
       <div class="field"><label>Değerlendirme zamanı</label><input id="evalTime" type="datetime-local"></div>
+      <select id="pid" class="hidden" aria-hidden="true"></select>
     </div>
     <div class="section-title">Vital Bulgular</div>
     <div class="formgrid">
@@ -225,7 +228,7 @@ function v(id){return document.getElementById(id).value}
 function ck(id){return document.getElementById(id).checked}
 function showRegister(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('registerPage').classList.remove('hidden')}
 function showLogin(){document.getElementById('registerPage').classList.add('hidden');document.getElementById('loginPage').classList.remove('hidden')}
-function go(id,btn){if(id==='admin'&&(!currentProfile||currentProfile.role!=='admin')){toast('Yönetici yetkisi gerekir');return}document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');refresh()}
+function go(id,btn){if(id==='assessment' && !document.getElementById('pid').value){document.getElementById('assessmentPatientIdentifier').value='';document.getElementById('assessmentPatientName').value=''} if(id==='admin'&&(!currentProfile||currentProfile.role!=='admin')){toast('Yönetici yetkisi gerekir');return}document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');refresh()}
 async function login(){
  const email=v('loginEmail').trim().toLowerCase(), password=document.getElementById('loginPassword').value;
  const msg=document.getElementById('loginMsg');msg.textContent='Giriş yapılıyor...';
@@ -261,6 +264,7 @@ async function editPatient(id){
  document.getElementById('newGender').value=data.gender||'';
  document.getElementById('newHeight').value=data.height_cm??'';
  document.getElementById('newWeight').value=data.weight_kg??'';
+ updatePatientBMI();
  document.getElementById('newPod').value=data.postoperative_day??'';
  window.editingPatientId=id;
  const btn=document.getElementById('patientSaveBtn');
@@ -296,7 +300,6 @@ async function updatePatient(){
    p_patient_code:patientCode,
    p_identifier:identifier,
    p_patient_name:patientName,
-   p_hospital_name:v('newHospitalName').trim(),
    p_birth_date:birth,
    p_gender:gender,
    p_height:height,
@@ -316,6 +319,14 @@ async function updatePatient(){
  const g=document.getElementById('newGender');if(g)g.value='';
  toast('Hasta bilgileri başarıyla güncellendi');
  await refresh();
+}
+function calculateBMIValue(){
+ const h=Number(v('newHeight')), w=Number(v('newWeight'));
+ return h>0 && w>0 ? (w/Math.pow(h/100,2)).toFixed(2) : '';
+}
+function updatePatientBMI(){
+ const el=document.getElementById('newBMI');
+ if(el) el.value=calculateBMIValue();
 }
 async function addPatient(){
  if(window.editingPatientId){await updatePatient();return}
@@ -343,13 +354,12 @@ async function addPatient(){
    postoperative_day:Number(pod),
    gender:gender,
    medical_record_no:identifier,
-   hospital_name:hospitalName||null,
    national_id:null,
    created_by:currentUser.id
  };
  const {error}=await sb.from('patients').insert(payload);
  if(error){toast('Hasta kaydedilemedi: '+error.message);return}
- ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newPod'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+ ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newPod'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
  const g=document.getElementById('newGender'); if(g)g.value='';
  toast('Hasta kaydedildi'); refresh()
 }
@@ -453,7 +463,15 @@ async function refresh(){
  }
  if(currentProfile&&currentProfile.role==='admin')renderAdmin()
 }
-function selectPatient(id){document.getElementById('pid').value=id;go('assessment')}
+async function selectPatient(id){
+ document.getElementById('pid').value=id;
+ const {data,error}=await sb.from('patients').select('patient_name,medical_record_no,national_id,postoperative_day').eq('id',id).single();
+ if(error){toast('Hasta bilgileri alınamadı: '+error.message);return}
+ document.getElementById('assessmentPatientIdentifier').value=data.medical_record_no||data.national_id||'';
+ document.getElementById('assessmentPatientName').value=data.patient_name||'';
+ if(data.postoperative_day!==null && data.postoperative_day!==undefined) document.getElementById('pod').value=data.postoperative_day;
+ go('assessment');
+}
 function toggleHistoryPatient(id){
  const row=document.getElementById(id);
  if(!row)return;

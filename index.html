@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>S-CDIAPS v2.4</title>
+<title>S-CDIAPS v2.6</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -109,9 +109,10 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
     <div class="field"><label>Dosya No</label><input id="newMRN" placeholder="Dosya numarası"></div>
     <div class="field"><label>T.C. Kimlik No</label><input id="newNationalId" inputmode="numeric" maxlength="11" placeholder="11 haneli"></div>
     <div class="field"><label>Postoperatif gün</label><input id="newPod" type="number" min="0"></div>
-  </div><div class="notice" style="margin-top:12px">T.C. Kimlik No hassas kişisel veridir; yalnızca yetkili kullanıcıların erişebileceği şekilde kullanılmalıdır.</div>
+  </div>
+  <div class="notice" style="margin-top:12px">TC / Dosya No bilgisi, kurumunuzun yetkilendirme ve veri koruma kurallarına uygun şekilde kullanılmalıdır.</div>
   <div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="addPatient()">Hasta Kaydet</button></div></div>
-  <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Yaş</th><th>Cinsiyet</th><th>Dosya No</th><th>Postop gün</th><th>Oluşturulma</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
+  <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Yaş</th><th>Cinsiyet</th><th>TC / Dosya No</th><th>Postop gün</th><th>Oluşturulma</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
 </section>
 
 <section id="assessment" class="page hidden">
@@ -193,47 +194,58 @@ async function login(){
  refresh();toast('Giriş başarılı')
 }
 async function registerUser(){
- const name=v('regName').trim();
- const email=v('regEmail').trim().toLowerCase();
- const password=document.getElementById('regPassword').value;
- const msg=document.getElementById('regMsg');
- if(!name||!email||!password){msg.textContent='Lütfen ad soyad, e-posta ve şifreyi doldurun.';return}
- msg.textContent='Kayıt oluşturuluyor...';
- const {data,error}=await sb.auth.signUp({email,password,options:{data:{full_name:name}}});
- if(error){
-   msg.textContent='Kayıt oluşturulamadı: '+error.message;
-   return;
- }
- if(data.user){
-   msg.textContent='Kayıt talebiniz oluşturuldu. E-posta doğrulaması gerekiyorsa önce doğrulama bağlantısını tamamlayın. Ardından yönetici onayı beklenir.';
-   setTimeout(showLogin,900);
- }else{
-   msg.textContent='Kayıt talebi oluşturulamadı.';
- }
+ const name=v('regName').trim(),email=v('regEmail').trim().toLowerCase(),password=document.getElementById('regPassword').value;
+ if(!name||!email||!password){document.getElementById('regMsg').textContent='Tüm alanları doldurun.';return}
+ const {error}=await sb.auth.signUp({email,password,options:{data:{full_name:name}}});
+ document.getElementById('regMsg').textContent=error?'Kayıt başarısız: '+error.message:'Kayıt oluşturuldu. E-posta doğrulaması ve yönetici onayı gerekiyor.';
+ if(!error)showLogin()
 }
 async function logout(){await sb.auth.signOut();currentUser=null;currentProfile=null;document.getElementById('app').classList.add('hidden');showLogin()}
 function news2(){let s=0,t=n('temp'),hr=n('hr'),sbp=n('sbp'),rr=n('rr'),sp=n('spo2'),o2=n('o2');if(rr<=8||rr>=25)s+=3;else if(rr<=11||rr>=21)s+=1;if(sp<=91)s+=3;else if(sp<=93)s+=2;else if(sp<=95)s+=1;if(sbp<=90)s+=3;else if(sbp<=100)s+=2;else if(sbp<=110)s+=1;if(hr<=40||hr>=131)s+=3;else if(hr<=50||hr>=111)s+=1;else if(hr>=91)s+=1;if(t<=35)s+=3;else if(t<=36)s+=1;else if(t>=39.1)s+=2;else if(t>=38.1)s+=1;if(o2>0)s+=2;if(n('con')===1)s+=3;return s}
 async function addPatient(){
  const code=v('newPid').trim();
  const gender=v('newGender');
- const mrn=v('newMRN').trim();
- const nationalId=v('newNationalId').trim();
+ const identifier=v('newPatientIdentifier').trim();
  if(!code){toast('Hasta kodu gerekli');return}
- if(nationalId && !/^\d{11}$/.test(nationalId)){toast('T.C. Kimlik No 11 haneli olmalıdır.');return}
+ if(!identifier){toast('TC / Dosya No girin');return}
  const payload={
    patient_code:code,
    age:n('newAge'),
    postoperative_day:n('newPod'),
    gender:gender||null,
-   medical_record_no:mrn||null,
-   national_id:nationalId||null,
+   medical_record_no:identifier,
+   national_id:null,
    created_by:currentUser.id
  };
  const {error}=await sb.from('patients').insert(payload);
  if(error){toast('Hasta kaydedilemedi: '+error.message);return}
- ['newPid','newAge','newMRN','newNationalId','newPod'].forEach(id=>document.getElementById(id).value='');
- document.getElementById('newGender').value='';
+ ['newPid','newAge','newPatientIdentifier','newPod'].forEach(id=>{
+   const el=document.getElementById(id); if(el) el.value='';
+ });
+ const g=document.getElementById('newGender'); if(g) g.value='';
  toast('Hasta kaydedildi'); refresh()
+}
+async function deletePatient(id){
+ if(!currentProfile||currentProfile.role!=='admin'){toast('Sadece yönetici hasta silebilir.');return}
+ if(!confirm('Bu hastayı ve bağlı değerlendirmelerini silmek istediğinize emin misiniz?'))return;
+ const {error:aerr}=await sb.from('assessments').delete().eq('patient_id',id);
+ if(aerr){toast('Değerlendirmeler silinemedi: '+aerr.message);return}
+ const {error:perr}=await sb.from('patients').delete().eq('id',id);
+ if(perr){toast('Hasta silinemedi: '+perr.message);return}
+ toast('Hasta silindi');refresh()
+}
+
+async function evaluateAndSave(){
+ const patientId=v('pid');if(!patientId){toast('Önce hasta seçin');return}
+ let score=0,reasons=[],t=n('temp'),hr=n('hr'),sbp=n('sbp'),rr=n('rr'),sp=n('spo2'),c=n('concern');
+ if(sbp<=90||rr<=8||rr>=25||sp<=91||hr>=131||t<=35||c===2){score=3;reasons.push('Kritik fizyolojik bulgu veya belirgin hemşire klinik endişesi')}
+ if(hr>=111){score=Math.max(score,2);reasons.push('Nabızda belirgin yükselme')}if(sbp<=100){score=Math.max(score,2);reasons.push('Sistolik kan basıncında düşüş')}if(rr>=21){score=Math.max(score,2);reasons.push('Solunum sayısında artış')}if(sp<=93){score=Math.max(score,2);reasons.push('SpO₂ düşüklüğü')}if(t>=38.1){score=Math.max(score,1);reasons.push('Ateş yüksekliği')}
+ if(ck('pus')||ck('dehiscence')){score=Math.max(score,2);reasons.push('Önemli cerrahi alan bulgusu')}if(ck('redness')||ck('drain')){score=Math.max(score,1);reasons.push('Yeni cerrahi alan değişikliği')}if(ck('dist')||ck('vomit')||ck('nogas')){score=Math.max(score,2);reasons.push('Postoperatif gastrointestinal bulgular')}if(ck('oliguria')){score=Math.max(score,2);reasons.push('İdrar çıkışında belirgin azalma')}if(ck('pain')){score=Math.max(score,1);reasons.push('Beklenmeyen/artan ağrı')}
+ const risk=score>=3?'YÜKSEK':score>=2?'ORTA':'DÜŞÜK', cls=risk==='YÜKSEK'?'r':risk==='ORTA'?'y':'g';
+ const action=risk==='YÜKSEK'?'Hastayı derhal klinik olarak değerlendirin; vital bulguları doğrulayın ve kurum protokolüne göre sorumlu klinik ekibe bildirin.':risk==='ORTA'?'Hastayı klinik olarak değerlendirin ve kurum protokolüne göre yeniden değerlendirme planlayın.':'Rutin klinik izleme devam edin.';
+ const payload={patient_id:patientId,assessed_by:currentUser.id,temperature:t,heart_rate:hr,systolic_bp:sbp,respiratory_rate:rr,spo2:sp,oxygen_l_min:n('o2'),consciousness_change:n('con')===1,nurse_concern:c,wound_redness:ck('redness'),drain_change:ck('drain'),purulent_discharge:ck('pus'),wound_dehiscence:ck('dehiscence'),abdominal_distension:ck('dist'),vomiting:ck('vomit'),no_gas:ck('nogas'),increased_pain:ck('pain'),oliguria:ck('oliguria'),news2_score:news2(),scdiaps_risk:risk,risk_reasons:reasons.join('; '),recommended_action:action};
+ const {error}=await sb.from('assessments').insert(payload);if(error){toast('Kayıt hatası: '+error.message);return}
+ document.getElementById('result').innerHTML=`<div class="result-panel ${cls}"><h3>${risk} RİSK</h3><p><b>NEWS2:</b> ${payload.news2_score}</p><p><b>Nedenler:</b></p><ul>${(reasons.length?reasons:['Belirgin risk göstergesi saptanmadı']).map(x=>`<li>${x}</li>`).join('')}</ul><p><b>Önerilen eylem:</b> ${action}</p></div>`;toast('Değerlendirme kaydedildi');refresh()
 }
 function clearAssessment(){document.querySelectorAll('#assessment input').forEach(e=>{if(e.type==='checkbox')e.checked=false});document.getElementById('result').innerHTML=''}
 async function refresh(){
@@ -252,20 +264,24 @@ function selectPatient(id){document.getElementById('pid').value=id;go('assessmen
 async function renderAdmin(){
  const {data,error}=await sb.rpc('admin_list_profiles');
  if(error){document.getElementById('adminMsg').textContent='Kullanıcı listesi okunamadı: '+error.message;return}
- document.getElementById('userTable').innerHTML=(data||[]).map(u=>`<tr>
- <td>${u.full_name||'-'}</td>
- <td>${u.role}</td>
- <td><span class="badge ${u.approval_status==='approved'?'g':u.approval_status==='pending'?'y':'r'}">${u.approval_status}</span></td>
- <td>
-   ${u.approval_status==='pending'?`<button class="btn btn-success" onclick="approveUser('${u.id}')">Onayla</button><button class="btn btn-danger" onclick="rejectUser('${u.id}')">Reddet</button>`:''}
-   ${u.role!=='admin'?`<button class="btn btn-danger" onclick="deleteUser('${u.id}')">Kullanıcıyı Sil</button>`:''}
- </td>
- </tr>`).join('')||'<tr><td colspan="4">Kullanıcı yok.</td></tr>';
+ document.getElementById('userTable').innerHTML=(data||[]).map(u=>`<tr><td>${u.full_name||'-'}</td><td>${u.role}</td><td><span class="badge ${u.approval_status==='approved'?'g':u.approval_status==='pending'?'y':'r'}">${u.approval_status}</span></td><td>${u.approval_status==='pending'?`<button class="btn btn-success" onclick="approveUser('${u.id}')">Onayla</button><button class="btn btn-danger" onclick="rejectUser('${u.id}')">Reddet</button>`:''}${u.role!=='admin'?`<button class="btn btn-danger" onclick="deleteUser('${u.id}')">Kullanıcıyı Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="4">Kullanıcı yok.</td></tr>';
 }
 async function approveUser(id){
  const {error}=await sb.rpc('admin_set_user_status',{target_id:id,new_status:'approved'});
  if(error)toast('Onay başarısız: '+error.message);else{toast('Kullanıcı onaylandı');renderAdmin()}
 }
+async function rejectUser(id){
+ const {error}=await sb.rpc('admin_set_user_status',{target_id:id,new_status:'rejected'});
+ if(error)toast('Reddetme başarısız: '+error.message);else{toast('Kullanıcı reddedildi');renderAdmin()}
+}
+async function deleteUser(id){
+ if(!currentProfile||currentProfile.role!=='admin'){toast('Yetki yok');return}
+ if(!confirm('Bu kullanıcıyı kalıcı olarak silmek istediğinize emin misiniz?'))return;
+ const {error}=await sb.rpc('admin_delete_user',{target_id:id});
+ if(error){toast('Kullanıcı silinemedi: '+error.message);return}
+ toast('Kullanıcı silindi');renderAdmin()
+}
+
 (async()=>{const {data}=await sb.auth.getSession();if(data.session){const u=data.session.user;const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',u.id).maybeSingle();if((u.email||'').toLowerCase()===ADMIN_EMAIL){currentUser=u;currentProfile={id:u.id,full_name:(p&&p.full_name)||'Sistem Yöneticisi',role:'admin',approval_status:'approved'};document.getElementById('loginPage').classList.add('hidden');document.getElementById('app').classList.remove('hidden');document.getElementById('userText').textContent='Sistem Yöneticisi • admin';document.getElementById('avatar').textContent='S';document.getElementById('adminNav').classList.remove('hidden');refresh()}}})();
 </script>
 </body>

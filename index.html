@@ -224,6 +224,46 @@ async function registerUser(){
 }
 async function logout(){await sb.auth.signOut();currentUser=null;currentProfile=null;document.getElementById('app').classList.add('hidden');showLogin()}
 function news2(){let s=0,t=n('temp'),hr=n('hr'),sbp=n('sbp'),rr=n('rr'),sp=n('spo2'),o2=n('o2');if(rr<=8||rr>=25)s+=3;else if(rr<=11||rr>=21)s+=1;if(sp<=91)s+=3;else if(sp<=93)s+=2;else if(sp<=95)s+=1;if(sbp<=90)s+=3;else if(sbp<=100)s+=2;else if(sbp<=110)s+=1;if(hr<=40||hr>=131)s+=3;else if(hr<=50||hr>=111)s+=1;else if(hr>=91)s+=1;if(t<=35)s+=3;else if(t<=36)s+=1;else if(t>=39.1)s+=2;else if(t>=38.1)s+=1;if(o2>0)s+=2;if(n('con')!==0)s+=3;return s}
+async function editPatient(id){
+ const {data,error}=await sb.from('patients').select('*').eq('id',id).single();
+ if(error){toast('Hasta bilgileri alınamadı: '+error.message);return}
+ document.getElementById('newPid').value=data.patient_code||'';
+ document.getElementById('newPatientIdentifier').value=data.medical_record_no||data.national_id||'';
+ document.getElementById('newPatientName').value=data.patient_name||'';
+ document.getElementById('newBirthDate').value=data.birth_date||'';
+ document.getElementById('newGender').value=data.gender||'';
+ document.getElementById('newHeight').value=data.height_cm??'';
+ document.getElementById('newWeight').value=data.weight_kg??'';
+ document.getElementById('newPod').value=data.postoperative_day??'';
+ window.editingPatientId=id;
+ const btn=document.querySelector('#patients .btn-primary[onclick="addPatient()"]');
+ if(btn){btn.textContent='Hasta Bilgilerini Güncelle';btn.setAttribute('onclick','updatePatient()')}
+ window.scrollTo({top:0,behavior:'smooth'});
+}
+async function updatePatient(){
+ const id=window.editingPatientId;
+ if(!id){addPatient();return}
+ const payload={
+   patient_code:v('newPid').trim(),
+   medical_record_no:v('newPatientIdentifier').trim(),
+   patient_name:v('newPatientName').trim(),
+   birth_date:v('newBirthDate')||null,
+   age:v('newBirthDate')?calculateAge(v('newBirthDate')):null,
+   gender:v('newGender')||null,
+   height_cm:n('newHeight')||null,
+   weight_kg:n('newWeight')||null,
+   postoperative_day:n('newPod')
+ };
+ if(!payload.patient_code||!payload.medical_record_no||!payload.patient_name){toast('Hasta kodu, Dosya No/T.C. Kimlik No ve Ad Soyad zorunludur');return}
+ const {error}=await sb.from('patients').update(payload).eq('id',id);
+ if(error){toast('Hasta güncellenemedi: '+error.message);return}
+ window.editingPatientId=null;
+ const btn=document.querySelector('#patients .btn-primary[onclick="updatePatient()"]');
+ if(btn){btn.textContent='Hasta Kaydet';btn.setAttribute('onclick','addPatient()')}
+ ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newPod'].forEach(x=>{const e=document.getElementById(x);if(e)e.value=''});
+ document.getElementById('newGender').value='';
+ toast('Hasta bilgileri güncellendi');refresh();
+}
 async function addPatient(){
  const code=v('newPid').trim(), identifier=v('newPatientIdentifier').trim(), name=v('newPatientName').trim();
  const birth=v('newBirthDate'), gender=v('newGender');
@@ -289,7 +329,7 @@ async function refresh(){
  document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('rLow').textContent=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code} — ${p.patient_name||'Ad Soyad yok'} — ${p.medical_record_no||'TC/Dosya No yok'}</option>`).join('');
- document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.medical_record_no??'-'}</td><td>${p.patient_name??'-'}</td><td>${p.birth_date?new Date(p.birth_date+'T00:00:00').toLocaleDateString('tr-TR'):'-'}</td><td>${p.gender??'-'}</td><td>${p.height_cm??'-'} cm</td><td>${p.weight_kg??'-'} kg</td><td>${p.postoperative_day??'-'}</td><td><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="9">Hasta bulunmuyor.</td></tr>';
+ document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.medical_record_no??'-'}</td><td>${p.patient_name??'-'}</td><td>${p.birth_date?new Date(p.birth_date+'T00:00:00').toLocaleDateString('tr-TR'):'-'}</td><td>${p.gender??'-'}</td><td>${p.height_cm??'-'} cm</td><td>${p.weight_kg??'-'} kg</td><td>${p.postoperative_day??'-'}</td><td><button class="btn btn-primary" onclick="editPatient('${p.id}')">Düzenle</button><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="9">Hasta bulunmuyor.</td></tr>';
  const rows=records.slice(0,15).map(x=>`<tr><td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td><td><b>${x.patient_code||'—'}</b></td><td>${x.patient_identifier||'—'}</td><td>${x.evaluator_name||'—'}</td><td><span class="badge ${x.risk==='YÜKSEK'?'r':x.risk==='ORTA'?'y':'g'}">${x.risk||'—'}</span></td><td>${x.news2??'—'}</td><td>${x.reasons||'—'}</td></tr>`).join('')||'<tr><td colspan="7">Kayıt yok.</td></tr>';
  document.getElementById('dashTable').innerHTML=rows;document.getElementById('historyTable').innerHTML=rows;
  if(currentProfile&&currentProfile.role==='admin')renderAdmin()

@@ -101,6 +101,7 @@ button,input,select{touch-action:manipulation}
 }
 </style>
 
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
 
@@ -109,6 +110,7 @@ button,input,select{touch-action:manipulation}
   <p style="margin-top:0;color:#64748b">Cerrahi Klinik Kötüleşme ve Alarm Önceliklendirme Sistemi</p>
   <div class="field"><label>E-posta</label><input id="loginEmail" type="email" value="ismaildeniz0192@gmail.com"></div>
   <div class="field" style="margin-top:10px"><label>Şifre</label><input id="loginPassword" type="password"></div>
+  <div id="loginTurnstile" class="cf-turnstile" data-callback="onLoginTurnstile"></div>
   <div class="actions" style="margin-top:14px">
     <button class="btn btn-primary" onclick="login()">Giriş Yap</button>
     <button class="btn btn-light" onclick="showRegister()">Yeni Kayıt</button>
@@ -128,6 +130,7 @@ button,input,select{touch-action:manipulation}
   <div class="field" style="margin-top:10px"><label>Eğitim Durumu</label><select id="regEducation"><option value="">Önce meslek seçiniz</option></select></div>
   <div class="field" style="margin-top:10px"><label>Mesleki / Akademik Unvan</label><select id="regTitle"><option value="">Önce meslek seçiniz</option></select></div>
   <div class="field" style="margin-top:10px"><label>Şifre</label><input id="regPassword" type="password"></div>
+  <div id="registerTurnstile" class="cf-turnstile" data-callback="onRegisterTurnstile"></div>
   <div class="field" style="margin-top:10px"><label>Rol</label><select id="regRole"><option value="hemsire">Hemşire</option><option value="doktor">Hekim</option></select></div>
   <div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="registerUser()">Kayıt Talebi</button><button class="btn btn-light" onclick="showLogin()">Geri</button></div>
   <div id="regMsg" class="notice" style="margin-top:14px"></div>
@@ -281,11 +284,12 @@ button,input,select{touch-action:manipulation}
 <div id="toast" class="toast"></div>
 
 <script>
+const TURNSTILE_SITEKEY='BURAYA_CLOUDFLARE_TURNSTILE_SITE_KEY';
 const SUPABASE_URL='https://nndtcprefcrevdulxzhy.supabase.co';
 const SUPABASE_KEY='sb_publishable_7IeSV5cMQoAPAbfzE7KVpw_rnfXwZ2e';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const ADMIN_EMAIL='ismaildeniz0192@gmail.com';
-let currentUser=null,currentProfile=null,patientCache=[];
+let currentUser=null,currentProfile=null,loginTurnstileToken='',registerTurnstileToken='';,patientCache=[];
 
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2800)}
 function n(id){const x=parseFloat(document.getElementById(id).value);return Number.isFinite(x)?x:0}
@@ -294,11 +298,20 @@ function ck(id){return document.getElementById(id).checked}
 function showRegister(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('registerPage').classList.remove('hidden')}
 function showLogin(){document.getElementById('registerPage').classList.add('hidden');document.getElementById('loginPage').classList.remove('hidden')}
 function go(id,btn){if(id==='assessment' && !document.getElementById('pid').value){document.getElementById('assessmentPatientIdentifier').value='';document.getElementById('assessmentPatientName').value=''} if(id==='admin'&&(!currentProfile||currentProfile.role!=='admin')){toast('Yönetici yetkisi gerekir');return}document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');refresh()}
+function onLoginTurnstile(token){loginTurnstileToken=token||''}
+function onRegisterTurnstile(token){registerTurnstileToken=token||''}
+function resetTurnstile(widgetId){
+  try{if(window.turnstile)window.turnstile.reset(widgetId)}catch(e){}
+}
 async function login(){
  const email=v('loginEmail').trim().toLowerCase(), password=document.getElementById('loginPassword').value;
  const msg=document.getElementById('loginMsg');msg.textContent='Giriş yapılıyor...';
  if(!email||!password){msg.textContent='E-posta ve şifre gerekli.';return}
- const {data,error}=await sb.auth.signInWithPassword({email,password});
+ if(TURNSTILE_SITEKEY.startsWith('BURAYA_')){
+  msg.textContent='Güvenlik doğrulaması yapılandırılmamış. Önce Cloudflare Turnstile site key ekleyin.';return
+}
+if(!loginTurnstileToken){msg.textContent='Lütfen robot olmadığınızı doğrulayın.';return}
+const {data,error}=await sb.auth.signInWithPassword({email,password,options:{captchaToken:loginTurnstileToken}});
  if(error){msg.textContent='Giriş başarısız: '+error.message;return}
  currentUser=data.user;
  const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',currentUser.id).maybeSingle();
@@ -330,9 +343,15 @@ async function registerUser(){
    document.getElementById('regMsg').textContent='Tüm kayıt bilgilerini doldurun.';return
  }
  const role=profession==='Hekim'?'doktor':'hemsire';
+ "if(TURNSTILE_SITEKEY.startsWith('BURAYA_')){
+  document.getElementById('regMsg').textContent='Güvenlik doğrulaması yapılandırılmamış. Önce Cloudflare Turnstile site key ekleyin.';return
+}
+if(!registerTurnstileToken){
+  document.getElementById('regMsg').textContent='Lütfen robot olmadığınızı doğrulayın.';return
+}
  const {error}=await sb.auth.signUp({
    email,password,
-   options:{data:{
+   options:{captchaToken:registerTurnstileToken,data:{
      full_name:name,
      birth_date:birth,
      gender:gender,
@@ -704,5 +723,17 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
+function renderTurnstileWidgets(){
+  if(!window.turnstile || TURNSTILE_SITEKEY.startsWith('BURAYA_')) return;
+  ['loginTurnstile','registerTurnstile'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el && !el.dataset.rendered){
+      const callback=id==='loginTurnstile'?'onLoginTurnstile':'onRegisterTurnstile';
+      window.turnstile.render(el,{sitekey:TURNSTILE_SITEKEY,callback});
+      el.dataset.rendered='1';
+    }
+  });
+}
+window.addEventListener('load',()=>setTimeout(renderTurnstileWidgets,500));
 </body>
 </html>

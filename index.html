@@ -113,7 +113,7 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
     <div class="field"><label>Postoperatif gün</label><input id="newPod" type="number" min="0" placeholder="Gün"></div>
   </div>
   <div class="notice" style="margin-top:12px">Hasta Dosya No / T.C. Kimlik No bilgisi, kurumunuzun yetkilendirme ve veri koruma kurallarına uygun şekilde kullanılmalıdır.</div>
-  <div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="addPatient()">Hasta Kaydet</button></div></div>
+  <div class="actions" style="margin-top:14px"><button id="patientSaveBtn" class="btn btn-primary" onclick="addPatient()">Hasta Kaydet</button></div></div>
   <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Hasta Dosya No / T.C. Kimlik No</th><th>Hasta Adı Soyadı</th><th>Doğum Tarihi</th><th>Cinsiyet</th><th>Boy (cm)</th><th>Kilo (kg)</th><th>Postoperatif gün</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
 </section>
 
@@ -236,13 +236,14 @@ async function editPatient(id){
  document.getElementById('newWeight').value=data.weight_kg??'';
  document.getElementById('newPod').value=data.postoperative_day??'';
  window.editingPatientId=id;
- const btn=document.querySelector('#patients .btn-primary[onclick="addPatient()"]');
- if(btn){btn.textContent='Hasta Bilgilerini Güncelle';btn.setAttribute('onclick','updatePatient()')}
+ const btn=document.getElementById('patientSaveBtn');
+ if(btn){btn.textContent='Hasta Bilgilerini Güncelle';btn.dataset.mode='edit'}
+ toast('Hasta bilgileri düzenleme moduna alındı');
  window.scrollTo({top:0,behavior:'smooth'});
 }
 async function updatePatient(){
  const id=window.editingPatientId;
- if(!id){addPatient();return}
+ if(!id){toast('Düzenlenecek hasta seçilmedi.');return}
  const payload={
    patient_code:v('newPid').trim(),
    medical_record_no:v('newPatientIdentifier').trim(),
@@ -250,21 +251,26 @@ async function updatePatient(){
    birth_date:v('newBirthDate')||null,
    age:v('newBirthDate')?calculateAge(v('newBirthDate')):null,
    gender:v('newGender')||null,
-   height_cm:n('newHeight')||null,
-   weight_kg:n('newWeight')||null,
-   postoperative_day:n('newPod')
+   height_cm:v('newHeight')!==''?Number(v('newHeight')):null,
+   weight_kg:v('newWeight')!==''?Number(v('newWeight')):null,
+   postoperative_day:v('newPod')!==''?Number(v('newPod')):null
  };
- if(!payload.patient_code||!payload.medical_record_no||!payload.patient_name){toast('Hasta kodu, Dosya No/T.C. Kimlik No ve Ad Soyad zorunludur');return}
+ if(!payload.patient_code||!payload.medical_record_no||!payload.patient_name){
+   toast('Hasta kodu, Dosya No/T.C. Kimlik No ve Ad Soyad zorunludur');return
+ }
  const {error}=await sb.from('patients').update(payload).eq('id',id);
  if(error){toast('Hasta güncellenemedi: '+error.message);return}
  window.editingPatientId=null;
- const btn=document.querySelector('#patients .btn-primary[onclick="updatePatient()"]');
- if(btn){btn.textContent='Hasta Kaydet';btn.setAttribute('onclick','addPatient()')}
- ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newPod'].forEach(x=>{const e=document.getElementById(x);if(e)e.value=''});
- document.getElementById('newGender').value='';
- toast('Hasta bilgileri güncellendi');refresh();
+ const btn=document.getElementById('patientSaveBtn');
+ if(btn){btn.textContent='Hasta Kaydet';btn.dataset.mode='add'}
+ ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newPod'].forEach(x=>{
+   const el=document.getElementById(x);if(el)el.value=''
+ });
+ const g=document.getElementById('newGender');if(g)g.value='';
+ toast('Hasta bilgileri başarıyla güncellendi');refresh()
 }
 async function addPatient(){
+ if(window.editingPatientId){await updatePatient();return}
  const code=v('newPid').trim(), identifier=v('newPatientIdentifier').trim(), name=v('newPatientName').trim();
  const birth=v('newBirthDate'), gender=v('newGender');
  const height=v('newHeight'), weight=v('newWeight'), pod=v('newPod');

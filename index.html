@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>S-CDIAPS v2.6</title>
+<title>S-CDIAPS v2.7</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -97,7 +97,7 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
     <div class="risk y"><span>🟡 Orta</span><b id="rMid">0</b><span>Hemşire değerlendirmesi</span></div>
     <div class="risk r"><span>🔴 Yüksek</span><b id="rHigh">0</b><span>Öncelikli değerlendirme</span></div>
   </div></div>
-  <div class="card"><h3>Son değerlendirmeler</h3><div class="table-wrap"><table><thead><tr><th>Zaman</th><th>Hasta</th><th>Risk</th><th>NEWS2</th><th>Temel neden</th></tr></thead><tbody id="dashTable"></tbody></table></div></div>
+  <div class="card"><h3>Son değerlendirmeler</h3><div class="table-wrap"><table><thead><tr><th>Zaman</th><th>Hasta</th><th>TC / Dosya No</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Temel neden</th></tr></thead><tbody id="dashTable"></tbody></table></div></div>
 </section>
 
 <section id="patients" class="page hidden">
@@ -128,6 +128,8 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
       <div class="field"><label>Ateş °C</label><input id="temp" type="number" step=".1" value="37"></div>
       <div class="field"><label>Nabız /dk</label><input id="hr" type="number" value="84"></div>
       <div class="field"><label>Sistolik KB mmHg</label><input id="sbp" type="number" value="120"></div>
+      <div class="field"><label>Diyastolik KB mmHg</label><input id="dbp" type="number" value="80"></div>
+      <div class="field"><label>Ağrı (0–10)</label><input id="painScore" type="number" min="0" max="10" step="1" value="0"></div>
       <div class="field"><label>Solunum /dk</label><input id="rr" type="number" value="18"></div>
       <div class="field"><label>SpO₂ %</label><input id="spo2" type="number" value="97"></div>
       <div class="field"><label>Oksijen L/dk</label><input id="o2" type="number" step=".5" value="0"></div>
@@ -153,7 +155,7 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
 
 <section id="history" class="page hidden">
   <div class="toolbar"><div class="page-title"><h2>Değerlendirme Geçmişi</h2><p>Risk sonuçları ve kayıt zamanları</p></div></div>
-  <div class="card"><div class="table-wrap"><table><thead><tr><th>Zaman</th><th>Hasta</th><th>Risk</th><th>NEWS2</th><th>Neden</th></tr></thead><tbody id="historyTable"></tbody></table></div></div>
+  <div class="card"><div class="table-wrap"><table><thead><tr><th>Zaman</th><th>Hasta</th><th>TC / Dosya No</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Neden</th></tr></thead><tbody id="historyTable"></tbody></table></div></div>
 </section>
 
 <section id="admin" class="page hidden">
@@ -243,20 +245,21 @@ async function evaluateAndSave(){
  if(ck('pus')||ck('dehiscence')){score=Math.max(score,2);reasons.push('Önemli cerrahi alan bulgusu')}if(ck('redness')||ck('drain')){score=Math.max(score,1);reasons.push('Yeni cerrahi alan değişikliği')}if(ck('dist')||ck('vomit')||ck('nogas')){score=Math.max(score,2);reasons.push('Postoperatif gastrointestinal bulgular')}if(ck('oliguria')){score=Math.max(score,2);reasons.push('İdrar çıkışında belirgin azalma')}if(ck('pain')){score=Math.max(score,1);reasons.push('Beklenmeyen/artan ağrı')}
  const risk=score>=3?'YÜKSEK':score>=2?'ORTA':'DÜŞÜK', cls=risk==='YÜKSEK'?'r':risk==='ORTA'?'y':'g';
  const action=risk==='YÜKSEK'?'Hastayı derhal klinik olarak değerlendirin; vital bulguları doğrulayın ve kurum protokolüne göre sorumlu klinik ekibe bildirin.':risk==='ORTA'?'Hastayı klinik olarak değerlendirin ve kurum protokolüne göre yeniden değerlendirme planlayın.':'Rutin klinik izleme devam edin.';
- const payload={patient_id:patientId,assessed_by:currentUser.id,temperature:t,heart_rate:hr,systolic_bp:sbp,respiratory_rate:rr,spo2:sp,oxygen_l_min:n('o2'),consciousness_change:n('con')===1,nurse_concern:c,wound_redness:ck('redness'),drain_change:ck('drain'),purulent_discharge:ck('pus'),wound_dehiscence:ck('dehiscence'),abdominal_distension:ck('dist'),vomiting:ck('vomit'),no_gas:ck('nogas'),increased_pain:ck('pain'),oliguria:ck('oliguria'),news2_score:news2(),scdiaps_risk:risk,risk_reasons:reasons.join('; '),recommended_action:action};
+ const payload={patient_id:patientId,assessed_by:currentUser.id,temperature:t,heart_rate:hr,systolic_bp:sbp,diastolic_bp:n('dbp'),pain_score:n('painScore'),respiratory_rate:rr,spo2:sp,oxygen_l_min:n('o2'),consciousness_change:n('con')===1,nurse_concern:c,wound_redness:ck('redness'),drain_change:ck('drain'),purulent_discharge:ck('pus'),wound_dehiscence:ck('dehiscence'),abdominal_distension:ck('dist'),vomiting:ck('vomit'),no_gas:ck('nogas'),increased_pain:ck('pain'),oliguria:ck('oliguria'),news2_score:news2(),scdiaps_risk:risk,risk_reasons:reasons.join('; '),recommended_action:action};
  const {error}=await sb.from('assessments').insert(payload);if(error){toast('Kayıt hatası: '+error.message);return}
  document.getElementById('result').innerHTML=`<div class="result-panel ${cls}"><h3>${risk} RİSK</h3><p><b>NEWS2:</b> ${payload.news2_score}</p><p><b>Nedenler:</b></p><ul>${(reasons.length?reasons:['Belirgin risk göstergesi saptanmadı']).map(x=>`<li>${x}</li>`).join('')}</ul><p><b>Önerilen eylem:</b> ${action}</p></div>`;toast('Değerlendirme kaydedildi');refresh()
 }
 function clearAssessment(){document.querySelectorAll('#assessment input').forEach(e=>{if(e.type==='checkbox')e.checked=false});document.getElementById('result').innerHTML=''}
 async function refresh(){
  if(!currentUser)return;
- const [pr,ar]=await Promise.all([sb.from('patients').select('*').order('created_at',{ascending:false}),sb.from('assessments').select('*').order('assessed_at',{ascending:false})]);
- const patients=pr.data||[],records=ar.data||[];
+ const [pr,hr]=await Promise.all([sb.from('patients').select('*').order('created_at',{ascending:false}),sb.rpc('assessment_history_context')]);
+ const patients=pr.data||[],records=hr.data||[];
+ if(hr.error){console.error(hr.error); toast('Değerlendirme geçmişi okunamadı: '+hr.error.message);return}
  document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('rLow').textContent=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code}</option>`).join('');
  document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.age??'-'}</td><td>${p.gender??'-'}</td><td>${p.medical_record_no??'-'}</td><td>${p.postoperative_day??'-'}</td><td>${new Date(p.created_at).toLocaleString('tr-TR')}</td><td><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="7">Hasta bulunmuyor.</td></tr>';
- const rows=records.slice(0,15).map(x=>`<tr><td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td><td>${x.patient_id}</td><td><span class="badge ${x.scdiaps_risk==='YÜKSEK'?'r':x.scdiaps_risk==='ORTA'?'y':'g'}">${x.scdiaps_risk}</span></td><td>${x.news2_score}</td><td>${x.risk_reasons||'-'}</td></tr>`).join('')||'<tr><td colspan="5">Kayıt yok.</td></tr>';
+ const rows=records.slice(0,15).map(x=>`<tr><td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td><td><b>${x.patient_code||'—'}</b></td><td>${x.patient_identifier||'—'}</td><td>${x.evaluator_name||'—'}</td><td><span class="badge ${x.risk==='YÜKSEK'?'r':x.risk==='ORTA'?'y':'g'}">${x.risk||'—'}</span></td><td>${x.news2??'—'}</td><td>${x.reasons||'—'}</td></tr>`).join('')||'<tr><td colspan="7">Kayıt yok.</td></tr>';
  document.getElementById('dashTable').innerHTML=rows;document.getElementById('historyTable').innerHTML=rows;
  if(currentProfile&&currentProfile.role==='admin')renderAdmin()
 }

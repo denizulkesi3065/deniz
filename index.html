@@ -741,7 +741,7 @@ function turnstileError(which, code){
   const msgId = which==='login' ? 'loginMsg' : 'regMsg';
   const el=document.getElementById(msgId);
   const detail=code ? ` (Kod: ${code})` : '';
-  if(el) el.textContent='Güvenlik doğrulaması yüklenemedi. Bu nedenle giriş/kayıt güvenlik amacıyla engellendi. Cloudflare Site Key ve alan adı ayarlarını kontrol edin.'+detail;
+  if(el) el.textContent='Güvenlik doğrulaması yüklenemedi. Giriş/kayıt güvenlik amacıyla engellendi.'+(detail||'')+' Cloudflare Site Key ve alan adını kontrol edin.';
 }
 
 function renderTurnstileWidgets(){
@@ -757,7 +757,7 @@ function renderTurnstileWidgets(){
         sitekey:TURNSTILE_SITEKEY,
         size:'flexible',
         callback:onLoginTurnstile,
-        'error-callback':()=>turnstileError('login'),
+        'error-callback':(code)=>turnstileError('login',code),
         'expired-callback':()=>{loginTurnstileToken='';}
       });
     }catch(e){turnstileError('login',e);}
@@ -769,7 +769,7 @@ function renderTurnstileWidgets(){
         sitekey:TURNSTILE_SITEKEY,
         size:'flexible',
         callback:onRegisterTurnstile,
-        'error-callback':()=>turnstileError('register'),
+        'error-callback':(code)=>turnstileError('register',code),
         'expired-callback':()=>{registerTurnstileToken='';}
       });
     }catch(e){turnstileError('register',e);}

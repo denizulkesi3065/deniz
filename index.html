@@ -285,7 +285,7 @@ button,input,select{touch-action:manipulation}
 <div id="toast" class="toast"></div>
 
 <script>
-const TURNSTILE_SITEKEY='0x4AAAAAAEb9_9_AqjNi7D1Lp';
+const TURNSTILE_SITEKEY='0x4AAAAAAEb9_9_AqjNi7Dlp';
 const SUPABASE_URL='https://nndtcprefcrevdulxzhy.supabase.co';
 const SUPABASE_KEY='sb_publishable_7IeSV5cMQoAPAbfzE7KVpw_rnfXwZ2e';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
@@ -730,7 +730,8 @@ function turnstileError(which, code){
   console.error('Turnstile error', which, code);
   const msgId = which==='login' ? 'loginMsg' : 'regMsg';
   const el=document.getElementById(msgId);
-  if(el) el.textContent='Güvenlik doğrulaması yüklenemedi. Cloudflare alan adı ve Site Key ayarlarını kontrol edin.';
+  const detail=code ? ` (Kod: ${code})` : '';
+  if(el) el.textContent='Güvenlik doğrulaması yüklenemedi. Cloudflare Site Key/alan adı ayarlarını kontrol edin.'+detail;
 }
 
 function renderTurnstileWidgets(){

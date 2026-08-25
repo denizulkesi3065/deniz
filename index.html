@@ -104,15 +104,17 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
   <div class="toolbar"><div class="page-title"><h2>Hastalar</h2><p>Hasta kayıtları ve hızlı klinik erişim</p></div></div>
   <div class="card"><h3>Yeni hasta</h3><div class="formgrid">
     <div class="field"><label>Hasta kodu</label><input id="newPid" placeholder="SC-001"></div>
-    <div class="field"><label>Yaş</label><input id="newAge" type="number" min="0" max="120"></div>
+    <div class="field"><label>Hasta Dosya No / T.C. Kimlik No</label><input id="newPatientIdentifier" inputmode="numeric" placeholder="Dosya No veya 11 haneli T.C. Kimlik No"></div>
+    <div class="field"><label>Hasta Adı Soyadı</label><input id="newPatientName" placeholder="Ad Soyad"></div>
+    <div class="field"><label>Doğum Tarihi</label><input id="newBirthDate" type="date"></div>
     <div class="field"><label>Cinsiyet</label><select id="newGender"><option value="">Seçiniz</option><option value="Kadın">Kadın</option><option value="Erkek">Erkek</option><option value="Belirtmek istemiyor">Belirtmek istemiyor</option></select></div>
-    <div class="field"><label>Dosya No</label><input id="newMRN" placeholder="Dosya numarası"></div>
-    <div class="field"><label>T.C. Kimlik No</label><input id="newNationalId" inputmode="numeric" maxlength="11" placeholder="11 haneli"></div>
-    <div class="field"><label>Postoperatif gün</label><input id="newPod" type="number" min="0"></div>
+    <div class="field"><label>Boy (cm)</label><input id="newHeight" type="number" min="30" max="250" step="0.1" placeholder="cm"></div>
+    <div class="field"><label>Kilo (kg)</label><input id="newWeight" type="number" min="1" max="400" step="0.1" placeholder="kg"></div>
+    <div class="field"><label>Postoperatif gün</label><input id="newPod" type="number" min="0" placeholder="Gün"></div>
   </div>
-  <div class="notice" style="margin-top:12px">TC / Dosya No bilgisi, kurumunuzun yetkilendirme ve veri koruma kurallarına uygun şekilde kullanılmalıdır.</div>
+  <div class="notice" style="margin-top:12px">Hasta Dosya No / T.C. Kimlik No bilgisi, kurumunuzun yetkilendirme ve veri koruma kurallarına uygun şekilde kullanılmalıdır.</div>
   <div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="addPatient()">Hasta Kaydet</button></div></div>
-  <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Yaş</th><th>Cinsiyet</th><th>TC / Dosya No</th><th>Postop gün</th><th>Oluşturulma</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
+  <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Hasta Dosya No / T.C. Kimlik No</th><th>Hasta Adı Soyadı</th><th>Doğum Tarihi</th><th>Cinsiyet</th><th>Boy (cm)</th><th>Kilo (kg)</th><th>Postoperatif gün</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
 </section>
 
 <section id="assessment" class="page hidden">
@@ -223,26 +225,37 @@ async function registerUser(){
 async function logout(){await sb.auth.signOut();currentUser=null;currentProfile=null;document.getElementById('app').classList.add('hidden');showLogin()}
 function news2(){let s=0,t=n('temp'),hr=n('hr'),sbp=n('sbp'),rr=n('rr'),sp=n('spo2'),o2=n('o2');if(rr<=8||rr>=25)s+=3;else if(rr<=11||rr>=21)s+=1;if(sp<=91)s+=3;else if(sp<=93)s+=2;else if(sp<=95)s+=1;if(sbp<=90)s+=3;else if(sbp<=100)s+=2;else if(sbp<=110)s+=1;if(hr<=40||hr>=131)s+=3;else if(hr<=50||hr>=111)s+=1;else if(hr>=91)s+=1;if(t<=35)s+=3;else if(t<=36)s+=1;else if(t>=39.1)s+=2;else if(t>=38.1)s+=1;if(o2>0)s+=2;if(n('con')!==0)s+=3;return s}
 async function addPatient(){
- const code=v('newPid').trim();
- const gender=v('newGender');
- const identifier=v('newPatientIdentifier').trim();
+ const code=v('newPid').trim(), identifier=v('newPatientIdentifier').trim(), name=v('newPatientName').trim();
+ const birth=v('newBirthDate'), gender=v('newGender');
+ const height=v('newHeight'), weight=v('newWeight'), pod=v('newPod');
  if(!code){toast('Hasta kodu gerekli');return}
- if(!identifier){toast('TC / Dosya No girin');return}
+ if(!identifier){toast('Hasta Dosya No / T.C. Kimlik No girin');return}
+ if(!name){toast('Hasta adı soyadı gerekli');return}
+ if(!birth){toast('Doğum tarihi gerekli');return}
+ if(!gender){toast('Cinsiyet seçin');return}
+ if(!height||!weight||pod===''){toast('Boy, kilo ve postoperatif gün alanlarını doldurun');return}
+ const birthDate=new Date(birth+'T00:00:00');
+ const today=new Date();
+ let age=today.getFullYear()-birthDate.getFullYear();
+ const md=today.getMonth()-birthDate.getMonth();
+ if(md<0 || (md===0 && today.getDate()<birthDate.getDate())) age--;
  const payload={
    patient_code:code,
-   age:n('newAge'),
-   postoperative_day:n('newPod'),
-   gender:gender||null,
+   patient_name:name,
+   birth_date:birth,
+   age:Math.max(0,age),
+   height_cm:Number(height),
+   weight_kg:Number(weight),
+   postoperative_day:Number(pod),
+   gender:gender,
    medical_record_no:identifier,
    national_id:null,
    created_by:currentUser.id
  };
  const {error}=await sb.from('patients').insert(payload);
  if(error){toast('Hasta kaydedilemedi: '+error.message);return}
- ['newPid','newAge','newPatientIdentifier','newPod'].forEach(id=>{
-   const el=document.getElementById(id); if(el) el.value='';
- });
- const g=document.getElementById('newGender'); if(g) g.value='';
+ ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newPod'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+ const g=document.getElementById('newGender'); if(g)g.value='';
  toast('Hasta kaydedildi'); refresh()
 }
 async function deletePatient(id){
@@ -275,8 +288,8 @@ async function refresh(){
  if(hr.error){console.error(hr.error); toast('Değerlendirme geçmişi okunamadı: '+hr.error.message);return}
  document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('rLow').textContent=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
- document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code}</option>`).join('');
- document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.age??'-'}</td><td>${p.gender??'-'}</td><td>${p.medical_record_no??'-'}</td><td>${p.postoperative_day??'-'}</td><td>${new Date(p.created_at).toLocaleString('tr-TR')}</td><td><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="7">Hasta bulunmuyor.</td></tr>';
+ document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code} — ${p.patient_name||'Ad Soyad yok'} — ${p.medical_record_no||'TC/Dosya No yok'}</option>`).join('');
+ document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.medical_record_no??'-'}</td><td>${p.patient_name??'-'}</td><td>${p.birth_date?new Date(p.birth_date+'T00:00:00').toLocaleDateString('tr-TR'):'-'}</td><td>${p.gender??'-'}</td><td>${p.height_cm??'-'} cm</td><td>${p.weight_kg??'-'} kg</td><td>${p.postoperative_day??'-'}</td><td><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="9">Hasta bulunmuyor.</td></tr>';
  const rows=records.slice(0,15).map(x=>`<tr><td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td><td><b>${x.patient_code||'—'}</b></td><td>${x.patient_identifier||'—'}</td><td>${x.evaluator_name||'—'}</td><td><span class="badge ${x.risk==='YÜKSEK'?'r':x.risk==='ORTA'?'y':'g'}">${x.risk||'—'}</span></td><td>${x.news2??'—'}</td><td>${x.reasons||'—'}</td></tr>`).join('')||'<tr><td colspan="7">Kayıt yok.</td></tr>';
  document.getElementById('dashTable').innerHTML=rows;document.getElementById('historyTable').innerHTML=rows;
  if(currentProfile&&currentProfile.role==='admin')renderAdmin()

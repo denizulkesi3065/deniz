@@ -295,13 +295,22 @@ function toast(t){const e=document.getElementById('toast');e.textContent=t;e.sty
 function n(id){const x=parseFloat(document.getElementById(id).value);return Number.isFinite(x)?x:0}
 function v(id){return document.getElementById(id).value}
 function ck(id){return document.getElementById(id).checked}
-function showRegister(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('registerPage').classList.remove('hidden')}
-function showLogin(){document.getElementById('registerPage').classList.add('hidden');document.getElementById('loginPage').classList.remove('hidden')}
+function showRegister(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('registerPage').classList.remove('hidden');setTimeout(renderTurnstileWidgets,50)}
+function showLogin(){document.getElementById('registerPage').classList.add('hidden');document.getElementById('loginPage').classList.remove('hidden');setTimeout(renderTurnstileWidgets,50)}
 function go(id,btn){if(id==='assessment' && !document.getElementById('pid').value){document.getElementById('assessmentPatientIdentifier').value='';document.getElementById('assessmentPatientName').value=''} if(id==='admin'&&(!currentProfile||currentProfile.role!=='admin')){toast('Yönetici yetkisi gerekir');return}document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');refresh()}
 function onLoginTurnstile(token){loginTurnstileToken=token||''}
 function onRegisterTurnstile(token){registerTurnstileToken=token||''}
 function resetTurnstile(widgetId){
   try{if(window.turnstile)window.turnstile.reset(widgetId)}catch(e){}
+}
+function retryTurnstile(){
+  try{
+    ['loginTurnstile','registerTurnstile'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) delete el.dataset.rendered;
+    });
+    renderTurnstileWidgets();
+  }catch(e){console.error('Turnstile yeniden başlatılamadı:',e)}
 }
 async function login(){
  const email=v('loginEmail').trim().toLowerCase(), password=document.getElementById('loginPassword').value;

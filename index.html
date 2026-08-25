@@ -41,6 +41,7 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
 .toast{position:fixed;right:20px;bottom:20px;background:#173f5f;color:#fff;padding:13px 16px;border-radius:10px;box-shadow:var(--shadow);display:none;z-index:10}
 @media(max-width:1050px){.layout{grid-template-columns:80px 1fr}.sidebar .label,.sidebar .menu-title{display:none}.navbtn{text-align:center}.grid4{grid-template-columns:repeat(2,1fr)}.formgrid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){header{padding:0 14px}.layout{display:block}.sidebar{display:flex;overflow:auto;padding:8px}.navbtn{min-width:120px}.main{padding:16px}.grid4,.formgrid,.checks,.risk-row{grid-template-columns:1fr}}
+.turnstile-box{width:100%;min-height:65px;margin-top:12px}
 </style>
 
 <meta name="theme-color" content="#102a43">
@@ -110,7 +111,7 @@ button,input,select{touch-action:manipulation}
   <p style="margin-top:0;color:#64748b">Cerrahi Klinik Kötüleşme ve Alarm Önceliklendirme Sistemi</p>
   <div class="field"><label>E-posta</label><input id="loginEmail" type="email" value="ismaildeniz0192@gmail.com"></div>
   <div class="field" style="margin-top:10px"><label>Şifre</label><input id="loginPassword" type="password"></div>
-  <div id="loginTurnstile" class="cf-turnstile" data-callback="onLoginTurnstile"></div>
+  <div id="loginTurnstile" class="turnstile-box"></div>
   <div class="actions" style="margin-top:14px">
     <button class="btn btn-primary" onclick="login()">Giriş Yap</button>
     <button class="btn btn-light" onclick="showRegister()">Yeni Kayıt</button>
@@ -130,7 +131,7 @@ button,input,select{touch-action:manipulation}
   <div class="field" style="margin-top:10px"><label>Eğitim Durumu</label><select id="regEducation"><option value="">Önce meslek seçiniz</option></select></div>
   <div class="field" style="margin-top:10px"><label>Mesleki / Akademik Unvan</label><select id="regTitle"><option value="">Önce meslek seçiniz</option></select></div>
   <div class="field" style="margin-top:10px"><label>Şifre</label><input id="regPassword" type="password"></div>
-  <div id="registerTurnstile" class="cf-turnstile" data-callback="onRegisterTurnstile"></div>
+  <div id="registerTurnstile" class="turnstile-box"></div>
   <div class="field" style="margin-top:10px"><label>Rol</label><select id="regRole"><option value="hemsire">Hemşire</option><option value="doktor">Hekim</option></select></div>
   <div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="registerUser()">Kayıt Talebi</button><button class="btn btn-light" onclick="showLogin()">Geri</button></div>
   <div id="regMsg" class="notice" style="margin-top:14px"></div>
@@ -295,14 +296,9 @@ function toast(t){const e=document.getElementById('toast');e.textContent=t;e.sty
 function n(id){const x=parseFloat(document.getElementById(id).value);return Number.isFinite(x)?x:0}
 function v(id){return document.getElementById(id).value}
 function ck(id){return document.getElementById(id).checked}
-function showRegister(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('registerPage').classList.remove('hidden');setTimeout(renderTurnstileWidgets,50)}
-function showLogin(){document.getElementById('registerPage').classList.add('hidden');document.getElementById('loginPage').classList.remove('hidden');setTimeout(renderTurnstileWidgets,50)}
+function showRegister(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('registerPage').classList.remove('hidden');setTimeout(()=>{renderTurnstileWidgets();if(registerTurnstileWidgetId!==null)try{window.turnstile.reset(registerTurnstileWidgetId)}catch(e){}},50)}
+function showLogin(){document.getElementById('registerPage').classList.add('hidden');document.getElementById('loginPage').classList.remove('hidden');setTimeout(()=>{renderTurnstileWidgets();if(loginTurnstileWidgetId!==null)try{window.turnstile.reset(loginTurnstileWidgetId)}catch(e){}},50)}
 function go(id,btn){if(id==='assessment' && !document.getElementById('pid').value){document.getElementById('assessmentPatientIdentifier').value='';document.getElementById('assessmentPatientName').value=''} if(id==='admin'&&(!currentProfile||currentProfile.role!=='admin')){toast('Yönetici yetkisi gerekir');return}document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');refresh()}
-function onLoginTurnstile(token){loginTurnstileToken=token||''}
-function onRegisterTurnstile(token){registerTurnstileToken=token||''}
-function resetTurnstile(widgetId){
-  try{if(window.turnstile)window.turnstile.reset(widgetId)}catch(e){}
-}
 function retryTurnstile(){
   try{
     ['loginTurnstile','registerTurnstile'].forEach(id=>{
@@ -732,30 +728,66 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
-function renderTurnstileWidgets(){
-  if(!window.turnstile) return;
-  if(TURNSTILE_SITEKEY.startsWith('BURAYA_')){
-    console.warn('Cloudflare Turnstile Site Key yapılandırılmamış.');
-    return;
-  }
-  ['loginTurnstile','registerTurnstile'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el && !el.dataset.rendered){
-      const callback=id==='loginTurnstile'?'onLoginTurnstile':'onRegisterTurnstile';
-      try{
-        window.turnstile.render(el,{sitekey:TURNSTILE_SITEKEY,callback});
-        el.dataset.rendered='1';
-      }catch(err){
-        console.error('Turnstile render hatası:',err);
-      }
-    }
-  });
+let loginTurnstileWidgetId=null, registerTurnstileWidgetId=null;
+
+function onLoginTurnstile(token){ loginTurnstileToken=token||''; }
+function onRegisterTurnstile(token){ registerTurnstileToken=token||''; }
+
+function turnstileError(which, code){
+  console.error('Turnstile error', which, code);
+  const msgId = which==='login' ? 'loginMsg' : 'regMsg';
+  const el=document.getElementById(msgId);
+  if(el) el.textContent='Güvenlik doğrulaması yüklenemedi. Cloudflare alan adı ve Site Key ayarlarını kontrol edin.';
 }
+
+function renderTurnstileWidgets(){
+  if(!window.turnstile) return false;
+  if(!TURNSTILE_SITEKEY || TURNSTILE_SITEKEY.startsWith('BURAYA_')) return false;
+
+  const loginEl=document.getElementById('loginTurnstile');
+  const regEl=document.getElementById('registerTurnstile');
+
+  if(loginEl && loginTurnstileWidgetId===null){
+    try{
+      loginTurnstileWidgetId=window.turnstile.render(loginEl,{
+        sitekey:TURNSTILE_SITEKEY,
+        size:'flexible',
+        callback:onLoginTurnstile,
+        'error-callback':()=>turnstileError('login'),
+        'expired-callback':()=>{loginTurnstileToken='';}
+      });
+    }catch(e){turnstileError('login',e);}
+  }
+
+  if(regEl && registerTurnstileWidgetId===null){
+    try{
+      registerTurnstileWidgetId=window.turnstile.render(regEl,{
+        sitekey:TURNSTILE_SITEKEY,
+        size:'flexible',
+        callback:onRegisterTurnstile,
+        'error-callback':()=>turnstileError('register'),
+        'expired-callback':()=>{registerTurnstileToken='';}
+      });
+    }catch(e){turnstileError('register',e);}
+  }
+  return true;
+}
+
+function retryTurnstile(){
+  try{
+    if(window.turnstile){
+      if(loginTurnstileWidgetId!==null){window.turnstile.reset(loginTurnstileWidgetId);loginTurnstileToken='';}
+      if(registerTurnstileWidgetId!==null){window.turnstile.reset(registerTurnstileWidgetId);registerTurnstileToken='';}
+      renderTurnstileWidgets();
+    }
+  }catch(e){console.error(e);}
+}
+
 window.addEventListener('load',()=>{
   const wait=setInterval(()=>{
-    if(window.turnstile){clearInterval(wait);renderTurnstileWidgets();}
-  },300);
-  setTimeout(()=>clearInterval(wait),10000);
+    if(renderTurnstileWidgets()){clearInterval(wait);}
+  },250);
+  setTimeout(()=>clearInterval(wait),15000);
 });
 </body>
 </html>

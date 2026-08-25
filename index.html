@@ -174,8 +174,33 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
 </section>
 
 <section id="history" class="page hidden">
-  <div class="toolbar"><div class="page-title"><h2>Değerlendirme Geçmişi</h2><p>Risk sonuçları ve kayıt zamanları</p></div></div>
-  <div class="card"><div class="table-wrap"><table><thead><tr><th>Zaman</th><th>Hasta</th><th>TC / Dosya No</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Neden</th></tr></thead><tbody id="historyTable"></tbody></table></div></div>
+  <div class="toolbar">
+    <div class="page-title">
+      <h2>Değerlendirme Geçmişi</h2>
+      <p>Her hasta bir kez listelenir; hastaya tıklayarak tüm değerlendirmelerini görüntüleyebilirsiniz.</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:44px"></th>
+            <th>Zaman</th>
+            <th>Dosya No</th>
+            <th>TC / Dosya No</th>
+            <th>Hasta Adı Soyadı</th>
+            <th>Değerlendiren</th>
+            <th>Risk</th>
+            <th>NEWS2</th>
+            <th>Neden</th>
+            <th>Değerlendirme</th>
+          </tr>
+        </thead>
+        <tbody id="historyTable"></tbody>
+      </table>
+    </div>
+  </div>
 </section>
 
 <section id="admin" class="page hidden">
@@ -355,11 +380,81 @@ async function refresh(){
  document.getElementById('rLow').textContent=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code} — ${p.patient_name||'Ad Soyad yok'} — ${p.medical_record_no||'TC/Dosya No yok'}</option>`).join('');
  document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.medical_record_no??'-'}</td><td>${p.patient_name??'-'}</td><td>${p.birth_date?new Date(p.birth_date+'T00:00:00').toLocaleDateString('tr-TR'):'-'}</td><td>${p.gender??'-'}</td><td>${p.height_cm??'-'} cm</td><td>${p.weight_kg??'-'} kg</td><td>${p.postoperative_day??'-'}</td><td><button class="btn btn-primary" onclick="editPatient('${p.id}')">Düzenle</button><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="9">Hasta bulunmuyor.</td></tr>';
- const rows=records.slice(0,15).map(x=>`<tr><td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td><td><b>${x.patient_code||'—'}</b></td><td>${x.patient_identifier||'—'}</td><td>${x.evaluator_name||'—'}</td><td><span class="badge ${x.risk==='YÜKSEK'?'r':x.risk==='ORTA'?'y':'g'}">${x.risk||'—'}</span></td><td>${x.news2??'—'}</td><td>${x.reasons||'—'}</td></tr>`).join('')||'<tr><td colspan="7">Kayıt yok.</td></tr>';
- document.getElementById('dashTable').innerHTML=rows;document.getElementById('historyTable').innerHTML=rows;
+ const latestByPatient={};
+ const grouped={};
+ records.forEach(x=>{
+   const key=x.patient_id;
+   if(!grouped[key]) grouped[key]=[];
+   grouped[key].push(x);
+ });
+ Object.keys(grouped).forEach(pid=>{
+   grouped[pid].sort((a,b)=>new Date(b.assessed_at)-new Date(a.assessed_at));
+   latestByPatient[pid]=grouped[pid][0];
+ });
+
+ const riskClass=r=>r==='YÜKSEK'?'r':r==='ORTA'?'y':'g';
+ const groupedRows=Object.entries(grouped).map(([pid,items])=>{
+   const latest=items[0];
+   const detailId='history-details-'+pid.replace(/[^a-zA-Z0-9_-]/g,'');
+   const details=items.map((x,i)=>`<div class="history-detail" style="display:grid;grid-template-columns:150px 1fr 140px 90px 1fr;gap:10px;padding:10px 12px;border-top:1px solid #e5e7eb;background:#fafafa">
+     <div><b>${new Date(x.assessed_at).toLocaleString('tr-TR')}</b></div>
+     <div><b>${x.evaluator_name||'—'}</b></div>
+     <div><span class="badge ${riskClass(x.risk)}">${x.risk||'—'}</span></div>
+     <div>${x.news2??'—'}</div>
+     <div>${x.reasons||'—'}</div>
+   </div>`).join('');
+   return `<tr class="history-patient-row" style="cursor:pointer" onclick="toggleHistoryPatient('${detailId}')">
+     <td><button class="btn btn-light" style="padding:6px 9px" onclick="event.stopPropagation();toggleHistoryPatient('${detailId}')">＋</button></td>
+     <td>${new Date(latest.assessed_at).toLocaleString('tr-TR')}</td>
+     <td><b>${latest.patient_code||'—'}</b></td>
+     <td>${latest.patient_identifier||'—'}</td>
+     <td><b>${latest.patient_name||'—'}</b></td>
+     <td>${latest.evaluator_name||'—'}</td>
+     <td><span class="badge ${riskClass(latest.risk)}">${latest.risk||'—'}</span></td>
+     <td>${latest.news2??'—'}</td>
+     <td>${latest.reasons||'—'}</td>
+     <td><span class="badge b">${items.length} değerlendirme</span></td>
+   </tr>
+   <tr id="${detailId}" class="history-details-row hidden">
+     <td colspan="10" style="padding:0">
+       <div style="padding:10px 0 0;background:#f8fafc">
+         <div style="display:grid;grid-template-columns:150px 1fr 140px 90px 1fr;gap:10px;padding:10px 12px;font-size:12px;font-weight:800;color:#64748b">
+           <div>Zaman</div><div>Değerlendiren</div><div>Risk</div><div>NEWS2</div><div>Neden</div>
+         </div>
+         ${details}
+       </div>
+     </td>
+   </tr>`;
+ }).join('') || '<tr><td colspan="10">Henüz değerlendirme yok.</td></tr>';
+
+ const dashboardRows=records.slice(0,15).map(x=>`<tr>
+   <td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td>
+   <td><b>${x.patient_code||'—'}</b></td>
+   <td>${x.patient_identifier||'—'}</td>
+   <td>${x.evaluator_name||'—'}</td>
+   <td><span class="badge ${riskClass(x.risk)}">${x.risk||'—'}</span></td>
+   <td>${x.news2??'—'}</td>
+   <td>${x.reasons||'—'}</td>
+ </tr>`).join('') || '<tr><td colspan="7">Kayıt yok.</td></tr>';
+
+ document.getElementById('dashTable').innerHTML=dashboardRows;
+ document.getElementById('historyTable').innerHTML=groupedRows;
+
+ // Keep dashboard headers compatible with the data.
+ const dashHead=document.querySelector('#dashboard table thead tr');
+ if(dashHead){
+   dashHead.innerHTML='<th>Zaman</th><th>Dosya No</th><th>TC / Dosya No</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Neden</th>';
+ }
  if(currentProfile&&currentProfile.role==='admin')renderAdmin()
 }
 function selectPatient(id){document.getElementById('pid').value=id;go('assessment')}
+function toggleHistoryPatient(id){
+ const row=document.getElementById(id);
+ if(!row)return;
+ const hidden=row.classList.toggle('hidden');
+ const btn=row.previousElementSibling?.querySelector('button');
+ if(btn)btn.textContent=hidden?'＋':'−';
+}
 async function renderAdmin(){
  const {data,error}=await sb.rpc('admin_list_profiles');
  if(error){document.getElementById('adminMsg').textContent='Kullanıcı listesi okunamadı: '+error.message;return}

@@ -97,14 +97,14 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
     <div class="risk y"><span>🟡 Orta</span><b id="rMid">0</b><span>Hemşire değerlendirmesi</span></div>
     <div class="risk r"><span>🔴 Yüksek</span><b id="rHigh">0</b><span>Öncelikli değerlendirme</span></div>
   </div></div>
-  <div class="card"><h3>Son değerlendirmeler</h3><div class="table-wrap"><table><thead><tr><th>Zaman</th><th>Hasta</th><th>TC / Hastane Adı</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Temel neden</th></tr></thead><tbody id="dashTable"></tbody></table></div></div>
+  <div class="card"><h3>Son değerlendirmeler</h3><div class="table-wrap"><table><thead><tr><th>Zaman</th><th>Hasta</th><th>TC / Dosya No</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Temel neden</th></tr></thead><tbody id="dashTable"></tbody></table></div></div>
 </section>
 
 <section id="patients" class="page hidden">
   <div class="toolbar"><div class="page-title"><h2>Hastalar</h2><p>Hasta kayıtları ve hızlı klinik erişim</p></div></div>
   <div class="card"><h3>Yeni hasta</h3><div class="formgrid">
     <div class="field"><label>Hasta kodu</label><input id="newPid" placeholder="SC-001"></div>
-    <div class="field"><label>Hasta Hastane Adı / T.C. Kimlik No</label><input id="newPatientIdentifier" inputmode="numeric" placeholder="Hastane Adı veya 11 haneli T.C. Kimlik No"></div>
+    <div class="field"><label>Hasta T.C. Kimlik No / Dosya No</label><input id="newPatientIdentifier" inputmode="numeric" placeholder="Hastane Adı veya 11 haneli T.C. Kimlik No"></div>
     <div class="field"><label>Hasta Adı Soyadı</label><input id="newPatientName" placeholder="Ad Soyad"></div>
     <div class="field"><label>Hastane Adı</label><input id="newHospitalName" placeholder="Hastane adı"></div>
     <div class="field"><label>Doğum Tarihi</label><input id="newBirthDate" type="date"></div>
@@ -113,9 +113,9 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
     <div class="field"><label>Kilo (kg)</label><input id="newWeight" type="number" min="1" max="400" step="0.1" placeholder="kg"></div>
     <div class="field"><label>Postoperatif gün</label><input id="newPod" type="number" min="0" placeholder="Gün"></div>
   </div>
-  <div class="notice" style="margin-top:12px">Hasta Hastane Adı / T.C. Kimlik No bilgisi, kurumunuzun yetkilendirme ve veri koruma kurallarına uygun şekilde kullanılmalıdır.</div>
+  <div class="notice" style="margin-top:12px">Hasta T.C. Kimlik No / Dosya No bilgisi, kurumunuzun yetkilendirme ve veri koruma kurallarına uygun şekilde kullanılmalıdır.</div>
   <div class="actions" style="margin-top:14px"><button id="patientSaveBtn" class="btn btn-primary" onclick="addPatient()">Hasta Kaydet</button></div></div>
-  <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Hasta Hastane Adı / T.C. Kimlik No</th><th>Hasta Adı Soyadı</th><th>Doğum Tarihi</th><th>Cinsiyet</th><th>Boy (cm)</th><th>Kilo (kg)</th><th>Postoperatif gün</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
+  <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Hasta T.C. Kimlik No / Dosya No</th><th>Hasta Adı Soyadı</th><th>Doğum Tarihi</th><th>Cinsiyet</th><th>Boy (cm)</th><th>Kilo (kg)</th><th>Postoperatif gün</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
 </section>
 
 <section id="assessment" class="page hidden">
@@ -188,8 +188,8 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
           <tr>
             <th style="width:44px"></th>
             <th>Zaman</th>
-            <th>Hastane Adı</th>
-            <th>TC / Hastane Adı</th>
+            <th>Dosya No</th>
+            <th>TC / Dosya No</th>
             <th>Hasta Adı Soyadı</th>
             <th>Değerlendiren</th>
             <th>Risk</th>
@@ -323,7 +323,7 @@ async function addPatient(){
  const birth=v('newBirthDate'), gender=v('newGender');
  const height=v('newHeight'), weight=v('newWeight'), pod=v('newPod');
  if(!code){toast('Hasta kodu gerekli');return}
- if(!identifier){toast('Hasta Hastane Adı / T.C. Kimlik No girin');return}
+ if(!identifier){toast('Hasta T.C. Kimlik No / Dosya No girin');return}
  if(!name){toast('Hasta adı soyadı gerekli');return}
  if(!birth){toast('Doğum tarihi gerekli');return}
  if(!gender){toast('Cinsiyet seçin');return}
@@ -436,11 +436,12 @@ async function refresh(){
    <td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td>
    <td><b>${x.patient_code||'—'}</b></td>
    <td>${x.patient_identifier||'—'}</td>
+   <td>${x.patient_name||'—'}</td>
    <td>${x.evaluator_name||'—'}</td>
    <td><span class="badge ${riskClass(x.risk)}">${x.risk||'—'}</span></td>
    <td>${x.news2??'—'}</td>
    <td>${x.reasons||'—'}</td>
- </tr>`).join('') || '<tr><td colspan="7">Kayıt yok.</td></tr>';
+ </tr>`).join('') || '<tr><td colspan="8">Kayıt yok.</td></tr>';
 
  document.getElementById('dashTable').innerHTML=dashboardRows;
  document.getElementById('historyTable').innerHTML=groupedRows;
@@ -448,7 +449,7 @@ async function refresh(){
  // Keep dashboard headers compatible with the data.
  const dashHead=document.querySelector('#dashboard table thead tr');
  if(dashHead){
-   dashHead.innerHTML='<th>Zaman</th><th>Hastane Adı</th><th>TC / Hastane Adı</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Neden</th>';
+   dashHead.innerHTML='<th>Zaman</th><th>Dosya No</th><th>TC / Dosya No</th><th>Hasta Adı Soyadı</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Neden</th>';
  }
  if(currentProfile&&currentProfile.role==='admin')renderAdmin()
 }

@@ -208,7 +208,7 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
 
 <section id="admin" class="page hidden">
   <div class="toolbar"><div class="page-title"><h2>Yönetici Paneli</h2><p>Kullanıcı onayı ve sistem erişim yönetimi</p></div></div>
-  <div class="card"><div class="notice">Yeni kullanıcılar e-posta doğrulaması ve yönetici onayı sonrasında aktifleşir.</div><div class="table-wrap"><table><thead><tr><th>Ad Soyad</th><th>Rol</th><th>Durum</th><th></th></tr></thead><tbody id="userTable"></tbody></table></div><div id="adminMsg"></div></div>
+  <div class="card"><div class="notice">S-CDIAPS araştırma/geliştirme amaçlı bir karar destek prototipidir; nihai klinik karar sağlık profesyoneline aittir.</div><div class="notice">Yeni kullanıcılar e-posta doğrulaması ve yönetici onayı sonrasında aktifleşir.</div><div class="table-wrap"><table><thead><tr><th>Ad Soyad</th><th>Rol</th><th>Durum</th><th></th></tr></thead><tbody id="userTable"></tbody></table></div><div id="adminMsg"></div></div>
 </section>
 
 </main></div></div>
@@ -251,24 +251,33 @@ async function registerUser(){
  if(!error)showLogin()
 }
 async function logout(){await sb.auth.signOut();currentUser=null;currentProfile=null;document.getElementById('app').classList.add('hidden');showLogin()}
-function news2(){let s=0,t=n('temp'),hr=n('hr'),sbp=n('sbp'),rr=n('rr'),sp=n('spo2'),o2=n('o2');if(rr<=8||rr>=25)s+=3;else if(rr<=11||rr>=21)s+=1;if(sp<=91)s+=3;else if(sp<=93)s+=2;else if(sp<=95)s+=1;if(sbp<=90)s+=3;else if(sbp<=100)s+=2;else if(sbp<=110)s+=1;if(hr<=40||hr>=131)s+=3;else if(hr<=50||hr>=111)s+=1;else if(hr>=91)s+=1;if(t<=35)s+=3;else if(t<=36)s+=1;else if(t>=39.1)s+=2;else if(t>=38.1)s+=1;if(o2>0)s+=2;if(n('con')!==0)s+=3;return s}
-async function editPatient(id){
- const {data,error}=await sb.from('patients').select('*').eq('id',id).single();
- if(error){toast('Hasta bilgileri alınamadı: '+error.message);return}
- document.getElementById('newPid').value=data.patient_code||'';
- document.getElementById('newPatientIdentifier').value=data.medical_record_no||data.national_id||'';
- document.getElementById('newPatientName').value=data.patient_name||'';
- document.getElementById('newBirthDate').value=data.birth_date||'';
- document.getElementById('newGender').value=data.gender||'';
- document.getElementById('newHeight').value=data.height_cm??'';
- document.getElementById('newWeight').value=data.weight_kg??'';
- updatePatientBMI();
- document.getElementById('newPod').value=data.postoperative_day??'';
- window.editingPatientId=id;
- const btn=document.getElementById('patientSaveBtn');
- if(btn){btn.textContent='Hasta Bilgilerini Güncelle';btn.dataset.mode='edit';btn.setAttribute('onclick','updatePatient()')}
- toast('Hasta bilgileri düzenleme moduna alındı');
- window.scrollTo({top:0,behavior:'smooth'});
+function news2(){
+ let s=0, t=n('temp'), hr=n('hr'), sbp=n('sbp'), rr=n('rr'), sp=n('spo2'), o2=n('o2');
+ // Respiratory rate
+ if(rr<=8 || rr>=25) s+=3;
+ else if(rr<=11 || rr>=21) s+=2;
+ else s+=0;
+ // SpO2
+ if(sp<=91) s+=3;
+ else if(sp<=93) s+=2;
+ else if(sp<=95) s+=1;
+ // Systolic BP
+ if(sbp<=90 || sbp>=220) s+=3;
+ else if(sbp<=100) s+=2;
+ else if(sbp<=110) s+=1;
+ // Pulse
+ if(hr<=40 || hr>=131) s+=3;
+ else if(hr<=50 || hr>=111) s+=1;
+ // Temperature
+ if(t<=35) s+=3;
+ else if(t<=36) s+=1;
+ else if(t>=39.1) s+=2;
+ else if(t>=38.1) s+=1;
+ // Supplemental oxygen
+ if(o2>0) s+=2;
+ // Consciousness: any non-alert ACVPU state = 3
+ if(n('con')!==0) s+=3;
+ return s;
 }
 async function updatePatient(){
  const id=window.editingPatientId;
@@ -387,16 +396,88 @@ async function deletePatient(id){
 }
 
 async function evaluateAndSave(){
- const patientId=v('pid');if(!patientId){toast('Önce hasta seçin');return}
- let score=0,reasons=[],t=n('temp'),hr=n('hr'),sbp=n('sbp'),rr=n('rr'),sp=n('spo2'),c=n('concern');
- if(sbp<=90||rr<=8||rr>=25||sp<=91||hr>=131||t<=35||c!==0){score=3;reasons.push('Kritik fizyolojik bulgu veya belirgin hemşire klinik endişesi')}
- if(hr>=111){score=Math.max(score,2);reasons.push('Nabızda belirgin yükselme')}if(sbp<=100){score=Math.max(score,2);reasons.push('Sistolik kan basıncında düşüş')}if(rr>=21){score=Math.max(score,2);reasons.push('Solunum sayısında artış')}if(sp<=93){score=Math.max(score,2);reasons.push('SpO₂ düşüklüğü')}if(t>=38.1){score=Math.max(score,1);reasons.push('Ateş yüksekliği')}
- if(ck('pus')||ck('dehiscence')){score=Math.max(score,2);reasons.push('Önemli cerrahi alan bulgusu')}if(ck('redness')||ck('drain')){score=Math.max(score,1);reasons.push('Yeni cerrahi alan değişikliği')}if(ck('dist')||ck('vomit')||ck('nogas')){score=Math.max(score,2);reasons.push('Postoperatif gastrointestinal bulgular')}if(ck('oliguria')){score=Math.max(score,2);reasons.push('İdrar çıkışında belirgin azalma')}if(ck('pain')){score=Math.max(score,1);reasons.push('Beklenmeyen/artan ağrı')}
- const risk=score>=3?'YÜKSEK':score>=2?'ORTA':'DÜŞÜK', cls=risk==='YÜKSEK'?'r':risk==='ORTA'?'y':'g';
- const action=risk==='YÜKSEK'?'Hastayı derhal klinik olarak değerlendirin; vital bulguları doğrulayın ve kurum protokolüne göre sorumlu klinik ekibe bildirin.':risk==='ORTA'?'Hastayı klinik olarak değerlendirin ve kurum protokolüne göre yeniden değerlendirme planlayın.':'Rutin klinik izleme devam edin.';
- const payload={patient_id:patientId,assessed_by:currentUser.id,temperature:t,heart_rate:hr,systolic_bp:sbp,diastolic_bp:n('dbp'),pain_score:n('painScore'),respiratory_rate:rr,spo2:sp,oxygen_l_min:n('o2'),consciousness_change:n('con')===1,nurse_concern:c,wound_redness:ck('redness'),drain_change:ck('drain'),purulent_discharge:ck('pus'),wound_dehiscence:ck('dehiscence'),abdominal_distension:ck('dist'),vomiting:ck('vomit'),no_gas:ck('nogas'),increased_pain:(n('painScore')>=1),pain_score:n('painScore'),oliguria:ck('oliguria'),news2_score:news2(),scdiaps_risk:risk,risk_reasons:reasons.join('; '),recommended_action:action};
- const {error}=await sb.from('assessments').insert(payload);if(error){toast('Kayıt hatası: '+error.message);return}
- document.getElementById('result').innerHTML=`<div class="result-panel ${cls}"><h3>${risk} RİSK</h3><p><b>NEWS2:</b> ${payload.news2_score}</p><p><b>Nedenler:</b></p><ul>${(reasons.length?reasons:['Belirgin risk göstergesi saptanmadı']).map(x=>`<li>${x}</li>`).join('')}</ul><p><b>Önerilen eylem:</b> ${action}</p></div>`;toast('Değerlendirme kaydedildi');refresh()
+ const patientId=v('pid');
+ if(!patientId){toast('Önce Hastalar bölümünden bir hasta seçin.');return}
+
+ const t=n('temp'), hr=n('hr'), sbp=n('sbp'), rr=n('rr'), sp=n('spo2'), painScore=n('painScore'), concern=n('concern'), consciousness=n('con');
+ const news2Score=news2();
+
+ // S-CDIAPS surgical-specific points
+ let scdiapsExtra=0, reasons=[];
+ if(painScore>=8){scdiapsExtra=Math.max(scdiapsExtra,3);reasons.push('Şiddetli ağrı (8–10/10)')}
+ else if(painScore>=5){scdiapsExtra=Math.max(scdiapsExtra,2);reasons.push('Orta-yüksek ağrı (5–7/10)')}
+ else if(painScore>=1){reasons.push('Hafif ağrı (1–4/10)')}
+
+ if(ck('redness')){scdiapsExtra=Math.max(scdiapsExtra,1);reasons.push('Yeni/artan yara kızarıklığı')}
+ if(ck('drain')){scdiapsExtra=Math.max(scdiapsExtra,1);reasons.push('Beklenmeyen dren değişikliği')}
+ if(ck('pus')){scdiapsExtra=Math.max(scdiapsExtra,2);reasons.push('Pürülan akıntı')}
+ if(ck('dehiscence')){scdiapsExtra=Math.max(scdiapsExtra,3);reasons.push('Yara ayrışması')}
+ if(ck('dist')){scdiapsExtra=Math.max(scdiapsExtra,2);reasons.push('Abdominal distansiyon')}
+ if(ck('vomit')){scdiapsExtra=Math.max(scdiapsExtra,2);reasons.push('Tekrarlayan kusma')}
+ if(ck('nogas')){scdiapsExtra=Math.max(scdiapsExtra,2);reasons.push('Gaz çıkaramama')}
+ if(ck('oliguria')){scdiapsExtra=Math.max(scdiapsExtra,2);reasons.push('İdrar çıkışında belirgin azalma')}
+ if(concern===1){scdiapsExtra=Math.max(scdiapsExtra,1);reasons.push('Hemşire klinik endişesi')}
+ if(concern===2){scdiapsExtra=Math.max(scdiapsExtra,2);reasons.push('Belirgin hemşire klinik endişesi')}
+
+ // Primary risk is determined by NEWS2 and critical S-CDIAPS surgical flags.
+ let risk='DÜŞÜK';
+ if(news2Score>=7 || [3,4].includes(consciousness) || painScore>=8 || ck('dehiscence')) risk='YÜKSEK';
+ else if(news2Score>=5 || painScore>=5 || scdiapsExtra>=2 || concern>=1) risk='ORTA';
+
+ if(news2Score>=7) reasons.unshift('NEWS2 ≥7');
+ else if(news2Score>=5) reasons.unshift('NEWS2 5–6');
+ if([3,4].includes(consciousness)) reasons.unshift('ACVPU: P / U');
+ if(consciousness===1) reasons.unshift('ACVPU: C — Yeni konfüzyon');
+ if(consciousness===2) reasons.unshift('ACVPU: V — Sese yanıt');
+
+ const action = risk==='YÜKSEK'
+   ? 'Acil klinik değerlendirme; vital bulguları doğrulayın ve kurum protokolüne göre sorumlu klinik ekibe derhal bildirin.'
+   : risk==='ORTA'
+   ? 'Klinik yeniden değerlendirme yapın ve kurum protokolüne göre izlem sıklığını artırın.'
+   : 'Rutin klinik izleme devam edin.';
+
+ const payload={
+   patient_id:patientId,
+   assessed_by:currentUser.id,
+   temperature:t,
+   heart_rate:hr,
+   systolic_bp:sbp,
+   diastolic_bp:n('dbp'),
+   respiratory_rate:rr,
+   spo2:sp,
+   oxygen_l_min:n('o2'),
+   consciousness_change:consciousness!==0,
+   nurse_concern:concern,
+   wound_redness:ck('redness'),
+   drain_change:ck('drain'),
+   purulent_discharge:ck('pus'),
+   wound_dehiscence:ck('dehiscence'),
+   abdominal_distension:ck('dist'),
+   vomiting:ck('vomit'),
+   no_gas:ck('nogas'),
+   increased_pain:painScore>=1,
+   pain_score:painScore,
+   oliguria:ck('oliguria'),
+   news2_score:news2Score,
+   scdiaps_risk:risk,
+   risk_reasons:reasons.join('; '),
+   recommended_action:action
+ };
+
+ const {error}=await sb.from('assessments').insert(payload);
+ if(error){toast('Değerlendirme kaydedilemedi: '+error.message);return}
+
+ const cls=risk==='YÜKSEK'?'r':risk==='ORTA'?'y':'g';
+ document.getElementById('result').innerHTML=`<div class="result-panel ${cls}">
+   <h3>${risk} RİSK</h3>
+   <p><b>NEWS2:</b> ${news2Score}</p>
+   <p><b>S-CDIAPS cerrahi katkı düzeyi:</b> ${scdiapsExtra}</p>
+   <p><b>Saptanan bulgular:</b></p>
+   <ul>${(reasons.length?reasons:['Belirgin risk göstergesi saptanmadı']).map(x=>`<li>${x}</li>`).join('')}</ul>
+   <p><b>Önerilen eylem:</b> ${action}</p>
+ </div>`;
+ toast('Değerlendirme kaydedildi');
+ refresh();
 }
 function clearAssessment(){document.querySelectorAll('#assessment input').forEach(e=>{if(e.type==='checkbox')e.checked=false});document.getElementById('result').innerHTML=''}
 async function refresh(){

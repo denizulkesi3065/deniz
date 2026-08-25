@@ -65,7 +65,9 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
     <div class="field"><label>Doğum Tarihi</label><input id="regBirthDate" type="date"></div>
     <div class="field"><label>Cinsiyet</label><select id="regGender"><option value="">Seçiniz</option><option value="Kadın">Kadın</option><option value="Erkek">Erkek</option><option value="Belirtmek istemiyor">Belirtmek istemiyor</option></select></div>
   </div>
-  <div class="field" style="margin-top:10px"><label>Eğitim Durumu</label><select id="regEducation"><option value="">Seçiniz</option><option value="İlköğretim">İlköğretim</option><option value="Lise">Lise</option><option value="Ön lisans">Ön lisans</option><option value="Lisans">Lisans</option><option value="Yüksek lisans">Yüksek lisans</option><option value="Doktora">Doktora</option><option value="Diğer">Diğer</option></select></div>
+  <div class="field" style="margin-top:10px"><label>Meslek</label><select id="regProfession" onchange="updateRegistrationOptions()"><option value="">Seçiniz</option><option value="Hemşire">Hemşire</option><option value="Hekim">Hekim</option></select></div>
+  <div class="field" style="margin-top:10px"><label>Eğitim Durumu</label><select id="regEducation"><option value="">Önce meslek seçiniz</option></select></div>
+  <div class="field" style="margin-top:10px"><label>Mesleki / Akademik Unvan</label><select id="regTitle"><option value="">Önce meslek seçiniz</option></select></div>
   <div class="field" style="margin-top:10px"><label>Şifre</label><input id="regPassword" type="password"></div>
   <div class="field" style="margin-top:10px"><label>Rol</label><select id="regRole"><option value="hemsire">Hemşire</option><option value="doktor">Hekim</option></select></div>
   <div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="registerUser()">Kayıt Talebi</button><button class="btn btn-light" onclick="showLogin()">Geri</button></div>
@@ -248,19 +250,38 @@ async function login(){
  document.getElementById('adminNav').classList.toggle('hidden',currentProfile.role!=='admin');
  refresh();toast('Giriş başarılı')
 }
+function updateRegistrationOptions(){
+ const profession=v('regProfession');
+ const education=document.getElementById('regEducation');
+ const title=document.getElementById('regTitle');
+ if(!education||!title)return;
+ const nurseEducation=['Sağlık Meslek Lisesi','Ön lisans','Lisans','Yüksek lisans','Doktora'];
+ const nurseTitles=['Hemşire'];
+ const doctorEducation=['Tıp Fakültesi','Tıpta Uzmanlık','Yan Dal Uzmanlığı'];
+ const doctorTitles=['Pratisyen hekim','Asistan hekim','Uzman hekim','Doçent','Profesör'];
+ const e=profession==='Hemşire'?nurseEducation:profession==='Hekim'?doctorEducation:[];
+ const t=profession==='Hemşire'?nurseTitles:profession==='Hekim'?doctorTitles:[];
+ education.innerHTML='<option value="">Seçiniz</option>'+e.map(x=>`<option value="${x}">${x}</option>`).join('');
+ title.innerHTML='<option value="">Seçiniz</option>'+t.map(x=>`<option value="${x}">${x}</option>`).join('');
+}
 async function registerUser(){
  const name=v('regName').trim(),email=v('regEmail').trim().toLowerCase(),password=document.getElementById('regPassword').value;
- const birth=v('regBirthDate'),gender=v('regGender'),education=v('regEducation');
- if(!name||!email||!password||!birth||!gender||!education){
-   document.getElementById('regMsg').textContent='Ad soyad, e-posta, doğum tarihi, cinsiyet, eğitim durumu ve şifre alanlarını doldurun.';return
+ const birth=v('regBirthDate'),gender=v('regGender'),profession=v('regProfession'),education=v('regEducation'),title=v('regTitle');
+ if(!name||!email||!password||!birth||!gender||!profession||!education||!title){
+   document.getElementById('regMsg').textContent='Tüm kayıt bilgilerini doldurun.';return
  }
+ const role=profession==='Hekim'?'doktor':'hemsire';
  const {error}=await sb.auth.signUp({
    email,password,
    options:{data:{
      full_name:name,
      birth_date:birth,
      gender:gender,
-     education_status:education
+     profession:profession,
+     education_status:education,
+     professional_education:education,
+     professional_title:title,
+     role:role
    }}
  });
  document.getElementById('regMsg').textContent=error?'Kayıt başarısız: '+error.message:'Kayıt oluşturuldu. E-posta doğrulaması ve yönetici onayı gerekiyor.';

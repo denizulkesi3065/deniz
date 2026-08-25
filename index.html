@@ -104,9 +104,8 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
   <div class="toolbar"><div class="page-title"><h2>Hastalar</h2><p>Hasta kayıtları ve hızlı klinik erişim</p></div></div>
   <div class="card"><h3>Yeni hasta</h3><div class="formgrid">
     <div class="field"><label>Hasta kodu</label><input id="newPid" placeholder="SC-001"></div>
-    <div class="field"><label>Hasta T.C. Kimlik No / Dosya No</label><input id="newPatientIdentifier" inputmode="numeric" placeholder="Hastahane Adı veya 11 haneli T.C. Kimlik No"></div>
+    <div class="field"><label>Hasta T.C. Kimlik No / Dosya No</label><input id="newPatientIdentifier" inputmode="numeric" placeholder="Dosya No veya 11 haneli T.C. Kimlik No"></div>
     <div class="field"><label>Hasta Adı Soyadı</label><input id="newPatientName" placeholder="Ad Soyad"></div>
-    <div class="field"><label>Hastahane Adı</label><input id="newHospitalName" placeholder="Hastane adı"></div>
     <div class="field"><label>Doğum Tarihi</label><input id="newBirthDate" type="date"></div>
     <div class="field"><label>Cinsiyet</label><select id="newGender"><option value="">Seçiniz</option><option value="Kadın">Kadın</option><option value="Erkek">Erkek</option><option value="Belirtmek istemiyor">Belirtmek istemiyor</option></select></div>
     <div class="field"><label>Boy (cm)</label><input id="newHeight" type="number" min="30" max="250" step="0.1" placeholder="cm" oninput="updatePatientBMI()"></div>
@@ -191,7 +190,7 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
           <tr>
             <th style="width:44px"></th>
             <th>Zaman</th>
-            <th>Hastahane Adı</th>
+            
             <th>TC / Dosya No</th>
             <th>Hasta Adı Soyadı</th>
             <th>Değerlendiren</th>
@@ -220,7 +219,7 @@ const SUPABASE_URL='https://nndtcprefcrevdulxzhy.supabase.co';
 const SUPABASE_KEY='sb_publishable_7IeSV5cMQoAPAbfzE7KVpw_rnfXwZ2e';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const ADMIN_EMAIL='ismaildeniz0192@gmail.com';
-let currentUser=null,currentProfile=null;
+let currentUser=null,currentProfile=null,patientCache=[];
 
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2800)}
 function n(id){const x=parseFloat(document.getElementById(id).value);return Number.isFinite(x)?x:0}
@@ -259,7 +258,6 @@ async function editPatient(id){
  document.getElementById('newPid').value=data.patient_code||'';
  document.getElementById('newPatientIdentifier').value=data.medical_record_no||data.national_id||'';
  document.getElementById('newPatientName').value=data.patient_name||'';
- document.getElementById('newHospitalName').value=data.hospital_name||'';
  document.getElementById('newBirthDate').value=data.birth_date||'';
  document.getElementById('newGender').value=data.gender||'';
  document.getElementById('newHeight').value=data.height_cm??'';
@@ -278,7 +276,6 @@ async function updatePatient(){
 
  const patientCode=v('newPid').trim();
  const identifier=v('newPatientIdentifier').trim();
- const hospitalName=v('newHospitalName').trim();
  const patientName=v('newPatientName').trim();
  const birth=v('newBirthDate')||null;
  const gender=v('newGender')||null;
@@ -389,12 +386,12 @@ function clearAssessment(){document.querySelectorAll('#assessment input').forEac
 async function refresh(){
  if(!currentUser)return;
  const [pr,hr]=await Promise.all([sb.from('patients').select('*').order('created_at',{ascending:false}),sb.rpc('assessment_history_context')]);
- const patients=pr.data||[],records=hr.data||[];
+ const patients=pr.data||[],records=hr.data||[]; patientCache=patients;
  if(hr.error){console.error(hr.error); toast('Değerlendirme geçmişi okunamadı: '+hr.error.message);return}
  document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('rLow').textContent=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
- document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code} — ${p.patient_name||'Ad Soyad yok'} — ${p.medical_record_no||'TC/Hastahane Adı yok'}</option>`).join('');
- document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.medical_record_no??'-'}</td><td>${p.patient_name??'-'}</td><td>${p.birth_date?new Date(p.birth_date+'T00:00:00').toLocaleDateString('tr-TR'):'-'}</td><td>${p.gender??'-'}</td><td>${p.height_cm??'-'} cm</td><td>${p.weight_kg??'-'} kg</td><td>${p.postoperative_day??'-'}</td><td><button class="btn btn-primary" onclick="editPatient('${p.id}')">Düzenle</button><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="9">Hasta bulunmuyor.</td></tr>';
+ document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code} — ${p.patient_name||'Ad Soyad yok'} — ${p.medical_record_no||'TC/Dosya No yok'}</option>`).join('');
+ document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.medical_record_no??'-'}</td><td>${p.patient_name??'-'}</td><td>${p.birth_date?new Date(p.birth_date+'T00:00:00').toLocaleDateString('tr-TR'):'-'}</td><td>${p.gender??'-'}</td><td>${p.height_cm??'-'} cm</td><td>${p.weight_kg??'-'} kg</td><td>${p.postoperative_day??'-'}</td><td><button class="btn btn-primary" onclick="editPatient('${p.id}')">Düzenle</button><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="8">Hasta bulunmuyor.</td></tr>';
  const latestByPatient={};
  const grouped={};
  records.forEach(x=>{
@@ -459,17 +456,20 @@ async function refresh(){
  // Keep dashboard headers compatible with the data.
  const dashHead=document.querySelector('#dashboard table thead tr');
  if(dashHead){
-   dashHead.innerHTML='<th>Zaman</th><th>Hastahane Adı</th><th>TC / Dosya No</th><th>Hasta Adı Soyadı</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Neden</th>';
+   dashHead.innerHTML='<th>Zaman</th><th>TC / Dosya No</th><th>Hasta Adı Soyadı</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Neden</th>';
  }
  if(currentProfile&&currentProfile.role==='admin')renderAdmin()
 }
 async function selectPatient(id){
- document.getElementById('pid').value=id;
- const {data,error}=await sb.from('patients').select('patient_name,medical_record_no,national_id,postoperative_day').eq('id',id).single();
- if(error){toast('Hasta bilgileri alınamadı: '+error.message);return}
- document.getElementById('assessmentPatientIdentifier').value=data.medical_record_no||data.national_id||'';
- document.getElementById('assessmentPatientName').value=data.patient_name||'';
- if(data.postoperative_day!==null && data.postoperative_day!==undefined) document.getElementById('pod').value=data.postoperative_day;
+ const patient=patientCache.find(p=>p.id===id);
+ if(!patient){toast('Hasta kaydı bulunamadı. Listeyi yenileyin.');return}
+ const pid=document.getElementById('pid'); if(pid) pid.value=id;
+ const identifier=document.getElementById('assessmentPatientIdentifier');
+ const name=document.getElementById('assessmentPatientName');
+ const pod=document.getElementById('pod');
+ if(identifier) identifier.value=patient.medical_record_no||patient.national_id||'';
+ if(name) name.value=patient.patient_name||'';
+ if(pod && patient.postoperative_day!==null && patient.postoperative_day!==undefined) pod.value=patient.postoperative_day;
  go('assessment');
 }
 function toggleHistoryPatient(id){

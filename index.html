@@ -311,8 +311,15 @@ async function login(){
  const email=v('loginEmail').trim().toLowerCase(), password=document.getElementById('loginPassword').value;
  const msg=document.getElementById('loginMsg');msg.textContent='Giriş yapılıyor...';
  if(!email||!password){msg.textContent='E-posta ve şifre gerekli.';return}
- const authOptions=loginTurnstileToken?{captchaToken:loginTurnstileToken}:{};
- const {data,error}=await sb.auth.signInWithPassword({email,password,options:authOptions});
+ if(!loginTurnstileToken){
+   msg.textContent='Lütfen güvenlik doğrulamasını tamamlayın.';
+   return;
+ }
+ const {data,error}=await sb.auth.signInWithPassword({
+   email,
+   password,
+   options:{captchaToken:loginTurnstileToken}
+ });
  if(error){msg.textContent='Giriş başarısız: '+error.message;return}
  currentUser=data.user;
  const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',currentUser.id).maybeSingle();
@@ -344,10 +351,13 @@ async function registerUser(){
    document.getElementById('regMsg').textContent='Tüm kayıt bilgilerini doldurun.';return
  }
  const role=profession==='Hekim'?'doktor':'hemsire';
- const signupOptions=registerTurnstileToken?{captchaToken:registerTurnstileToken}:{};
+ if(!registerTurnstileToken){
+   document.getElementById('regMsg').textContent='Lütfen güvenlik doğrulamasını tamamlayın.';
+   return;
+ }
  const {error}=await sb.auth.signUp({
    email,password,
-   options:{...signupOptions,data:{
+   options:{captchaToken:registerTurnstileToken,data:{
      full_name:name,
      birth_date:birth,
      gender:gender,
@@ -731,7 +741,7 @@ function turnstileError(which, code){
   const msgId = which==='login' ? 'loginMsg' : 'regMsg';
   const el=document.getElementById(msgId);
   const detail=code ? ` (Kod: ${code})` : '';
-  if(el) el.textContent='Güvenlik doğrulaması yüklenemedi. Cloudflare Site Key/alan adı ayarlarını kontrol edin.'+detail;
+  if(el) el.textContent='Güvenlik doğrulaması yüklenemedi. Bu nedenle giriş/kayıt güvenlik amacıyla engellendi. Cloudflare Site Key ve alan adı ayarlarını kontrol edin.'+detail;
 }
 
 function renderTurnstileWidgets(){

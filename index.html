@@ -97,24 +97,25 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
     <div class="risk y"><span>🟡 Orta</span><b id="rMid">0</b><span>Hemşire değerlendirmesi</span></div>
     <div class="risk r"><span>🔴 Yüksek</span><b id="rHigh">0</b><span>Öncelikli değerlendirme</span></div>
   </div></div>
-  <div class="card"><h3>Son değerlendirmeler</h3><div class="table-wrap"><table><thead><tr><th>Zaman</th><th>Hasta</th><th>TC / Dosya No</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Temel neden</th></tr></thead><tbody id="dashTable"></tbody></table></div></div>
+  <div class="card"><h3>Son değerlendirmeler</h3><div class="table-wrap"><table><thead><tr><th>Zaman</th><th>Hasta</th><th>TC / Hastane Adı</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Temel neden</th></tr></thead><tbody id="dashTable"></tbody></table></div></div>
 </section>
 
 <section id="patients" class="page hidden">
   <div class="toolbar"><div class="page-title"><h2>Hastalar</h2><p>Hasta kayıtları ve hızlı klinik erişim</p></div></div>
   <div class="card"><h3>Yeni hasta</h3><div class="formgrid">
     <div class="field"><label>Hasta kodu</label><input id="newPid" placeholder="SC-001"></div>
-    <div class="field"><label>Hasta Dosya No / T.C. Kimlik No</label><input id="newPatientIdentifier" inputmode="numeric" placeholder="Dosya No veya 11 haneli T.C. Kimlik No"></div>
+    <div class="field"><label>Hasta Hastane Adı / T.C. Kimlik No</label><input id="newPatientIdentifier" inputmode="numeric" placeholder="Hastane Adı veya 11 haneli T.C. Kimlik No"></div>
     <div class="field"><label>Hasta Adı Soyadı</label><input id="newPatientName" placeholder="Ad Soyad"></div>
+    <div class="field"><label>Hastane Adı</label><input id="newHospitalName" placeholder="Hastane adı"></div>
     <div class="field"><label>Doğum Tarihi</label><input id="newBirthDate" type="date"></div>
     <div class="field"><label>Cinsiyet</label><select id="newGender"><option value="">Seçiniz</option><option value="Kadın">Kadın</option><option value="Erkek">Erkek</option><option value="Belirtmek istemiyor">Belirtmek istemiyor</option></select></div>
     <div class="field"><label>Boy (cm)</label><input id="newHeight" type="number" min="30" max="250" step="0.1" placeholder="cm"></div>
     <div class="field"><label>Kilo (kg)</label><input id="newWeight" type="number" min="1" max="400" step="0.1" placeholder="kg"></div>
     <div class="field"><label>Postoperatif gün</label><input id="newPod" type="number" min="0" placeholder="Gün"></div>
   </div>
-  <div class="notice" style="margin-top:12px">Hasta Dosya No / T.C. Kimlik No bilgisi, kurumunuzun yetkilendirme ve veri koruma kurallarına uygun şekilde kullanılmalıdır.</div>
+  <div class="notice" style="margin-top:12px">Hasta Hastane Adı / T.C. Kimlik No bilgisi, kurumunuzun yetkilendirme ve veri koruma kurallarına uygun şekilde kullanılmalıdır.</div>
   <div class="actions" style="margin-top:14px"><button id="patientSaveBtn" class="btn btn-primary" onclick="addPatient()">Hasta Kaydet</button></div></div>
-  <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Hasta Dosya No / T.C. Kimlik No</th><th>Hasta Adı Soyadı</th><th>Doğum Tarihi</th><th>Cinsiyet</th><th>Boy (cm)</th><th>Kilo (kg)</th><th>Postoperatif gün</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
+  <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Hasta Hastane Adı / T.C. Kimlik No</th><th>Hasta Adı Soyadı</th><th>Doğum Tarihi</th><th>Cinsiyet</th><th>Boy (cm)</th><th>Kilo (kg)</th><th>Postoperatif gün</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
 </section>
 
 <section id="assessment" class="page hidden">
@@ -187,8 +188,8 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
           <tr>
             <th style="width:44px"></th>
             <th>Zaman</th>
-            <th>Dosya No</th>
-            <th>TC / Dosya No</th>
+            <th>Hastane Adı</th>
+            <th>TC / Hastane Adı</th>
             <th>Hasta Adı Soyadı</th>
             <th>Değerlendiren</th>
             <th>Risk</th>
@@ -255,6 +256,7 @@ async function editPatient(id){
  document.getElementById('newPid').value=data.patient_code||'';
  document.getElementById('newPatientIdentifier').value=data.medical_record_no||data.national_id||'';
  document.getElementById('newPatientName').value=data.patient_name||'';
+ document.getElementById('newHospitalName').value=data.hospital_name||'';
  document.getElementById('newBirthDate').value=data.birth_date||'';
  document.getElementById('newGender').value=data.gender||'';
  document.getElementById('newHeight').value=data.height_cm??'';
@@ -272,6 +274,7 @@ async function updatePatient(){
 
  const patientCode=v('newPid').trim();
  const identifier=v('newPatientIdentifier').trim();
+ const hospitalName=v('newHospitalName').trim();
  const patientName=v('newPatientName').trim();
  const birth=v('newBirthDate')||null;
  const gender=v('newGender')||null;
@@ -280,7 +283,7 @@ async function updatePatient(){
  const pod=v('newPod')!==''?Number(v('newPod')):null;
 
  if(!patientCode||!identifier||!patientName||!birth||!gender){
-   toast('Hasta kodu, Dosya No/T.C. Kimlik No, Ad Soyad, Doğum Tarihi ve Cinsiyet zorunludur');
+   toast('Hasta kodu, Hastane Adı/T.C. Kimlik No, Ad Soyad, Doğum Tarihi ve Cinsiyet zorunludur');
    return;
  }
  if(height===null||weight===null||pod===null){
@@ -293,6 +296,7 @@ async function updatePatient(){
    p_patient_code:patientCode,
    p_identifier:identifier,
    p_patient_name:patientName,
+   p_hospital_name:v('newHospitalName').trim(),
    p_birth_date:birth,
    p_gender:gender,
    p_height:height,
@@ -319,7 +323,7 @@ async function addPatient(){
  const birth=v('newBirthDate'), gender=v('newGender');
  const height=v('newHeight'), weight=v('newWeight'), pod=v('newPod');
  if(!code){toast('Hasta kodu gerekli');return}
- if(!identifier){toast('Hasta Dosya No / T.C. Kimlik No girin');return}
+ if(!identifier){toast('Hasta Hastane Adı / T.C. Kimlik No girin');return}
  if(!name){toast('Hasta adı soyadı gerekli');return}
  if(!birth){toast('Doğum tarihi gerekli');return}
  if(!gender){toast('Cinsiyet seçin');return}
@@ -339,6 +343,7 @@ async function addPatient(){
    postoperative_day:Number(pod),
    gender:gender,
    medical_record_no:identifier,
+   hospital_name:hospitalName||null,
    national_id:null,
    created_by:currentUser.id
  };
@@ -378,7 +383,7 @@ async function refresh(){
  if(hr.error){console.error(hr.error); toast('Değerlendirme geçmişi okunamadı: '+hr.error.message);return}
  document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('rLow').textContent=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
- document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code} — ${p.patient_name||'Ad Soyad yok'} — ${p.medical_record_no||'TC/Dosya No yok'}</option>`).join('');
+ document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code} — ${p.patient_name||'Ad Soyad yok'} — ${p.medical_record_no||'TC/Hastane Adı yok'}</option>`).join('');
  document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.medical_record_no??'-'}</td><td>${p.patient_name??'-'}</td><td>${p.birth_date?new Date(p.birth_date+'T00:00:00').toLocaleDateString('tr-TR'):'-'}</td><td>${p.gender??'-'}</td><td>${p.height_cm??'-'} cm</td><td>${p.weight_kg??'-'} kg</td><td>${p.postoperative_day??'-'}</td><td><button class="btn btn-primary" onclick="editPatient('${p.id}')">Düzenle</button><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="9">Hasta bulunmuyor.</td></tr>';
  const latestByPatient={};
  const grouped={};
@@ -443,7 +448,7 @@ async function refresh(){
  // Keep dashboard headers compatible with the data.
  const dashHead=document.querySelector('#dashboard table thead tr');
  if(dashHead){
-   dashHead.innerHTML='<th>Zaman</th><th>Dosya No</th><th>TC / Dosya No</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Neden</th>';
+   dashHead.innerHTML='<th>Zaman</th><th>Hastane Adı</th><th>TC / Hastane Adı</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Neden</th>';
  }
  if(currentProfile&&currentProfile.role==='admin')renderAdmin()
 }

@@ -104,9 +104,9 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
   <div class="toolbar"><div class="page-title"><h2>Hastalar</h2><p>Hasta kayıtları ve hızlı klinik erişim</p></div></div>
   <div class="card"><h3>Yeni hasta</h3><div class="formgrid">
     <div class="field"><label>Hasta kodu</label><input id="newPid" placeholder="SC-001"></div>
-    <div class="field"><label>Hasta T.C. Kimlik No / Dosya No</label><input id="newPatientIdentifier" inputmode="numeric" placeholder="Hastane Adı veya 11 haneli T.C. Kimlik No"></div>
+    <div class="field"><label>Hasta T.C. Kimlik No / Dosya No</label><input id="newPatientIdentifier" inputmode="numeric" placeholder="Hastahane Adı veya 11 haneli T.C. Kimlik No"></div>
     <div class="field"><label>Hasta Adı Soyadı</label><input id="newPatientName" placeholder="Ad Soyad"></div>
-    <div class="field"><label>Hastane Adı</label><input id="newHospitalName" placeholder="Hastane adı"></div>
+    <div class="field"><label>Hastahane Adı</label><input id="newHospitalName" placeholder="Hastane adı"></div>
     <div class="field"><label>Doğum Tarihi</label><input id="newBirthDate" type="date"></div>
     <div class="field"><label>Cinsiyet</label><select id="newGender"><option value="">Seçiniz</option><option value="Kadın">Kadın</option><option value="Erkek">Erkek</option><option value="Belirtmek istemiyor">Belirtmek istemiyor</option></select></div>
     <div class="field"><label>Boy (cm)</label><input id="newHeight" type="number" min="30" max="250" step="0.1" placeholder="cm"></div>
@@ -188,7 +188,7 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
           <tr>
             <th style="width:44px"></th>
             <th>Zaman</th>
-            <th>Hastane Adı</th>
+            <th>Hastahane Adı</th>
             <th>TC / Dosya No</th>
             <th>Hasta Adı Soyadı</th>
             <th>Değerlendiren</th>
@@ -283,7 +283,7 @@ async function updatePatient(){
  const pod=v('newPod')!==''?Number(v('newPod')):null;
 
  if(!patientCode||!identifier||!patientName||!birth||!gender){
-   toast('Hasta kodu, Hastane Adı/T.C. Kimlik No, Ad Soyad, Doğum Tarihi ve Cinsiyet zorunludur');
+   toast('Hasta kodu, Hastahane Adı/T.C. Kimlik No, Ad Soyad, Doğum Tarihi ve Cinsiyet zorunludur');
    return;
  }
  if(height===null||weight===null||pod===null){
@@ -383,7 +383,7 @@ async function refresh(){
  if(hr.error){console.error(hr.error); toast('Değerlendirme geçmişi okunamadı: '+hr.error.message);return}
  document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('rLow').textContent=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
- document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code} — ${p.patient_name||'Ad Soyad yok'} — ${p.medical_record_no||'TC/Hastane Adı yok'}</option>`).join('');
+ document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code} — ${p.patient_name||'Ad Soyad yok'} — ${p.medical_record_no||'TC/Hastahane Adı yok'}</option>`).join('');
  document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.medical_record_no??'-'}</td><td>${p.patient_name??'-'}</td><td>${p.birth_date?new Date(p.birth_date+'T00:00:00').toLocaleDateString('tr-TR'):'-'}</td><td>${p.gender??'-'}</td><td>${p.height_cm??'-'} cm</td><td>${p.weight_kg??'-'} kg</td><td>${p.postoperative_day??'-'}</td><td><button class="btn btn-primary" onclick="editPatient('${p.id}')">Düzenle</button><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="9">Hasta bulunmuyor.</td></tr>';
  const latestByPatient={};
  const grouped={};
@@ -449,7 +449,7 @@ async function refresh(){
  // Keep dashboard headers compatible with the data.
  const dashHead=document.querySelector('#dashboard table thead tr');
  if(dashHead){
-   dashHead.innerHTML='<th>Zaman</th><th>Hastane Adı</th><th>TC / Dosya No</th><th>Hasta Adı Soyadı</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Neden</th>';
+   dashHead.innerHTML='<th>Zaman</th><th>Hastahane Adı</th><th>TC / Dosya No</th><th>Hasta Adı Soyadı</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Neden</th>';
  }
  if(currentProfile&&currentProfile.role==='admin')renderAdmin()
 }

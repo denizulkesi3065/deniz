@@ -411,7 +411,7 @@ async function refresh(){
    return `<tr class="history-patient-row" style="cursor:pointer" onclick="toggleHistoryPatient('${detailId}')">
      <td><button class="btn btn-light" style="padding:6px 9px" onclick="event.stopPropagation();toggleHistoryPatient('${detailId}')">＋</button></td>
      <td>${new Date(latest.assessed_at).toLocaleString('tr-TR')}</td>
-     <td><b>${latest.patient_code||'—'}</b></td>
+     <td>${latest.hospital_name||'—'}</td>
      <td>${latest.patient_identifier||'—'}</td>
      <td><b>${latest.patient_name||'—'}</b></td>
      <td>${latest.evaluator_name||'—'}</td>
@@ -434,7 +434,7 @@ async function refresh(){
 
  const dashboardRows=records.slice(0,15).map(x=>`<tr>
    <td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td>
-   <td><b>${x.patient_code||'—'}</b></td>
+   <td>${x.hospital_name||'—'}</td>
    <td>${x.patient_identifier||'—'}</td>
    <td>${x.patient_name||'—'}</td>
    <td>${x.evaluator_name||'—'}</td>
@@ -449,7 +449,7 @@ async function refresh(){
  // Keep dashboard headers compatible with the data.
  const dashHead=document.querySelector('#dashboard table thead tr');
  if(dashHead){
-   dashHead.innerHTML='<th>Zaman</th><th>Dosya No</th><th>TC / Dosya No</th><th>Hasta Adı Soyadı</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Neden</th>';
+   dashHead.innerHTML='<th>Zaman</th><th>Hastane Adı</th><th>TC / Dosya No</th><th>Hasta Adı Soyadı</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Neden</th>';
  }
  if(currentProfile&&currentProfile.role==='admin')renderAdmin()
 }

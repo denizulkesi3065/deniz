@@ -42,6 +42,65 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
 @media(max-width:1050px){.layout{grid-template-columns:80px 1fr}.sidebar .label,.sidebar .menu-title{display:none}.navbtn{text-align:center}.grid4{grid-template-columns:repeat(2,1fr)}.formgrid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){header{padding:0 14px}.layout{display:block}.sidebar{display:flex;overflow:auto;padding:8px}.navbtn{min-width:120px}.main{padding:16px}.grid4,.formgrid,.checks,.risk-row{grid-template-columns:1fr}}
 </style>
+
+<meta name="theme-color" content="#102a43">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="S-CDIAPS">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+/* Mobile/PWA enhancements */
+html{background:#f5f7fa}
+body{min-height:100vh;min-height:100dvh}
+button,input,select{touch-action:manipulation}
+@media(max-width:900px){
+  header{height:auto;min-height:64px;padding:10px 14px;gap:10px;flex-wrap:wrap}
+  .brand{min-width:0}.brand h1{font-size:17px}.brand p{font-size:10px}
+  .userbar{margin-left:auto;max-width:100%;font-size:11px}
+  .userbar .btn{padding:8px 10px}
+  .layout{display:block;min-height:calc(100dvh - 64px)}
+  .sidebar{
+    position:sticky;top:0;z-index:20;
+    display:flex;overflow-x:auto;gap:6px;padding:8px;
+    background:#102a43;border-right:0;border-bottom:1px solid #244b68;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none
+  }
+  .sidebar::-webkit-scrollbar{display:none}
+  .menu-title{display:none}
+  .navbtn{min-width:max-content;width:auto;text-align:center;padding:9px 12px;margin:0;font-size:12px}
+  .navicon{width:auto;margin-right:5px}
+  .main{padding:14px}
+  .toolbar{align-items:flex-start;flex-direction:column;gap:12px}
+  .actions{width:100%}
+  .actions .btn{flex:1}
+  .grid4{grid-template-columns:1fr 1fr;gap:10px}
+  .stat-card{padding:14px}.stat-value{font-size:24px}
+  .formgrid{grid-template-columns:1fr}
+  .checks{grid-template-columns:1fr}
+  .risk-row{grid-template-columns:1fr}
+  .card{padding:14px;border-radius:12px}
+  table{min-width:760px}
+  .table-wrap{-webkit-overflow-scrolling:touch}
+  .result-panel{padding:14px}
+}
+@media(max-width:520px){
+  .grid4{grid-template-columns:1fr}
+  .brand p{display:none}
+  .userbar #userText{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .main{padding:10px}
+  .page-title h2{font-size:20px}
+  .page-title p{font-size:12px}
+  .btn{min-height:42px}
+  input,select{min-height:44px;font-size:16px} /* prevents iOS zoom */
+  .check{min-height:44px;align-items:center}
+}
+@supports(padding:max(0px)){
+  body{padding-bottom:max(0px,env(safe-area-inset-bottom))}
+  header{padding-top:max(10px,env(safe-area-inset-top))}
+}
+</style>
+
 </head>
 <body>
 
@@ -636,5 +695,14 @@ async function deleteUser(id){
 
 (async()=>{const {data}=await sb.auth.getSession();if(data.session){const u=data.session.user;const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',u.id).maybeSingle();if((u.email||'').toLowerCase()===ADMIN_EMAIL){currentUser=u;currentProfile={id:u.id,full_name:(p&&p.full_name)||'Sistem Yöneticisi',role:'admin',approval_status:'approved'};document.getElementById('loginPage').classList.add('hidden');document.getElementById('app').classList.remove('hidden');document.getElementById('userText').textContent='Sistem Yöneticisi • admin';document.getElementById('avatar').textContent='S';document.getElementById('adminNav').classList.remove('hidden');refresh()}}})();
 </script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+</script>
+
 </body>
 </html>

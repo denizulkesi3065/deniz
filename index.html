@@ -143,7 +143,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="v4.5.40-onayli-giris-coklu-oturum">
+<body data-build="v4.5.41-yonetici-onay-uyarisi">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -738,8 +738,11 @@ async function login(){
    if(p.approval_status!=='approved'){
      await sb.auth.signOut({scope:'local'});
      clearLoginFormFields();
-     const statusText=p.approval_status==='pending'?'Yönetici onayı bekleniyor.':'Hesap onaylanmadı.';
+     const statusText=p.approval_status==='pending'
+       ? 'Kaydınız başarıyla oluşturulmuştur. Sisteme giriş yapabilmeniz için yönetici onayının tamamlanması gerekmektedir. Yönetici onayından sonra sisteme giriş yapabilirsiniz.'
+       : 'Hesabınız henüz onaylanmadı. Lütfen yönetici onayından sonra tekrar giriş yapın.';
      msg.textContent=statusText;
+     msg.classList.add('show');
      loginInFlight=false;
      if(btn){btn.disabled=false;btn.textContent='Giriş Yap'}
      return;

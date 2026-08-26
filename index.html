@@ -323,7 +323,24 @@ function n(id){const x=parseFloat(document.getElementById(id).value);return Numb
 function v(id){return document.getElementById(id).value}
 function ck(id){return document.getElementById(id).checked}
 function showRegister(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('registerPage').classList.remove('hidden');setTimeout(()=>{renderTurnstileWidgets();if(registerTurnstileWidgetId!==null)try{window.turnstile.reset(registerTurnstileWidgetId)}catch(e){}},50)}
-function showLogin(){registerTurnstileToken='';document.getElementById('registerPage').classList.add('hidden');document.getElementById('loginPage').classList.remove('hidden');setTimeout(()=>{renderTurnstileWidgets();if(loginTurnstileWidgetId!==null)try{loginTurnstileToken='';window.turnstile.reset(loginTurnstileWidgetId)}catch(e){}},100)}
+function showLogin(){
+  currentUser=null;
+  currentProfile=null;
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('registerPage').classList.add('hidden');
+  document.getElementById('recoveryPage').classList.add('hidden');
+  document.getElementById('resetPage').classList.add('hidden');
+  document.getElementById('loginPage').classList.remove('hidden');
+  registerTurnstileToken='';
+  recoveryTurnstileToken='';
+  loginTurnstileToken='';
+  setTimeout(()=>{
+    renderTurnstileWidgets();
+    if(loginTurnstileWidgetId!==null){
+      try{window.turnstile.reset(loginTurnstileWidgetId)}catch(e){}
+    }
+  },100);
+}
 function go(id,btn){if(id==='assessment' && !document.getElementById('pid').value){document.getElementById('assessmentPatientIdentifier').value='';document.getElementById('assessmentPatientName').value=''} if(id==='admin'&&(!currentProfile||currentProfile.role!=='admin')){toast('Yönetici yetkisi gerekir');return}document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');refresh()}
 function retryTurnstile(){
  try{
@@ -418,16 +435,27 @@ async function sendRecovery(){
   if(btn){btn.disabled=false;btn.textContent='Sıfırlama bağlantısı gönder'}
 }
 
-async function updatePassword(){
+async async function updatePassword(){
   const p=document.getElementById('newPassword').value;
   const p2=document.getElementById('newPassword2').value;
   const msg=document.getElementById('resetMsg');
   if(p.length<8){msg.textContent='Şifre en az 8 karakter olmalıdır.';return}
   if(p!==p2){msg.textContent='Şifreler eşleşmiyor.';return}
-  const {data,error}=await sb.auth.updateUser({password:p});
+
+  const {error}=await sb.auth.updateUser({password:p});
   if(error){msg.textContent='Şifre güncellenemedi: '+error.message;return}
+
   msg.textContent='Şifreniz başarıyla güncellendi. Giriş ekranına yönlendiriliyorsunuz...';
-  setTimeout(()=>{window.history.replaceState({},document.title,window.location.pathname);sb.auth.signOut();showLogin()},1200);
+
+  setTimeout(async ()=>{
+    document.getElementById('app').classList.add('hidden');
+    document.getElementById('resetPage').classList.add('hidden');
+    window.history.replaceState({},document.title,window.location.pathname);
+    await sb.auth.signOut();
+    showLogin();
+    const loginMsg=document.getElementById('loginMsg');
+    if(loginMsg) loginMsg.textContent='Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz.';
+  },1200);
 }
 
 function updateRegistrationOptions(){
@@ -822,6 +850,7 @@ async function deleteUser(id){
 
 sb.auth.onAuthStateChange((event)=>{
   if(event==='PASSWORD_RECOVERY'){
+    document.getElementById('app').classList.add('hidden');
     document.getElementById('loginPage').classList.add('hidden');
     document.getElementById('registerPage').classList.add('hidden');
     document.getElementById('recoveryPage').classList.add('hidden');

@@ -117,6 +117,32 @@ button,input,select{touch-action:manipulation}
     <button class="btn btn-light" onclick="showRegister()">Yeni Kayıt</button>
   </div>
   <div id="loginMsg" class="notice" style="margin-top:14px">Hesabınızla giriş yapın.</div>
+  <div style="margin-top:10px;text-align:center">
+    <button class="btn btn-light" style="border:0;background:transparent;padding:6px 0" onclick="showRecovery()">Şifremi unuttum</button>
+  </div>
+</div>
+
+<div id="recoveryPage" class="login card hidden">
+  <div class="logo">Şifre Sıfırlama</div>
+  <p style="margin-top:0;color:#64748b">E-posta adresinize şifre sıfırlama bağlantısı göndereceğiz.</p>
+  <div class="field"><label>E-posta</label><input id="recoveryEmail" type="email"></div>
+  <div id="recoveryTurnstile" class="turnstile-box"></div>
+  <div class="actions" style="margin-top:14px">
+    <button class="btn btn-primary" onclick="sendRecovery()">Sıfırlama bağlantısı gönder</button>
+    <button class="btn btn-light" onclick="showLogin()">Girişe dön</button>
+  </div>
+  <div id="recoveryMsg" class="notice" style="margin-top:14px">E-posta adresinizi girin.</div>
+</div>
+
+<div id="resetPage" class="login card hidden">
+  <div class="logo">Yeni Şifre Belirle</div>
+  <p style="margin-top:0;color:#64748b">Yeni şifrenizi iki kez girin.</p>
+  <div class="field"><label>Yeni Şifre</label><input id="newPassword" type="password"></div>
+  <div class="field" style="margin-top:10px"><label>Yeni Şifre (Tekrar)</label><input id="newPassword2" type="password"></div>
+  <div class="actions" style="margin-top:14px">
+    <button class="btn btn-primary" onclick="updatePassword()">Şifreyi Güncelle</button>
+  </div>
+  <div id="resetMsg" class="notice" style="margin-top:14px">Yeni şifrenizi belirleyin.</div>
 </div>
 
 <div id="registerPage" class="login card hidden">
@@ -290,7 +316,7 @@ const SUPABASE_URL='https://nndtcprefcrevdulxzhy.supabase.co';
 const SUPABASE_KEY='sb_publishable_7IeSV5cMQoAPAbfzE7KVpw_rnfXwZ2e';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const ADMIN_EMAIL='ismaildeniz0192@gmail.com';
-let currentUser=null,currentProfile=null,loginTurnstileToken='',registerTurnstileToken='',patientCache=[],loginInFlight=false,registerInFlight=false;
+let currentUser=null,currentProfile=null,loginTurnstileToken='',registerTurnstileToken='',recoveryTurnstileToken='',patientCache=[],loginInFlight=false,registerInFlight=false,recoveryInFlight=false;
 
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2800)}
 function n(id){const x=parseFloat(document.getElementById(id).value);return Number.isFinite(x)?x:0}
@@ -352,6 +378,55 @@ async function login(){
  document.getElementById('adminNav').classList.toggle('hidden',currentProfile.role!=='admin');
  loginInFlight=false;
  refresh();toast('Giriş başarılı')
+}
+
+function onRecoveryTurnstile(token){recoveryTurnstileToken=token||'';}
+
+function showRecovery(){
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('registerPage').classList.add('hidden');
+  document.getElementById('resetPage').classList.add('hidden');
+  document.getElementById('recoveryPage').classList.remove('hidden');
+  const email=v('loginEmail').trim().toLowerCase();
+  if(email)document.getElementById('recoveryEmail').value=email;
+  setTimeout(()=>{renderTurnstileWidgets();if(recoveryTurnstileWidgetId!==null)try{recoveryTurnstileToken='';window.turnstile.reset(recoveryTurnstileWidgetId)}catch(e){}},100);
+}
+
+async function sendRecovery(){
+  if(recoveryInFlight)return;
+  const email=v('recoveryEmail').trim().toLowerCase();
+  const msg=document.getElementById('recoveryMsg');
+  if(!email){msg.textContent='E-posta adresi gerekli.';return}
+  if(!recoveryTurnstileToken){msg.textContent='Lütfen güvenlik doğrulamasını tamamlayın.';return}
+  recoveryInFlight=true;
+  const btn=document.querySelector('#recoveryPage button[onclick="sendRecovery()"]');
+  if(btn){btn.disabled=true;btn.textContent='Gönderiliyor...'}
+  const token=recoveryTurnstileToken; recoveryTurnstileToken='';
+  const redirectTo=new URL(window.location.href); redirectTo.searchParams.set('recovery','1'); redirectTo.hash='';
+  const {error}=await sb.auth.resetPasswordForEmail(email,{
+    redirectTo:redirectTo.toString(),
+    captchaToken:token
+  });
+  if(error){
+    msg.textContent='Sıfırlama bağlantısı gönderilemedi: '+error.message;
+    try{if(window.turnstile&&recoveryTurnstileWidgetId!==null)window.turnstile.reset(recoveryTurnstileWidgetId)}catch(e){}
+  }else{
+    msg.textContent='Şifre sıfırlama bağlantısı e-posta adresinize gönderildi. E-postadaki bağlantıyı açın.';
+  }
+  recoveryInFlight=false;
+  if(btn){btn.disabled=false;btn.textContent='Sıfırlama bağlantısı gönder'}
+}
+
+async function updatePassword(){
+  const p=document.getElementById('newPassword').value;
+  const p2=document.getElementById('newPassword2').value;
+  const msg=document.getElementById('resetMsg');
+  if(p.length<8){msg.textContent='Şifre en az 8 karakter olmalıdır.';return}
+  if(p!==p2){msg.textContent='Şifreler eşleşmiyor.';return}
+  const {data,error}=await sb.auth.updateUser({password:p});
+  if(error){msg.textContent='Şifre güncellenemedi: '+error.message;return}
+  msg.textContent='Şifreniz başarıyla güncellendi. Giriş ekranına yönlendiriliyorsunuz...';
+  setTimeout(()=>{window.history.replaceState({},document.title,window.location.pathname);sb.auth.signOut();showLogin()},1200);
 }
 
 function updateRegistrationOptions(){
@@ -742,6 +817,16 @@ async function deleteUser(id){
  toast('Kullanıcı silindi');renderAdmin()
 }
 
+
+
+sb.auth.onAuthStateChange((event)=>{
+  if(event==='PASSWORD_RECOVERY'){
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('registerPage').classList.add('hidden');
+    document.getElementById('recoveryPage').classList.add('hidden');
+    document.getElementById('resetPage').classList.remove('hidden');
+  }
+});
 (async()=>{const {data}=await sb.auth.getSession();if(data.session){const u=data.session.user;const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',u.id).maybeSingle();if((u.email||'').toLowerCase()===ADMIN_EMAIL){currentUser=u;currentProfile={id:u.id,full_name:(p&&p.full_name)||'Sistem Yöneticisi',role:'admin',approval_status:'approved'};document.getElementById('loginPage').classList.add('hidden');document.getElementById('app').classList.remove('hidden');document.getElementById('userText').textContent='Sistem Yöneticisi • admin';document.getElementById('avatar').textContent='S';document.getElementById('adminNav').classList.remove('hidden');refresh()}}})();
 </script>
 
@@ -755,14 +840,14 @@ if ('serviceWorker' in navigator) {
 
 
 <script>
-let loginTurnstileWidgetId=null, registerTurnstileWidgetId=null;
+let loginTurnstileWidgetId=null, registerTurnstileWidgetId=null, recoveryTurnstileWidgetId=null;
 
 function onLoginTurnstile(token){ loginTurnstileToken=token||''; const s=document.getElementById('turnstileStatus'); if(s) s.textContent='Güvenlik doğrulaması tamamlandı.'; }
 function onRegisterTurnstile(token){ registerTurnstileToken=token||''; }
 
 function turnstileError(which, code){
   console.error('Turnstile error', which, code);
-  const msgId = which==='login' ? 'loginMsg' : 'regMsg';
+  const msgId = which==='login' ? 'loginMsg' : which==='recovery' ? 'recoveryMsg' : 'regMsg';
   const el=document.getElementById(msgId);
   const detail=code ? ` (Kod: ${code})` : '';
   if(el) el.textContent='Güvenlik doğrulaması yüklenemedi. Giriş/kayıt güvenlik amacıyla engellendi.'+(detail||'')+' Cloudflare Site Key ve alan adını kontrol edin.';
@@ -774,6 +859,7 @@ function renderTurnstileWidgets(){
 
   const loginEl=document.getElementById('loginTurnstile');
   const regEl=document.getElementById('registerTurnstile');
+  const recoveryEl=document.getElementById('recoveryTurnstile');
 
   if(loginEl && loginTurnstileWidgetId===null){
     try{
@@ -801,6 +887,19 @@ function renderTurnstileWidgets(){
         'expired-callback':()=>{registerTurnstileToken='';}
       });
     }catch(e){turnstileError('register',e);}
+  }
+  if(recoveryEl && recoveryTurnstileWidgetId===null){
+    try{
+      recoveryTurnstileWidgetId=window.turnstile.render(recoveryEl,{
+        sitekey:TURNSTILE_SITEKEY,
+        size:'flexible',
+        retry:'auto',
+        'retry-interval':8000,
+        callback:onRecoveryTurnstile,
+        'error-callback':(code)=>turnstileError('recovery',code),
+        'expired-callback':()=>{recoveryTurnstileToken='';}
+      });
+    }catch(e){turnstileError('recovery',e);}
   }
   return true;
 }

@@ -110,8 +110,12 @@ button,input,select{touch-action:manipulation}
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
   <p style="margin-top:0;color:#64748b">Cerrahi Klinik Kötüleşme ve Alarm Önceliklendirme Sistemi</p>
-  <div class="field"><label>E-posta</label><input id="loginEmail" type="email" value="ismaildeniz0192@gmail.com"></div>
+  <div class="field"><label>E-posta</label><input id="loginEmail" type="email" value=""></div>
   <div class="field" style="margin-top:10px"><label>Şifre</label><input id="loginPassword" type="password"></div>
+  <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#475569">
+    <input id="rememberLogin" type="checkbox" style="width:auto;min-height:auto">
+    <span>Beni hatırla</span>
+  </label>
   <div id="loginTurnstile" class="turnstile-box"></div><div id="turnstileStatus" class="notice" style="margin-top:8px">Güvenlik doğrulaması yükleniyor…</div>
   <div class="actions" style="margin-top:14px">
     <button class="btn btn-primary" onclick="login()">Giriş Yap</button>
@@ -473,6 +477,41 @@ window.addEventListener('beforeunload',()=>{
   try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
 });
 
+
+const REMEMBER_EMAIL_KEY='scdiaps_remember_email';
+
+function loadRememberedEmail(){
+  const input=document.getElementById('loginEmail');
+  const check=document.getElementById('rememberLogin');
+  if(!input||!check)return;
+  try{
+    const saved=localStorage.getItem(REMEMBER_EMAIL_KEY)||'';
+    if(saved){
+      input.value=saved;
+      check.checked=true;
+    }else{
+      input.value='';
+      check.checked=false;
+    }
+  }catch(e){
+    input.value='';
+    check.checked=false;
+  }
+}
+
+function applyRememberEmail(){
+  const input=document.getElementById('loginEmail');
+  const check=document.getElementById('rememberLogin');
+  if(!input||!check)return;
+  try{
+    if(check.checked && input.value.trim()){
+      localStorage.setItem(REMEMBER_EMAIL_KEY,input.value.trim().toLowerCase());
+    }else{
+      localStorage.removeItem(REMEMBER_EMAIL_KEY);
+    }
+  }catch(e){}
+}
+
 function showRegister(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('registerPage').classList.remove('hidden');setTimeout(()=>{renderTurnstileWidgets();if(registerTurnstileWidgetId!==null)try{window.turnstile.reset(registerTurnstileWidgetId)}catch(e){}},50)}
 function showLogin(){
   clearSessionTimeout();
@@ -488,6 +527,7 @@ function showLogin(){
   registerTurnstileToken='';
   recoveryTurnstileToken='';
   loginTurnstileToken='';
+  loadRememberedEmail();
   setTimeout(()=>{
     renderTurnstileWidgets();
     if(loginTurnstileWidgetId!==null){
@@ -536,6 +576,7 @@ async function login(){
  }
 
  currentUser=data.user;
+ applyRememberEmail();
  const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',currentUser.id).maybeSingle();
  if(email===ADMIN_EMAIL){
    currentProfile={id:currentUser.id,full_name:'İsmail Deniz',role:'admin',approval_status:'approved'}
@@ -1269,7 +1310,7 @@ function retryTurnstile(){
   }catch(e){console.error(e);}
 }
 
-window.addEventListener('load',()=>{
+window.addEventListener('load',()=>{loadRememberedEmail();
   const wait=setInterval(()=>{
     if(renderTurnstileWidgets()){clearInterval(wait);}
   },250);

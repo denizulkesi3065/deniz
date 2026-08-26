@@ -103,6 +103,7 @@ button,input,select{touch-action:manipulation}
 </style>
 
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -203,6 +204,9 @@ button,input,select{touch-action:manipulation}
     <div class="page-title">
       <h2>İstatistikler</h2>
       <p>Sistemdeki hasta ve klinik değerlendirme verilerinin özeti</p>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="exportStatisticsExcel()">Excel'e Aktar</button>
     </div>
   </div>
 
@@ -777,10 +781,65 @@ async function evaluateAndSave(){
  refresh();
 }
 function clearAssessment(){document.querySelectorAll('#assessment input').forEach(e=>{if(e.type==='checkbox')e.checked=false});document.getElementById('result').innerHTML=''}
+
+function exportStatisticsExcel(){
+  if(typeof XLSX==='undefined'){
+    toast('Excel aktarımı için gerekli bileşen yüklenemedi. İnternet bağlantısını kontrol edin.');
+    return;
+  }
+  const rows=(window.__statisticsRecords||[]);
+  const patients=(window.__statisticsPatients||[]);
+
+  const patientRows=patients.map(p=>({
+    'Hasta Kodu':p.patient_code||'',
+    'T.C. / Dosya No':p.medical_record_no||p.national_id||'',
+    'Hasta Adı Soyadı':p.patient_name||'',
+    'Doğum Tarihi':p.birth_date||'',
+    'Cinsiyet':p.gender||'',
+    'Boy (cm)':p.height_cm??'',
+    'Kilo (kg)':p.weight_kg??'',
+    'Postoperatif Gün':p.postoperative_day??''
+  }));
+
+  const assessmentRows=rows.map(x=>({
+    'Zaman':x.assessed_at ? new Date(x.assessed_at).toLocaleString('tr-TR') : '',
+    'TC / Dosya No':x.patient_identifier||'',
+    'Hasta Adı Soyadı':x.patient_name||'',
+    'Değerlendiren':x.evaluator_name||'',
+    'Risk':x.risk||'',
+    'NEWS2':x.news2??'',
+    'Neden':x.reasons||''
+  }));
+
+  const low=rows.filter(x=>x.risk==='DÜŞÜK').length;
+  const mid=rows.filter(x=>x.risk==='ORTA').length;
+  const high=rows.filter(x=>x.risk==='YÜKSEK').length;
+  const news=rows.map(x=>Number(x.news2)).filter(Number.isFinite);
+  const avg=news.length?news.reduce((a,b)=>a+b,0)/news.length:0;
+  const summaryRows=[
+    {'Gösterge':'Toplam hasta','Değer':patients.length},
+    {'Gösterge':'Değerlendirilen hasta','Değer':new Set(rows.map(x=>x.patient_id).filter(Boolean)).size},
+    {'Gösterge':'Toplam değerlendirme','Değer':rows.length},
+    {'Gösterge':'Ortalama NEWS2','Değer':Number(avg.toFixed(1))},
+    {'Gösterge':'Düşük risk','Değer':low},
+    {'Gösterge':'Orta risk','Değer':mid},
+    {'Gösterge':'Yüksek risk','Değer':high},
+  ];
+
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(summaryRows),'İstatistik Özeti');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(patientRows),'Hastalar');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(assessmentRows),'Değerlendirmeler');
+
+  const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  XLSX.writeFile(wb,`S-CDIAPS_istatistik_${stamp}.xlsx`);
+  toast('Excel dosyası oluşturuldu.');
+}
+
 async function refresh(){
  if(!currentUser)return;
  const [pr,hr]=await Promise.all([sb.from('patients').select('*').order('created_at',{ascending:false}),sb.rpc('assessment_history_context')]);
- const patients=pr.data||[],records=hr.data||[]; patientCache=patients;
+ const patients=pr.data||[],records=hr.data||[]; patientCache=patients; window.__statisticsPatients=patients; window.__statisticsRecords=records;
  if(hr.error){console.error(hr.error); toast('Değerlendirme geçmişi okunamadı: '+hr.error.message);return}
  document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('rLow').textContent=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;

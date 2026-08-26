@@ -30,7 +30,17 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
 .card{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:20px;margin-top:16px}.card h3{margin:0 0 14px}
 .risk-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}.risk{padding:18px;border-radius:12px;border:1px solid var(--border)}.risk b{font-size:22px;display:block;margin-top:6px}
 .risk.g{background:var(--greenbg);color:var(--green)}.risk.y{background:var(--yellowbg);color:var(--yellow)}.risk.r{background:var(--redbg);color:var(--red)}
-.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:12px 10px;border-bottom:1px solid var(--border);text-align:left;font-size:13px}th{color:var(--muted);font-weight:700;background:#fafafa}
+.table-wrap{overflow:auto}
+.dashboard-table table{table-layout:fixed;width:100%}
+.dashboard-table th:nth-child(1),.dashboard-table td:nth-child(1){width:15%}
+.dashboard-table th:nth-child(2),.dashboard-table td:nth-child(2){width:12%}
+.dashboard-table th:nth-child(3),.dashboard-table td:nth-child(3){width:16%}
+.dashboard-table th:nth-child(4),.dashboard-table td:nth-child(4){width:15%}
+.dashboard-table th:nth-child(5),.dashboard-table td:nth-child(5){width:10%}
+.dashboard-table th:nth-child(6),.dashboard-table td:nth-child(6){width:8%}
+.dashboard-table th:nth-child(7),.dashboard-table td:nth-child(7){width:24%}
+.dashboard-table th,.dashboard-table td{vertical-align:top;word-break:break-word}
+table{width:100%;border-collapse:collapse}th,td{padding:12px 10px;border-bottom:1px solid var(--border);text-align:left;font-size:13px}th{color:var(--muted);font-weight:700;background:#fafafa}
 .badge{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:800}.badge.g{background:var(--greenbg);color:var(--green)}.badge.y{background:var(--yellowbg);color:var(--yellow)}.badge.r{background:var(--redbg);color:var(--red)}.badge.b{background:#e8eef8;color:#204a7a}
 .formgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.field label{font-size:12px;font-weight:800;color:#475569;display:block;margin-bottom:6px}.field input,.field select{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px;background:#fff}
 .section-title{font-size:14px;font-weight:800;margin:22px 0 10px}.checks{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.check{display:flex;gap:8px;align-items:flex-start;background:#fafafa;border:1px solid var(--border);padding:10px;border-radius:9px;font-size:12px}
@@ -201,7 +211,7 @@ button,input,select{touch-action:manipulation}
     <div class="risk y"><span>🟡 Orta</span><b id="rMid">0</b><span>Hemşire değerlendirmesi</span></div>
     <div class="risk r"><span>🔴 Yüksek</span><b id="rHigh">0</b><span>Öncelikli değerlendirme</span></div>
   </div></div>
-  <div class="card"><h3>Son değerlendirmeler</h3><div class="table-wrap"><table><thead><tr><th>Zaman</th><th>Hasta</th><th>TC / Dosya No</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Temel neden</th></tr></thead><tbody id="dashTable"></tbody></table></div></div>
+  <div class="card"><h3>Son değerlendirmeler</h3><div class="table-wrap dashboard-table"><table><thead><tr><th>Zaman</th><th>Hasta</th><th>TC / Dosya No</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Temel neden</th></tr></thead><tbody id="dashTable"></tbody></table></div></div>
 </section>
 
 
@@ -1029,14 +1039,13 @@ async function refresh(){
 
  const dashboardRows=records.slice(0,15).map(x=>`<tr>
    <td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td>
-   <td>${x.hospital_name||'—'}</td>
    <td>${x.patient_identifier||'—'}</td>
    <td>${x.patient_name||'—'}</td>
    <td>${x.evaluator_name||'—'}</td>
    <td><span class="badge ${riskClass(x.risk)}">${x.risk||'—'}</span></td>
    <td>${x.news2??'—'}</td>
    <td>${x.reasons||'—'}</td>
- </tr>`).join('') || '<tr><td colspan="8">Kayıt yok.</td></tr>';
+ </tr>`).join('') || '<tr><td colspan="7">Kayıt yok.</td></tr>';
 
  document.getElementById('dashTable').innerHTML=dashboardRows;
  document.getElementById('historyTable').innerHTML=groupedRows;

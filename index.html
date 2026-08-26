@@ -666,7 +666,7 @@ function showLogin(){
   },300);
 }
 function go(id,btn){
- if(page==='outcomes')setTimeout(loadClinicalOutcomes,0);if(id==='assessment' && !document.getElementById('pid').value){document.getElementById('assessmentPatientIdentifier').value='';document.getElementById('assessmentPatientName').value=''} if(id==='admin'&&(!currentProfile||currentProfile.role!=='admin')){toast('Yönetici yetkisi gerekir');return}document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');refresh()}
+ if(id==='outcomes')setTimeout(loadClinicalOutcomes,0);if(id==='assessment' && !document.getElementById('pid').value){document.getElementById('assessmentPatientIdentifier').value='';document.getElementById('assessmentPatientName').value=''} if(id==='admin'&&(!currentProfile||currentProfile.role!=='admin')){toast('Yönetici yetkisi gerekir');return}document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');refresh()}
 function retryTurnstile(){
  try{
   if(!window.turnstile){return}

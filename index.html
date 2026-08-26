@@ -379,7 +379,16 @@ button,input,select{touch-action:manipulation}
 const TURNSTILE_SITEKEY='0x4AAAAAAEb9_9_AajNi7Dlp';
 const SUPABASE_URL='https://nndtcprefcrevdulxzhy.supabase.co';
 const SUPABASE_KEY='sb_publishable_7IeSV5cMQoAPAbfzE7KVpw_rnfXwZ2e';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const TAB_SESSION_KEY='scdiaps_'+(crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2));
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+  auth:{
+    storage:window.sessionStorage,
+    storageKey:TAB_SESSION_KEY,
+    persistSession:true,
+    autoRefreshToken:true,
+    detectSessionInUrl:true
+  }
+});
 const ADMIN_EMAIL='ismaildeniz0192@gmail.com';
 let currentUser=null,currentProfile=null,loginTurnstileToken='',registerTurnstileToken='',recoveryTurnstileToken='',patientCache=[],loginInFlight=false,registerInFlight=false,recoveryInFlight=false,recoveryMode=false,sessionTimeoutTimer=null,lastActivityAt=Date.now(),sessionEnding=false;
 

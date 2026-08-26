@@ -136,11 +136,11 @@ button,input,select{touch-action:manipulation}
 </head>
 <body>
 
-<div id="loginPage" class="login card">
+<div id="loginPage" class="login card" autocomplete="off">
   <div class="logo">S-CDIAPS</div>
   <p style="margin-top:0;color:#64748b">Cerrahi Klinik Kötüleşme ve Alarm Önceliklendirme Sistemi</p>
-  <div class="field"><label>E-posta</label><input id="loginEmail" type="email" value=""></div>
-  <div class="field" style="margin-top:10px"><label>Şifre</label><input id="loginPassword" type="password"></div>
+  <div class="field"><label>E-posta</label><input id="loginEmail" name="scdiaps_login_email" type="email" value="" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
+  <div class="field" style="margin-top:10px"><label>Şifre</label><input id="loginPassword" name="scdiaps_login_password" type="password" autocomplete="new-password"></div>
   <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#475569">
     <input id="rememberLogin" type="checkbox" style="width:auto;min-height:auto">
     <span>Beni hatırla</span>
@@ -531,6 +531,9 @@ async function forceSessionLogout(message='Oturumunuz güvenlik nedeniyle sonlan
   recoveryTurnstileToken='';
   recoveryMode=false;
 
+  // Remove any remembered login value and clear the visible fields immediately.
+  clearLoginFormFields();
+
   document.getElementById('app').classList.add('hidden');
   document.getElementById('registerPage').classList.add('hidden');
   document.getElementById('recoveryPage').classList.add('hidden');
@@ -540,6 +543,7 @@ async function forceSessionLogout(message='Oturumunuz güvenlik nedeniyle sonlan
   const msg=document.getElementById('loginMsg');
   if(msg) msg.textContent=message;
 
+  [50,250,700,1200].forEach(ms=>setTimeout(clearLoginFormFields,ms));
   setTimeout(()=>{
     sessionEnding=false;
     renderTurnstileWidgets();
@@ -621,19 +625,25 @@ function clearLoginFormFields(){
     const el=document.getElementById(id);
     if(el){
       el.value='';
+      el.defaultValue='';
       el.setAttribute('value','');
+      try{ el.blur(); }catch(e){}
     }
-  });
+  }
   const form=document.getElementById('loginForm');
   if(form){
     try{ form.reset(); }catch(e){}
   }
   const remember=document.getElementById('rememberMe');
   if(remember) remember.checked=false;
+  const rememberLogin=document.getElementById('rememberLogin');
+  if(rememberLogin) rememberLogin.checked=false;
 }
 
 function showLogin(){
  clearLoginFormFields();
+  // Browsers/password managers may refill login fields asynchronously after navigation.
+  [50,250,700,1200].forEach(ms=>setTimeout(clearLoginFormFields,ms));
   clearSessionTimeout();
   try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
   recoveryMode=false;

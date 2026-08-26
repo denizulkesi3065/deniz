@@ -784,7 +784,7 @@ function setAssessmentSaveState(loading){
   b.disabled=loading;
   b.textContent=loading?'Kaydediliyor...':'Değerlendir ve Kaydet';
 }
-async async function withTimeout(promise,ms,label){
+async function withTimeout(promise,ms,label){
   let timer;
   const timeout=new Promise((_,reject)=>{
     timer=setTimeout(()=>reject(new Error(label+' zaman aşımına uğradı. İnternet bağlantınızı kontrol edip tekrar deneyin.')),ms);

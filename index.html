@@ -42,7 +42,9 @@ header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:cen
 @media(max-width:1050px){.layout{grid-template-columns:80px 1fr}.sidebar .label,.sidebar .menu-title{display:none}.navbtn{text-align:center}.grid4{grid-template-columns:repeat(2,1fr)}.formgrid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){header{padding:0 14px}.layout{display:block}.sidebar{display:flex;overflow:auto;padding:8px}.navbtn{min-width:120px}.main{padding:16px}.grid4,.formgrid,.checks,.risk-row{grid-template-columns:1fr}}
 .turnstile-box{width:100%;min-height:65px;margin-top:12px}
-</style>
+button,.btn{ -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+button:disabled,.btn:disabled{opacity:.65;cursor:not-allowed;}
+@media(max-width:700px){ .actions .btn{min-height:44px;} .field input,.field select{min-height:44px;} }</style>
 
 <meta name="theme-color" content="#102a43">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -756,7 +758,11 @@ function updatePatientBMI(){
  if(el) el.value=calculateBMIValue();
 }
 async function addPatient(){
- if(window.editingPatientId){await updatePatient();return}
+ if(window.patientSaveInFlight)return;
+ window.patientSaveInFlight=true;
+ const saveBtn=document.getElementById('patientSaveBtn');
+ if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Kaydediliyor...'}
+ if(window.editingPatientId){try{await updatePatient()}finally{window.patientSaveInFlight=false;if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Hasta Güncelle'}};return}
  const code=v('newPid').trim(), identifier=v('newPatientIdentifier').trim(), name=v('newPatientName').trim();
  const birth=v('newBirthDate'), gender=v('newGender');
  const height=v('newHeight'), weight=v('newWeight'), pod=v('newPod');
@@ -785,10 +791,13 @@ async function addPatient(){
    created_by:currentUser.id
  };
  const {error}=await sb.from('patients').insert(payload);
- if(error){toast('Hasta kaydedilemedi: '+error.message);return}
+ if(error){toast('Hasta kaydedilemedi: '+error.message);window.patientSaveInFlight=false;if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Hasta Kaydet'};return}
  ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newPod'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
  const g=document.getElementById('newGender'); if(g)g.value='';
- toast('Hasta kaydedildi'); refresh()
+ toast('Hasta kaydedildi');
+ window.patientSaveInFlight=false;
+ if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Hasta Kaydet'}
+ refresh()
 }
 async function deletePatient(id){
  if(!currentProfile||currentProfile.role!=='admin'){
@@ -817,8 +826,12 @@ async function deletePatient(id){
 }
 
 async function evaluateAndSave(){
+ if(window.assessmentSaveInFlight)return;
+ window.assessmentSaveInFlight=true;
+ const evalBtn=document.querySelector('#assessment button[onclick="evaluateAndSave()"]');
+ if(evalBtn){evalBtn.disabled=true;evalBtn.textContent='Kaydediliyor...'}
  const patientId=v('pid');
- if(!patientId){toast('Önce Hastalar bölümünden bir hasta seçin.');return}
+ if(!patientId){toast('Önce Hastalar bölümünden bir hasta seçin.');window.assessmentSaveInFlight=false;if(evalBtn){evalBtn.disabled=false;evalBtn.textContent='Değerlendir ve Kaydet'};return}
 
  const t=n('temp'), hr=n('hr'), sbp=n('sbp'), rr=n('rr'), sp=n('spo2'), painScore=n('painScore'), concern=n('concern'), consciousness=n('con');
  const news2Score=news2();
@@ -886,7 +899,7 @@ async function evaluateAndSave(){
  };
 
  const {error}=await sb.from('assessments').insert(payload);
- if(error){toast('Değerlendirme kaydedilemedi: '+error.message);return}
+ if(error){toast('Değerlendirme kaydedilemedi: '+error.message);window.assessmentSaveInFlight=false;if(evalBtn){evalBtn.disabled=false;evalBtn.textContent='Değerlendir ve Kaydet'};return}
 
  const cls=risk==='YÜKSEK'?'r':risk==='ORTA'?'y':'g';
  document.getElementById('result').innerHTML=`<div class="result-panel ${cls}">
@@ -898,6 +911,8 @@ async function evaluateAndSave(){
    <p><b>Önerilen eylem:</b> ${action}</p>
  </div>`;
  toast('Değerlendirme kaydedildi');
+ window.assessmentSaveInFlight=false;
+ if(evalBtn){evalBtn.disabled=false;evalBtn.textContent='Değerlendir ve Kaydet'}
  refresh();
 }
 function clearAssessment(){document.querySelectorAll('#assessment input').forEach(e=>{if(e.type==='checkbox')e.checked=false});document.getElementById('result').innerHTML=''}

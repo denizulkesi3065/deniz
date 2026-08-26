@@ -784,23 +784,14 @@ function setAssessmentSaveState(loading){
   b.disabled=loading;
   b.textContent=loading?'Kaydediliyor...':'Değerlendir ve Kaydet';
 }
-async function withTimeout(promise,ms,label){
-  let timer;
-  const timeout=new Promise((_,reject)=>{
-    timer=setTimeout(()=>reject(new Error(label+' zaman aşımına uğradı. İnternet bağlantınızı kontrol edip tekrar deneyin.')),ms);
-  });
-  try{return await Promise.race([promise,timeout]);}
-  finally{clearTimeout(timer);}
-}
-
-async function addPatient(){
+async async function addPatient(){
  if(window.patientSaveInFlight)return;
  window.patientSaveInFlight=true;
  setPatientSaveState(true);
 
  try{
    if(window.editingPatientId){
-     await withTimeout(updatePatient(),20000,'Hasta güncelleme');
+     await updatePatient();
      toast('Hasta güncellendi');
      return;
    }
@@ -815,6 +806,9 @@ async function addPatient(){
    if(!birth){toast('Doğum tarihi gerekli');return}
    if(!gender){toast('Cinsiyet seçin');return}
    if(!height||!weight||pod===''){toast('Boy, kilo ve postoperatif gün alanlarını doldurun');return}
+
+   const {data:{user},error:authError}=await sb.auth.getUser();
+   if(authError||!user)throw new Error('Oturum doğrulanamadı. Lütfen çıkış yapıp yeniden giriş yapın.');
 
    const birthDate=new Date(birth+'T00:00:00');
    const today=new Date();
@@ -833,12 +827,12 @@ async function addPatient(){
      gender:gender,
      medical_record_no:identifier,
      national_id:null,
-     created_by:currentUser.id
+     created_by:user.id
    };
 
-   if(!navigator.onLine) throw new Error('İnternet bağlantısı yok. Bağlantınızı kontrol edin.');
+   if(!navigator.onLine)throw new Error('İnternet bağlantısı yok.');
 
-   const result=await withTimeout(sb.from('patients').insert(payload),20000,'Hasta kaydetme');
+   const result=await sb.from('patients').insert(payload).select('id').single();
    if(result.error)throw new Error(result.error.message);
 
    ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newPod'].forEach(id=>{
@@ -847,8 +841,7 @@ async function addPatient(){
    const g=document.getElementById('newGender');if(g)g.value='';
 
    toast('Hasta kaydedildi');
-   // Refresh is intentionally not awaited; the save confirmation must not be blocked by a list refresh.
-   refresh().catch(err=>console.error('Liste yenileme:',err));
+   refresh().catch(e=>console.error('Liste yenileme:',e));
  }catch(e){
    console.error('Hasta kaydetme:',e);
    toast('Hasta kaydedilemedi: '+(e?.message||'Beklenmeyen hata'));
@@ -958,8 +951,11 @@ async function evaluateAndSave(){
    recommended_action:action
  };
 
- if(!navigator.onLine) throw new Error('İnternet bağlantısı yok. Bağlantınızı kontrol edin.');
- const result=await withTimeout(sb.from('assessments').insert(payload),20000,'Değerlendirme kaydetme');
+ if(!navigator.onLine)throw new Error('İnternet bağlantısı yok.');
+ const {data:{user},error:authError}=await sb.auth.getUser();
+ if(authError||!user)throw new Error('Oturum doğrulanamadı. Lütfen çıkış yapıp yeniden giriş yapın.');
+ payload.assessed_by=user.id;
+ const result=await sb.from('assessments').insert(payload).select('id').single();
  if(result.error)throw new Error(result.error.message);
 
  const cls=risk==='YÜKSEK'?'r':risk==='ORTA'?'y':'g';
@@ -973,6 +969,13 @@ async function evaluateAndSave(){
  </div>`;
  toast('Değerlendirme kaydedildi');
  refresh();
+ }catch(e){
+   console.error('Değerlendirme kaydetme:',e);
+   toast('Değerlendirme kaydedilemedi: '+(e?.message||'Beklenmeyen hata'));
+ }finally{
+   window.assessmentSaveInFlight=false;
+   setAssessmentSaveState(false);
+ }
  }catch(e){
    console.error('Değerlendirme kaydetme:',e);
    toast('Değerlendirme kaydedilemedi: '+(e?.message||'Beklenmeyen hata'));
@@ -1308,11 +1311,25 @@ sb.auth.onAuthStateChange((event)=>{
 </script>
 
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(()=>{});
-  });
-}
+/* Mobile/PWA cache reset: prevents an older cached index.html from running on iOS/Android. */
+window.addEventListener('load', async ()=>{
+  try{
+    const FLAG='scdiaps_cache_reset_4527';
+    if(sessionStorage.getItem(FLAG)!=='1' && 'serviceWorker' in navigator){
+      sessionStorage.setItem(FLAG,'1');
+      const regs=await navigator.serviceWorker.getRegistrations();
+      for(const r of regs){try{await r.unregister()}catch(e){}}
+      if(window.caches){
+        const keys=await caches.keys();
+        await Promise.all(keys.map(k=>caches.delete(k)));
+      }
+      window.location.reload();
+      return;
+    }
+  }catch(e){
+    console.warn('Cache reset:',e);
+  }
+});
 </script>
 
 

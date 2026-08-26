@@ -290,14 +290,14 @@ const SUPABASE_URL='https://nndtcprefcrevdulxzhy.supabase.co';
 const SUPABASE_KEY='sb_publishable_7IeSV5cMQoAPAbfzE7KVpw_rnfXwZ2e';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const ADMIN_EMAIL='ismaildeniz0192@gmail.com';
-let currentUser=null,currentProfile=null,loginTurnstileToken='',registerTurnstileToken='',patientCache=[];
+let currentUser=null,currentProfile=null,loginTurnstileToken='',registerTurnstileToken='',patientCache=[],loginInFlight=false,registerInFlight=false;
 
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2800)}
 function n(id){const x=parseFloat(document.getElementById(id).value);return Number.isFinite(x)?x:0}
 function v(id){return document.getElementById(id).value}
 function ck(id){return document.getElementById(id).checked}
 function showRegister(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('registerPage').classList.remove('hidden');setTimeout(()=>{renderTurnstileWidgets();if(registerTurnstileWidgetId!==null)try{window.turnstile.reset(registerTurnstileWidgetId)}catch(e){}},50)}
-function showLogin(){document.getElementById('registerPage').classList.add('hidden');document.getElementById('loginPage').classList.remove('hidden');setTimeout(()=>{renderTurnstileWidgets();if(loginTurnstileWidgetId!==null)try{window.turnstile.reset(loginTurnstileWidgetId)}catch(e){}},50)}
+function showLogin(){registerTurnstileToken='';document.getElementById('registerPage').classList.add('hidden');document.getElementById('loginPage').classList.remove('hidden');setTimeout(()=>{renderTurnstileWidgets();if(loginTurnstileWidgetId!==null)try{loginTurnstileToken='';window.turnstile.reset(loginTurnstileWidgetId)}catch(e){}},100)}
 function go(id,btn){if(id==='assessment' && !document.getElementById('pid').value){document.getElementById('assessmentPatientIdentifier').value='';document.getElementById('assessmentPatientName').value=''} if(id==='admin'&&(!currentProfile||currentProfile.role!=='admin')){toast('Yönetici yetkisi gerekir');return}document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');refresh()}
 function retryTurnstile(){
  try{
@@ -309,27 +309,51 @@ function retryTurnstile(){
 }
 async function login(){
  const email=v('loginEmail').trim().toLowerCase(), password=document.getElementById('loginPassword').value;
- const msg=document.getElementById('loginMsg');msg.textContent='Giriş yapılıyor...';
+ const msg=document.getElementById('loginMsg');
+ if(loginInFlight)return;
  if(!email||!password){msg.textContent='E-posta ve şifre gerekli.';return}
- if(!loginTurnstileToken){
-   msg.textContent='Lütfen güvenlik doğrulamasını tamamlayın.';
-   return;
- }
+ if(!loginTurnstileToken){msg.textContent='Lütfen güvenlik doğrulamasını tamamlayın.';return}
+
+ loginInFlight=true;
+ const btn=document.querySelector('#loginPage button[onclick="login()"]');
+ if(btn){btn.disabled=true;btn.textContent='Giriş yapılıyor...';}
+
+ const token=loginTurnstileToken;
+ // Prevent the same Turnstile token from being reused.
+ loginTurnstileToken='';
+
  const {data,error}=await sb.auth.signInWithPassword({
    email,
    password,
-   options:{captchaToken:loginTurnstileToken}
+   options:{captchaToken:token}
  });
- if(error){msg.textContent='Giriş başarısız: '+error.message;return}
+
+ if(error){
+   msg.textContent='Giriş başarısız: '+error.message;
+   try{
+     if(window.turnstile && loginTurnstileWidgetId!==null) window.turnstile.reset(loginTurnstileWidgetId);
+   }catch(e){}
+   loginInFlight=false;
+   if(btn){btn.disabled=false;btn.textContent='Giriş Yap';}
+   return;
+ }
+
  currentUser=data.user;
  const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',currentUser.id).maybeSingle();
- if(email===ADMIN_EMAIL){currentProfile={id:currentUser.id,full_name:(p&&p.full_name)||'Sistem Yöneticisi',role:'admin',approval_status:'approved'}}
- else{if(!p){await sb.auth.signOut();msg.textContent='Kullanıcı profili bulunamadı.';return}if(p.approval_status!=='approved'){await sb.auth.signOut();msg.textContent='Hesap onay bekliyor: '+p.approval_status;return}currentProfile=p}
+ if(email===ADMIN_EMAIL){
+   currentProfile={id:currentUser.id,full_name:(p&&p.full_name)||'Sistem Yöneticisi',role:'admin',approval_status:'approved'}
+ }else{
+   if(!p){await sb.auth.signOut();msg.textContent='Kullanıcı profili bulunamadı.';loginInFlight=false;if(btn){btn.disabled=false;btn.textContent='Giriş Yap'};return}
+   if(p.approval_status!=='approved'){await sb.auth.signOut();msg.textContent='Hesap onay bekliyor: '+p.approval_status;loginInFlight=false;if(btn){btn.disabled=false;btn.textContent='Giriş Yap'};return}
+   currentProfile=p
+ }
  document.getElementById('loginPage').classList.add('hidden');document.getElementById('app').classList.remove('hidden');
  document.getElementById('userText').textContent=(currentProfile.full_name||email)+' • '+currentProfile.role;document.getElementById('avatar').textContent=(currentProfile.full_name||'A').slice(0,1).toUpperCase();
  document.getElementById('adminNav').classList.toggle('hidden',currentProfile.role!=='admin');
+ loginInFlight=false;
  refresh();toast('Giriş başarılı')
 }
+
 function updateRegistrationOptions(){
  const profession=v('regProfession');
  const education=document.getElementById('regEducation');
@@ -756,6 +780,8 @@ function renderTurnstileWidgets(){
       loginTurnstileWidgetId=window.turnstile.render(loginEl,{
         sitekey:TURNSTILE_SITEKEY,
         size:'flexible',
+        retry:'auto',
+        'retry-interval':8000,
         callback:onLoginTurnstile,
         'error-callback':(code)=>turnstileError('login',code),
         'expired-callback':()=>{loginTurnstileToken='';}
@@ -768,6 +794,8 @@ function renderTurnstileWidgets(){
       registerTurnstileWidgetId=window.turnstile.render(regEl,{
         sitekey:TURNSTILE_SITEKEY,
         size:'flexible',
+        retry:'auto',
+        'retry-interval':8000,
         callback:onRegisterTurnstile,
         'error-callback':(code)=>turnstileError('register',code),
         'expired-callback':()=>{registerTurnstileToken='';}
@@ -776,7 +804,6 @@ function renderTurnstileWidgets(){
   }
   return true;
 }
-
 function retryTurnstile(){
   try{
     if(window.turnstile){

@@ -614,7 +614,26 @@ function applyRememberEmail(){
 
 function showRegister(){
  setRegistrationBirthDateLimit();document.getElementById('loginPage').classList.add('hidden');document.getElementById('registerPage').classList.remove('hidden');setTimeout(()=>{renderTurnstileWidgets();if(registerTurnstileWidgetId!==null)try{window.turnstile.reset(registerTurnstileWidgetId)}catch(e){}},50)}
+
+function clearLoginFormFields(){
+  const ids=['loginEmail','loginPassword'];
+  ids.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){
+      el.value='';
+      el.setAttribute('value','');
+    }
+  });
+  const form=document.getElementById('loginForm');
+  if(form){
+    try{ form.reset(); }catch(e){}
+  }
+  const remember=document.getElementById('rememberMe');
+  if(remember) remember.checked=false;
+}
+
 function showLogin(){
+ clearLoginFormFields();
   clearSessionTimeout();
   try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
   recoveryMode=false;
@@ -685,8 +704,12 @@ async function login(){
  if(email===ADMIN_EMAIL){
    currentProfile={id:currentUser.id,full_name:'İsmail Deniz',role:'admin',approval_status:'approved'}
  }else{
-   if(!p){await sb.auth.signOut();msg.textContent='Kullanıcı profili bulunamadı.';loginInFlight=false;if(btn){btn.disabled=false;btn.textContent='Giriş Yap'};return}
-   if(p.approval_status!=='approved'){await sb.auth.signOut();msg.textContent='Hesap onay bekliyor: '+p.approval_status;loginInFlight=false;if(btn){btn.disabled=false;btn.textContent='Giriş Yap'};return}
+   if(!p){await sb.auth.signOut();
+ clearLoginFormFields();
+ clearLoginFormFields();msg.textContent='Kullanıcı profili bulunamadı.';loginInFlight=false;if(btn){btn.disabled=false;btn.textContent='Giriş Yap'};return}
+   if(p.approval_status!=='approved'){await sb.auth.signOut();
+ clearLoginFormFields();
+ clearLoginFormFields();msg.textContent='Hesap onay bekliyor: '+p.approval_status;loginInFlight=false;if(btn){btn.disabled=false;btn.textContent='Giriş Yap'};return}
    currentProfile=p
  }
  document.getElementById('loginPage').classList.add('hidden');document.getElementById('app').classList.remove('hidden');
@@ -753,6 +776,8 @@ async function updatePassword(){
     document.getElementById('resetPage').classList.add('hidden');
     window.history.replaceState({},document.title,window.location.pathname);
     await sb.auth.signOut();
+ clearLoginFormFields();
+ clearLoginFormFields();
     recoveryMode=false;
     showLogin();
     const loginMsg=document.getElementById('loginMsg');

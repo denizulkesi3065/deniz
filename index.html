@@ -413,6 +413,57 @@ function n(id){const x=parseFloat(document.getElementById(id).value);return Numb
 function v(id){return document.getElementById(id).value}
 function ck(id){return document.getElementById(id).checked}
 
+
+// NEWS2 (Royal College of Physicians) — standard physiological scoring.
+// The assessment form uses the standard SpO₂ Scale 1 because no Scale 2 option is exposed.
+function news2(){
+  const temp=n('temp'), hr=n('hr'), sbp=n('sbp'), rr=n('rr'), spo2=n('spo2'), o2=n('o2'), con=Number(v('con'));
+  let score=0;
+
+  // Respiratory rate
+  if(rr<=8) score+=3;
+  else if(rr<=11) score+=1;
+  else if(rr<=20) score+=0;
+  else if(rr<=24) score+=2;
+  else score+=3;
+
+  // Oxygen saturation (SpO2 Scale 1)
+  if(spo2<=91) score+=3;
+  else if(spo2<=93) score+=2;
+  else if(spo2<=95) score+=1;
+  else score+=0;
+
+  // Supplemental oxygen
+  if(o2>0) score+=2;
+
+  // Systolic blood pressure
+  if(sbp<=90) score+=3;
+  else if(sbp<=100) score+=2;
+  else if(sbp<=110) score+=1;
+  else if(sbp<=219) score+=0;
+  else score+=3;
+
+  // Pulse
+  if(hr<=40) score+=3;
+  else if(hr<=50) score+=1;
+  else if(hr<=90) score+=0;
+  else if(hr<=110) score+=1;
+  else if(hr<=130) score+=2;
+  else score+=3;
+
+  // Temperature
+  if(temp<=35.0) score+=3;
+  else if(temp<=36.0) score+=1;
+  else if(temp<=38.0) score+=0;
+  else if(temp<=39.0) score+=1;
+  else score+=2;
+
+  // Consciousness: C/V/P/U each scores 3; Alert scores 0.
+  if(con!==0) score+=3;
+
+  return score;
+}
+
 const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
 const SESSION_MARKER = 'scdiaps_session_active';
 

@@ -71,7 +71,16 @@ button:disabled,.btn:disabled{opacity:.65;cursor:not-allowed;}
 .ai-source a{color:#155e8a;text-decoration:none;font-weight:700}
 .ai-disclaimer{margin-top:12px;font-size:11px;color:#64748b;background:#fff7ed;border:1px solid #fed7aa;padding:9px 11px;border-radius:9px}
 @media(max-width:800px){.ai-advisor-head{flex-direction:column}.ai-grid{grid-template-columns:1fr}.ai-advisor-card{margin-left:0;margin-right:0}}
-.outcome-pending{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:5px 9px;border-radius:999px;font-weight:700;font-size:12px}.outcome-done{background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:5px 9px;border-radius:999px;font-weight:700;font-size:12px}.outcome-modal{position:fixed;inset:0;background:rgba(15,23,42,.48);display:flex;align-items:center;justify-content:center;padding:18px;z-index:9999}.outcome-modal.hidden{display:none}.outcome-modal-card{width:min(620px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:18px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.22)}.outcome-options{display:grid;gap:9px;margin:14px 0}.outcome-option{display:flex;gap:10px;align-items:flex-start;border:1px solid #e2e8f0;border-radius:10px;padding:11px;cursor:pointer}.outcome-option input{margin-top:3px}</style>
+.outcome-pending{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:5px 9px;border-radius:999px;font-weight:700;font-size:12px}.outcome-done{background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:5px 9px;border-radius:999px;font-weight:700;font-size:12px}.outcome-modal{position:fixed;inset:0;background:rgba(15,23,42,.48);display:flex;align-items:center;justify-content:center;padding:18px;z-index:9999}.outcome-modal.hidden{display:none}.outcome-modal-card{width:min(620px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:18px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.22)}.outcome-options{display:grid;gap:9px;margin:14px 0}.outcome-option{display:flex;gap:10px;align-items:flex-start;border:1px solid #e2e8f0;border-radius:10px;padding:11px;cursor:pointer}.outcome-option input{margin-top:3px}
+.user-detail-modal{position:fixed;inset:0;background:rgba(15,23,42,.48);display:flex;align-items:center;justify-content:center;padding:18px;z-index:10000}
+.user-detail-modal.hidden{display:none}
+.user-detail-card{width:min(720px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:18px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+.user-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;margin-top:14px}
+.user-detail-item{padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px}
+.user-detail-item small{display:block;color:#64748b;font-size:11px;margin-bottom:3px}
+.user-detail-item strong{font-size:13px;color:#0f172a;word-break:break-word}
+@media(max-width:650px){.user-detail-grid{grid-template-columns:1fr}}
+</style>
 
 <meta name="theme-color" content="#102a43">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -425,6 +434,16 @@ button,input,select{touch-action:manipulation}
 </section>
 
 </main></div></div>
+
+<div id="userDetailModal" class="user-detail-modal hidden">
+  <div class="user-detail-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <div><h3 style="margin:0">Kullanıcı Bilgileri</h3><p id="userDetailSubtitle" style="margin:4px 0 0;color:#64748b;font-size:12px"></p></div>
+      <button class="btn btn-light" onclick="closeUserDetail()">Kapat</button>
+    </div>
+    <div id="userDetailGrid" class="user-detail-grid"></div>
+  </div>
+</div>
 <div id="toast" class="toast"></div>
 
 <script>
@@ -1531,10 +1550,52 @@ async function saveAdminProfile(){
   renderAdmin();
 }
 
+
+window.adminUsersCache=[];
+function escDetail(value){
+  return String(value??'-').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function fmtDetail(value){
+  if(value===null||value===undefined||value==='')return '-';
+  return escDetail(value);
+}
+function openUserDetail(id){
+  if(!currentProfile||currentProfile.role!=='admin'){toast('Yönetici yetkisi gerekir');return}
+  const u=(window.adminUsersCache||[]).find(x=>x.id===id);
+  if(!u){toast('Kullanıcı bilgileri bulunamadı.');return}
+  const rows=[
+    ['Ad Soyad',u.full_name],
+    ['E-posta',u.email],
+    ['Doğum Tarihi',u.birth_date],
+    ['Cinsiyet',u.gender],
+    ['Meslek',u.profession],
+    ['Eğitim Durumu',u.education_status],
+    ['Mesleki Eğitim',u.professional_education],
+    ['Unvan',u.professional_title],
+    ['Rol',u.role],
+    ['Hesap Durumu',u.approval_status],
+    ['Kayıt Tarihi',u.created_at?new Date(u.created_at).toLocaleString('tr-TR'):'-'],
+    ['Onay Tarihi',u.approved_at?new Date(u.approved_at).toLocaleString('tr-TR'):'-'],
+    ['Kullanıcı ID',u.id]
+  ];
+  document.getElementById('userDetailSubtitle').textContent=u.email||u.full_name||'';
+  document.getElementById('userDetailGrid').innerHTML=rows.map(([k,v])=>`<div class="user-detail-item"><small>${escDetail(k)}</small><strong>${fmtDetail(v)}</strong></div>`).join('');
+  document.getElementById('userDetailModal').classList.remove('hidden');
+}
+function closeUserDetail(){document.getElementById('userDetailModal').classList.add('hidden')}
 async function renderAdmin(){
  const {data,error}=await sb.rpc('admin_list_profiles');
  if(error){document.getElementById('adminMsg').textContent='Kullanıcı listesi okunamadı: '+error.message;return}
- document.getElementById('userTable').innerHTML=(data||[]).map(u=>`<tr><td>${u.full_name||'-'}</td><td>${u.role}</td><td><span class="badge ${u.approval_status==='approved'?'g':u.approval_status==='pending'?'y':'r'}">${u.approval_status}</span></td><td>${u.approval_status==='pending'?`<button class="btn btn-success" onclick="approveUser('${u.id}')">Onayla</button><button class="btn btn-danger" onclick="rejectUser('${u.id}')">Reddet</button>`:''}${u.role!=='admin'?`<button class="btn btn-danger" onclick="deleteUser('${u.id}')">Kullanıcıyı Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="4">Kullanıcı yok.</td></tr>';
+ window.adminUsersCache=Array.isArray(data)?data:[];
+document.getElementById('userTable').innerHTML=window.adminUsersCache.map(u=>`<tr>
+<td><button class="btn btn-light" style="font-weight:700" onclick="openUserDetail('${u.id}')">${u.full_name||'-'}</button></td>
+<td>${u.role||'-'}</td>
+<td><span class="badge ${u.approval_status==='approved'?'g':u.approval_status==='pending'?'y':'r'}">${u.approval_status||'-'}</span></td>
+<td>
+<button class="btn btn-light" onclick="openUserDetail('${u.id}')">Bilgileri Gör</button>
+${u.approval_status==='pending'?`<button class="btn btn-success" onclick="approveUser('${u.id}')">Onayla</button><button class="btn btn-danger" onclick="rejectUser('${u.id}')">Reddet</button>`:''}
+${u.role!=='admin'?`<button class="btn btn-danger" onclick="deleteUser('${u.id}')">Kullanıcıyı Sil</button>`:''}
+</td></tr>`).join('')||'<tr><td colspan="4">Kullanıcı yok.</td></tr>';
  await loadAdminProfileForm();
 }
 async function approveUser(id){

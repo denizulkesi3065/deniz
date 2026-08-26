@@ -455,7 +455,10 @@ async function forceSessionLogout(message='Oturumunuz güvenlik nedeniyle sonlan
 
   setTimeout(()=>{
     sessionEnding=false;
-    resetLoginTurnstileForFreshLogin();
+    renderTurnstileWidgets();
+    if(loginTurnstileWidgetId!==null){
+      try{window.turnstile.reset(loginTurnstileWidgetId)}catch(e){}
+    }
   },100);
 }
 
@@ -541,7 +544,12 @@ function showLogin(){
   if(loginEmailInput) loginEmailInput.value='';
   const rememberCheck=document.getElementById('rememberLogin');
   if(rememberCheck) rememberCheck.checked=false;
-  setTimeout(()=>resetLoginTurnstileForFreshLogin(),100);
+  setTimeout(()=>{
+    renderTurnstileWidgets();
+    if(loginTurnstileWidgetId!==null){
+      try{window.turnstile.reset(loginTurnstileWidgetId)}catch(e){}
+    }
+  },100);
 }
 function go(id,btn){if(id==='assessment' && !document.getElementById('pid').value){document.getElementById('assessmentPatientIdentifier').value='';document.getElementById('assessmentPatientName').value=''} if(id==='admin'&&(!currentProfile||currentProfile.role!=='admin')){toast('Yönetici yetkisi gerekir');return}document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');refresh()}
 function retryTurnstile(){
@@ -1323,85 +1331,54 @@ function turnstileError(which, code){
 }
 
 function renderTurnstileWidgets(){
+  if(!window.turnstile) return false;
   if(!TURNSTILE_SITEKEY || TURNSTILE_SITEKEY.startsWith('BURAYA_')) return false;
-  if(!window.turnstile || typeof window.turnstile.ready!=='function') return false;
 
-  window.turnstile.ready(()=>{
+  const loginEl=document.getElementById('loginTurnstile');
+  const regEl=document.getElementById('registerTurnstile');
+  const recoveryEl=document.getElementById('recoveryTurnstile');
+
+  if(loginEl && loginTurnstileWidgetId===null){
     try{
-      const loginEl=document.getElementById('loginTurnstile');
-      const regEl=document.getElementById('registerTurnstile');
-      const recoveryEl=document.getElementById('recoveryTurnstile');
+      loginTurnstileWidgetId=window.turnstile.render(loginEl,{
+        sitekey:TURNSTILE_SITEKEY,
+        size:'flexible',
+        retry:'auto',
+        'retry-interval':8000,
+        callback:onLoginTurnstile,
+        'error-callback':(code)=>turnstileError('login',code),
+        'expired-callback':()=>{loginTurnstileToken='';}
+      });
+    }catch(e){turnstileError('login',e);}
+  }
 
-      if(loginEl && loginTurnstileWidgetId===null){
-        loginTurnstileWidgetId=window.turnstile.render(loginEl,{
-          sitekey:TURNSTILE_SITEKEY,
-          size:'flexible',
-          retry:'auto',
-          'retry-interval':8000,
-          callback:(token)=>{
-            loginTurnstileToken=token||'';
-            const s=document.getElementById('turnstileStatus');
-            if(s)s.textContent='Güvenlik doğrulaması tamamlandı.';
-          },
-          'error-callback':(code)=>turnstileError('login',code),
-          'expired-callback':()=>{
-            loginTurnstileToken='';
-            const s=document.getElementById('turnstileStatus');
-            if(s)s.textContent='Güvenlik doğrulaması yeniden bekleniyor…';
-          },
-          'timeout-callback':()=>{
-            const s=document.getElementById('turnstileStatus');
-            if(s)s.textContent='Güvenlik doğrulaması zaman aşımına uğradı. Tekrar deneyin.';
-          }
-        });
-        const s=document.getElementById('turnstileStatus');
-        if(s)s.textContent='Güvenlik doğrulaması hazır.';
-      }
-
-      if(regEl && registerTurnstileWidgetId===null){
-        registerTurnstileWidgetId=window.turnstile.render(regEl,{
-          sitekey:TURNSTILE_SITEKEY,
-          size:'flexible',
-          retry:'auto',
-          'retry-interval':8000,
-          callback:onRegisterTurnstile,
-          'error-callback':(code)=>turnstileError('register',code),
-          'expired-callback':()=>{registerTurnstileToken='';}
-        });
-      }
-
-      if(recoveryEl && recoveryTurnstileWidgetId===null){
-        recoveryTurnstileWidgetId=window.turnstile.render(recoveryEl,{
-          sitekey:TURNSTILE_SITEKEY,
-          size:'flexible',
-          retry:'auto',
-          'retry-interval':8000,
-          callback:onRecoveryTurnstile,
-          'error-callback':(code)=>turnstileError('recovery',code),
-          'expired-callback':()=>{recoveryTurnstileToken='';}
-        });
-      }
-    }catch(e){
-      console.error('Turnstile render error:',e);
-      turnstileError('login',e?.message||String(e));
-    }
-  });
+  if(regEl && registerTurnstileWidgetId===null){
+    try{
+      registerTurnstileWidgetId=window.turnstile.render(regEl,{
+        sitekey:TURNSTILE_SITEKEY,
+        size:'flexible',
+        retry:'auto',
+        'retry-interval':8000,
+        callback:onRegisterTurnstile,
+        'error-callback':(code)=>turnstileError('register',code),
+        'expired-callback':()=>{registerTurnstileToken='';}
+      });
+    }catch(e){turnstileError('register',e);}
+  }
+  if(recoveryEl && recoveryTurnstileWidgetId===null){
+    try{
+      recoveryTurnstileWidgetId=window.turnstile.render(recoveryEl,{
+        sitekey:TURNSTILE_SITEKEY,
+        size:'flexible',
+        retry:'auto',
+        'retry-interval':8000,
+        callback:onRecoveryTurnstile,
+        'error-callback':(code)=>turnstileError('recovery',code),
+        'expired-callback':()=>{recoveryTurnstileToken='';}
+      });
+    }catch(e){turnstileError('recovery',e);}
+  }
   return true;
-}
-
-function resetLoginTurnstileForFreshLogin(){
-  loginTurnstileToken='';
-  const s=document.getElementById('turnstileStatus');
-  if(s)s.textContent='Güvenlik doğrulaması yükleniyor…';
-  try{
-    if(window.turnstile && loginTurnstileWidgetId!==null){
-      try{window.turnstile.remove(loginTurnstileWidgetId)}catch(e){}
-      loginTurnstileWidgetId=null;
-    }
-  }catch(e){}
-  const host=document.getElementById('loginTurnstile');
-  if(host)host.innerHTML='';
-  setTimeout(()=>renderTurnstileWidgets(),100);
 }
 
 function retryTurnstile(){
@@ -1414,10 +1391,9 @@ function retryTurnstile(){
   }catch(e){console.error(e);}
 }
 
-window.addEventListener('load',()=>{
-  loadRememberedEmail();
+window.addEventListener('load',()=>{loadRememberedEmail();
   const wait=setInterval(()=>{
-    if(renderTurnstileWidgets())clearInterval(wait);
+    if(renderTurnstileWidgets()){clearInterval(wait);}
   },250);
   setTimeout(()=>clearInterval(wait),15000);
 });

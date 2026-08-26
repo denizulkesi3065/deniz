@@ -143,7 +143,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="v4.5.38-birlesik-ai">
+<body data-build="v4.5.40-onayli-giris-coklu-oturum">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -734,8 +734,16 @@ async function login(){
    if(!p){await sb.auth.signOut();
  clearLoginFormFields();
  clearLoginFormFields();msg.textContent='Kullanıcı profili bulunamadı.';loginInFlight=false;if(btn){btn.disabled=false;btn.textContent='Giriş Yap'};return}
-   // Yeni kayıt olan kullanıcıyı yalnızca approval_status nedeniyle girişten engelleme.
-   // E-posta doğrulaması Supabase Auth tarafından ayrıca uygulanır.
+   // Yönetici onayı olmadan yeni kullanıcı sisteme alınmaz.
+   if(p.approval_status!=='approved'){
+     await sb.auth.signOut({scope:'local'});
+     clearLoginFormFields();
+     const statusText=p.approval_status==='pending'?'Yönetici onayı bekleniyor.':'Hesap onaylanmadı.';
+     msg.textContent=statusText;
+     loginInFlight=false;
+     if(btn){btn.disabled=false;btn.textContent='Giriş Yap'}
+     return;
+   }
    currentProfile=p
  }
  document.getElementById('loginPage').classList.add('hidden');document.getElementById('app').classList.remove('hidden');

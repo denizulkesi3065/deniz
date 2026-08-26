@@ -381,14 +381,93 @@ const SUPABASE_URL='https://nndtcprefcrevdulxzhy.supabase.co';
 const SUPABASE_KEY='sb_publishable_7IeSV5cMQoAPAbfzE7KVpw_rnfXwZ2e';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const ADMIN_EMAIL='ismaildeniz0192@gmail.com';
-let currentUser=null,currentProfile=null,loginTurnstileToken='',registerTurnstileToken='',recoveryTurnstileToken='',patientCache=[],loginInFlight=false,registerInFlight=false,recoveryInFlight=false,recoveryMode=false;
+let currentUser=null,currentProfile=null,loginTurnstileToken='',registerTurnstileToken='',recoveryTurnstileToken='',patientCache=[],loginInFlight=false,registerInFlight=false,recoveryInFlight=false,recoveryMode=false,sessionTimeoutTimer=null,lastActivityAt=Date.now(),sessionEnding=false;
 
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2800)}
 function n(id){const x=parseFloat(document.getElementById(id).value);return Number.isFinite(x)?x:0}
 function v(id){return document.getElementById(id).value}
 function ck(id){return document.getElementById(id).checked}
+
+const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
+const SESSION_MARKER = 'scdiaps_session_active';
+
+function clearSessionTimeout(){
+  if(sessionTimeoutTimer){
+    clearTimeout(sessionTimeoutTimer);
+    sessionTimeoutTimer=null;
+  }
+}
+
+async function forceSessionLogout(message='Oturumunuz güvenlik nedeniyle sonlandırıldı. Lütfen yeniden giriş yapın.'){
+  if(sessionEnding) return;
+  sessionEnding=true;
+  clearSessionTimeout();
+
+  try{
+    await sb.auth.signOut({scope:'local'});
+  }catch(e){
+    console.warn('Oturum kapatma:',e);
+  }
+
+  try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
+
+  currentUser=null;
+  currentProfile=null;
+  loginTurnstileToken='';
+  registerTurnstileToken='';
+  recoveryTurnstileToken='';
+  recoveryMode=false;
+
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('registerPage').classList.add('hidden');
+  document.getElementById('recoveryPage').classList.add('hidden');
+  document.getElementById('resetPage').classList.add('hidden');
+  document.getElementById('loginPage').classList.remove('hidden');
+
+  const msg=document.getElementById('loginMsg');
+  if(msg) msg.textContent=message;
+
+  setTimeout(()=>{
+    sessionEnding=false;
+    renderTurnstileWidgets();
+    if(loginTurnstileWidgetId!==null){
+      try{window.turnstile.reset(loginTurnstileWidgetId)}catch(e){}
+    }
+  },100);
+}
+
+function scheduleSessionTimeout(){
+  clearSessionTimeout();
+  lastActivityAt=Date.now();
+  sessionTimeoutTimer=setTimeout(()=>{
+    forceSessionLogout('5 dakika boyunca işlem yapılmadığı için oturumunuz sonlandırıldı. Lütfen yeniden giriş yapın.');
+  }, SESSION_TIMEOUT_MS);
+}
+
+function markActivity(){
+  if(!currentUser || recoveryMode || sessionEnding) return;
+  lastActivityAt=Date.now();
+  scheduleSessionTimeout();
+}
+
+['click','keydown','mousemove','touchstart','scroll'].forEach(evt=>{
+  document.addEventListener(evt,markActivity,{passive:true});
+});
+
+window.addEventListener('pagehide',()=>{
+  try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
+  // The browser may not finish an async signOut during page close; the session marker
+  // is therefore also cleared so the next page load forces a fresh login.
+});
+
+window.addEventListener('beforeunload',()=>{
+  try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
+});
+
 function showRegister(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('registerPage').classList.remove('hidden');setTimeout(()=>{renderTurnstileWidgets();if(registerTurnstileWidgetId!==null)try{window.turnstile.reset(registerTurnstileWidgetId)}catch(e){}},50)}
 function showLogin(){
+  clearSessionTimeout();
+  try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
   recoveryMode=false;
   currentUser=null;
   currentProfile=null;
@@ -460,6 +539,8 @@ async function login(){
  document.getElementById('userText').textContent=((currentProfile.role==='admin'?'İsmail Deniz':(currentProfile.full_name||email))+' • '+currentProfile.role);document.getElementById('avatar').textContent=((currentProfile.role==='admin'?'İD':(currentProfile.full_name||'A').slice(0,1).toUpperCase()));
  document.getElementById('adminNav').classList.toggle('hidden',currentProfile.role!=='admin');
  loginInFlight=false;
+ try{sessionStorage.setItem(SESSION_MARKER,'1')}catch(e){}
+ scheduleSessionTimeout();
  refresh();toast('Giriş başarılı')
 }
 
@@ -566,34 +647,8 @@ async function registerUser(){
  document.getElementById('regMsg').textContent=error?'Kayıt başarısız: '+error.message:'Kayıt oluşturuldu. E-posta doğrulaması ve yönetici onayı gerekiyor.';
  if(!error)showLogin()
 }
-async function logout(){await sb.auth.signOut();currentUser=null;currentProfile=null;document.getElementById('app').classList.add('hidden');showLogin()}
-function news2(){
- let s=0, t=n('temp'), hr=n('hr'), sbp=n('sbp'), rr=n('rr'), sp=n('spo2'), o2=n('o2');
- // Respiratory rate
- if(rr<=8 || rr>=25) s+=3;
- else if(rr<=11 || rr>=21) s+=2;
- else s+=0;
- // SpO2
- if(sp<=91) s+=3;
- else if(sp<=93) s+=2;
- else if(sp<=95) s+=1;
- // Systolic BP
- if(sbp<=90 || sbp>=220) s+=3;
- else if(sbp<=100) s+=2;
- else if(sbp<=110) s+=1;
- // Pulse
- if(hr<=40 || hr>=131) s+=3;
- else if(hr<=50 || hr>=111) s+=1;
- // Temperature
- if(t<=35) s+=3;
- else if(t<=36) s+=1;
- else if(t>=39.1) s+=2;
- else if(t>=38.1) s+=1;
- // Supplemental oxygen
- if(o2>0) s+=2;
- // Consciousness: any non-alert ACVPU state = 3
- if(n('con')!==0) s+=3;
- return s;
+async function logout(){
+  await forceSessionLogout('Oturum kapatıldı. Yeniden giriş yapmanız gerekiyor.');
 }
 async function updatePatient(){
  const id=window.editingPatientId;
@@ -1099,7 +1154,9 @@ sb.auth.onAuthStateChange((event)=>{
   if(isRecoveryUrl) recoveryMode=true;
 
   const {data}=await sb.auth.getSession();
-  if(data.session && !recoveryMode){
+  let activeMarker=false;
+  try{activeMarker=sessionStorage.getItem(SESSION_MARKER)==='1'}catch(e){}
+  if(data.session && !recoveryMode && activeMarker){
     const u=data.session.user;
     const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',u.id).maybeSingle();
     if((u.email||'').toLowerCase()===ADMIN_EMAIL){
@@ -1113,6 +1170,10 @@ sb.auth.onAuthStateChange((event)=>{
       refresh();
     }
   }
+  else if(data.session && !recoveryMode && !activeMarker){
+    try{await sb.auth.signOut({scope:'local'})}catch(e){}
+  }
+
 })();
 </script>
 

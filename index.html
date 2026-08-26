@@ -176,6 +176,7 @@ button,input,select{touch-action:manipulation}
   <button class="navbtn" onclick="go('patients',this)"><span class="navicon">👤</span><span class="label">Hastalar</span></button>
   <button class="navbtn" onclick="go('assessment',this)"><span class="navicon">＋</span><span class="label">Değerlendirme</span></button>
   <button class="navbtn" onclick="go('history',this)"><span class="navicon">◷</span><span class="label">Geçmiş</span></button>
+  <button class="navbtn" onclick="go('statistics',this)"><span class="navicon">▥</span><span class="label">İstatistikler</span></button>
   <button id="adminNav" class="navbtn hidden" onclick="go('admin',this)"><span class="navicon">⚙</span><span class="label">Yönetici</span></button>
 </aside>
 
@@ -194,6 +195,51 @@ button,input,select{touch-action:manipulation}
     <div class="risk r"><span>🔴 Yüksek</span><b id="rHigh">0</b><span>Öncelikli değerlendirme</span></div>
   </div></div>
   <div class="card"><h3>Son değerlendirmeler</h3><div class="table-wrap"><table><thead><tr><th>Zaman</th><th>Hasta</th><th>TC / Dosya No</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Temel neden</th></tr></thead><tbody id="dashTable"></tbody></table></div></div>
+</section>
+
+
+<section id="statistics" class="page hidden">
+  <div class="toolbar">
+    <div class="page-title">
+      <h2>İstatistikler</h2>
+      <p>Sistemdeki hasta ve klinik değerlendirme verilerinin özeti</p>
+    </div>
+  </div>
+
+  <div class="grid4">
+    <div class="stat-card"><div class="stat-label">Toplam hasta</div><div class="stat-value" id="stTotalPatients">0</div><div class="stat-foot">Sistemde kayıtlı</div></div>
+    <div class="stat-card"><div class="stat-label">Değerlendirilen hasta</div><div class="stat-value" id="stEvaluatedPatients">0</div><div class="stat-foot">En az bir değerlendirme</div></div>
+    <div class="stat-card"><div class="stat-label">Toplam değerlendirme</div><div class="stat-value" id="stTotalAssessments">0</div><div class="stat-foot">Tüm kayıtlar</div></div>
+    <div class="stat-card"><div class="stat-label">Ortalama NEWS2</div><div class="stat-value" id="stAvgNews2">0.0</div><div class="stat-foot">Kayıtlı değerlendirmeler</div></div>
+  </div>
+
+  <div class="card">
+    <h3>Risk istatistikleri</h3>
+    <div class="risk-row">
+      <div class="risk g"><span>🟢 Düşük</span><b id="stLow">0</b><span id="stLowPct">%0</span></div>
+      <div class="risk y"><span>🟡 Orta</span><b id="stMid">0</b><span id="stMidPct">%0</span></div>
+      <div class="risk r"><span>🔴 Yüksek</span><b id="stHigh">0</b><span id="stHighPct">%0</span></div>
+    </div>
+  </div>
+
+  <div class="grid4">
+    <div class="stat-card"><div class="stat-label">Son 7 gün</div><div class="stat-value" id="st7d">0</div><div class="stat-foot">Değerlendirme</div></div>
+    <div class="stat-card"><div class="stat-label">Son 30 gün</div><div class="stat-value" id="st30d">0</div><div class="stat-foot">Değerlendirme</div></div>
+    <div class="stat-card"><div class="stat-label">En yüksek NEWS2</div><div class="stat-value red" id="stMaxNews2">0</div><div class="stat-foot">Kayıtlı en yüksek değer</div></div>
+    <div class="stat-card"><div class="stat-label">Yüksek risk oranı</div><div class="stat-value red" id="stHighPctCard">%0</div><div class="stat-foot">Tüm değerlendirmeler içinde</div></div>
+  </div>
+
+  <div class="card">
+    <h3>İstatistiksel özet</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Gösterge</th><th>Değer</th><th>Açıklama</th></tr></thead>
+        <tbody id="statsTable">
+          <tr><td>Veri yükleniyor...</td><td>—</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </section>
 
 <section id="patients" class="page hidden">
@@ -385,14 +431,14 @@ async function login(){
  currentUser=data.user;
  const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',currentUser.id).maybeSingle();
  if(email===ADMIN_EMAIL){
-   currentProfile={id:currentUser.id,full_name:(p&&p.full_name)||'Sistem Yöneticisi',role:'admin',approval_status:'approved'}
+   currentProfile={id:currentUser.id,full_name:'İsmail Deniz',role:'admin',approval_status:'approved'}
  }else{
    if(!p){await sb.auth.signOut();msg.textContent='Kullanıcı profili bulunamadı.';loginInFlight=false;if(btn){btn.disabled=false;btn.textContent='Giriş Yap'};return}
    if(p.approval_status!=='approved'){await sb.auth.signOut();msg.textContent='Hesap onay bekliyor: '+p.approval_status;loginInFlight=false;if(btn){btn.disabled=false;btn.textContent='Giriş Yap'};return}
    currentProfile=p
  }
  document.getElementById('loginPage').classList.add('hidden');document.getElementById('app').classList.remove('hidden');
- document.getElementById('userText').textContent=(currentProfile.full_name||email)+' • '+currentProfile.role;document.getElementById('avatar').textContent=(currentProfile.full_name||'A').slice(0,1).toUpperCase();
+ document.getElementById('userText').textContent=((currentProfile.role==='admin'?'İsmail Deniz':(currentProfile.full_name||email))+' • '+currentProfile.role);document.getElementById('avatar').textContent=((currentProfile.role==='admin'?'İD':(currentProfile.full_name||'A').slice(0,1).toUpperCase()));
  document.getElementById('adminNav').classList.toggle('hidden',currentProfile.role!=='admin');
  loginInFlight=false;
  refresh();toast('Giriş başarılı')
@@ -800,6 +846,55 @@ async function refresh(){
 
  document.getElementById('dashTable').innerHTML=dashboardRows;
  document.getElementById('historyTable').innerHTML=groupedRows;
+
+ // Statistics
+ const totalAssessments=records.length;
+ const evaluatedPatients=new Set(records.map(x=>x.patient_id).filter(Boolean)).size;
+ const lowCount=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;
+ const midCount=records.filter(x=>x.scdiaps_risk==='ORTA').length;
+ const highCount=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
+ const newsValues=records.map(x=>Number(x.news2)).filter(Number.isFinite);
+ const avgNews2=newsValues.length ? newsValues.reduce((a,b)=>a+b,0)/newsValues.length : 0;
+ const maxNews2=newsValues.length ? Math.max(...newsValues) : 0;
+ const now=Date.now();
+ const sevenDays=now-7*24*60*60*1000;
+ const thirtyDays=now-30*24*60*60*1000;
+ const last7=records.filter(x=>{const t=Date.parse(x.assessed_at);return Number.isFinite(t)&&t>=sevenDays}).length;
+ const last30=records.filter(x=>{const t=Date.parse(x.assessed_at);return Number.isFinite(t)&&t>=thirtyDays}).length;
+ const pct=n=>totalAssessments?Math.round(n/totalAssessments*100):0;
+
+ const statMap={
+   stTotalPatients:patients.length,
+   stEvaluatedPatients:evaluatedPatients,
+   stTotalAssessments:totalAssessments,
+   stAvgNews2:avgNews2.toFixed(1),
+   stLow:lowCount,
+   stMid:midCount,
+   stHigh:highCount,
+   stLowPct:'%'+pct(lowCount),
+   stMidPct:'%'+pct(midCount),
+   stHighPct:'%'+pct(highCount),
+   st7d:last7,
+   st30d:last30,
+   stMaxNews2:maxNews2,
+   stHighPctCard:'%'+pct(highCount)
+ };
+ Object.entries(statMap).forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.textContent=val});
+
+ const statsTable=document.getElementById('statsTable');
+ if(statsTable){
+   statsTable.innerHTML=[
+     ['Toplam hasta',patients.length,'Sistemde kayıtlı hasta sayısı'],
+     ['Değerlendirilen hasta',evaluatedPatients,'En az bir klinik değerlendirmesi bulunan benzersiz hasta'],
+     ['Toplam değerlendirme',totalAssessments,'Sistemdeki tüm klinik değerlendirmeler'],
+     ['Ortalama NEWS2',avgNews2.toFixed(1),'Kayıtlı değerlendirmelerde ortalama NEWS2 skoru'],
+     ['Düşük risk',lowCount+' (%'+pct(lowCount)+')','Risk dağılımındaki pay'],
+     ['Orta risk',midCount+' (%'+pct(midCount)+')','Risk dağılımındaki pay'],
+     ['Yüksek risk',highCount+' (%'+pct(highCount)+')','Risk dağılımındaki pay'],
+     ['Son 7 gün değerlendirme',last7,'Son 7 gündeki değerlendirme sayısı'],
+     ['Son 30 gün değerlendirme',last30,'Son 30 gündeki değerlendirme sayısı']
+   ].map(r=>`<tr><td>${r[0]}</td><td><b>${r[1]}</b></td><td>${r[2]}</td></tr>`).join('');
+ }
 
  // Keep dashboard headers compatible with the data.
  const dashHead=document.querySelector('#dashboard table thead tr');

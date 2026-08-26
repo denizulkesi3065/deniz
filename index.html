@@ -354,6 +354,21 @@ button,input,select{touch-action:manipulation}
 
 <section id="admin" class="page hidden">
   <div class="toolbar"><div class="page-title"><h2>Yönetici Paneli</h2><p>Kullanıcı onayı ve sistem erişim yönetimi</p></div></div>
+  <div class="card">
+    <h3>Kişisel Bilgilerim</h3>
+    <div class="formgrid">
+      <div class="field"><label>Ad Soyad</label><input id="adminProfileName" type="text"></div>
+      <div class="field"><label>Doğum Tarihi</label><input id="adminProfileBirth" type="date"></div>
+      <div class="field"><label>Cinsiyet</label><select id="adminProfileGender"><option value="">Seçiniz</option><option value="Kadın">Kadın</option><option value="Erkek">Erkek</option><option value="Belirtmek istemiyor">Belirtmek istemiyor</option></select></div>
+      <div class="field"><label>Meslek</label><select id="adminProfileProfession" onchange="populateAdminProfileOptions(this.value)"><option value="Hekim">Hekim</option><option value="Hemşire">Hemşire</option></select></div>
+      <div class="field"><label>Eğitim Durumu</label><select id="adminProfileEducation"></select></div>
+      <div class="field"><label>Mesleki / Akademik Unvan</label><select id="adminProfileTitle"></select></div>
+    </div>
+    <div class="actions" style="margin-top:14px">
+      <button class="btn btn-primary" onclick="saveAdminProfile()">Kişisel Bilgilerimi Kaydet</button>
+    </div>
+    <div id="adminProfileMsg" class="notice" style="margin-top:12px"></div>
+  </div>
   <div class="card"><div class="notice">S-CDIAPS araştırma/geliştirme amaçlı bir karar destek prototipidir; nihai klinik karar sağlık profesyoneline aittir.</div><div class="notice">Yeni kullanıcılar e-posta doğrulaması ve yönetici onayı sonrasında aktifleşir.</div><div class="table-wrap"><table><thead><tr><th>Ad Soyad</th><th>Rol</th><th>Durum</th><th></th></tr></thead><tbody id="userTable"></tbody></table></div><div id="adminMsg"></div></div>
 </section>
 
@@ -981,10 +996,74 @@ function toggleHistoryPatient(id){
  const btn=row.previousElementSibling?.querySelector('button');
  if(btn)btn.textContent=hidden?'＋':'−';
 }
+
+function populateAdminProfileOptions(profession, educationValue, titleValue){
+  const education=document.getElementById('adminProfileEducation');
+  const title=document.getElementById('adminProfileTitle');
+  if(!education||!title)return;
+  const nurseEducation=['Sağlık Meslek Lisesi','Ön lisans','Lisans','Yüksek lisans','Doktora'];
+  const nurseTitles=['Hemşire'];
+  const doctorEducation=['Tıp Fakültesi','Tıpta Uzmanlık','Yan Dal Uzmanlığı'];
+  const doctorTitles=['Pratisyen hekim','Asistan hekim','Uzman hekim','Doçent','Profesör'];
+  const e=profession==='Hemşire'?nurseEducation:doctorEducation;
+  const t=profession==='Hemşire'?nurseTitles:doctorTitles;
+  education.innerHTML='<option value="">Seçiniz</option>'+e.map(x=>`<option value="${x}">${x}</option>`).join('');
+  title.innerHTML='<option value="">Seçiniz</option>'+t.map(x=>`<option value="${x}">${x}</option>`).join('');
+  if(educationValue)education.value=educationValue;
+  if(titleValue)title.value=titleValue;
+}
+
+async function loadAdminProfileForm(){
+  if(!currentUser)return;
+  const {data,error}=await sb.from('profiles').select('full_name,birth_date,gender,profession,education_status,professional_title').eq('id',currentUser.id).maybeSingle();
+  if(error){
+    const msg=document.getElementById('adminProfileMsg');
+    if(msg)msg.textContent='Profil bilgileri okunamadı: '+error.message;
+    return;
+  }
+  const p=data||{};
+  document.getElementById('adminProfileName').value=p.full_name||'İsmail Deniz';
+  document.getElementById('adminProfileBirth').value=p.birth_date||'';
+  document.getElementById('adminProfileGender').value=p.gender||'';
+  document.getElementById('adminProfileProfession').value=p.profession||'Hekim';
+  populateAdminProfileOptions(p.profession||'Hekim',p.education_status||'',p.professional_title||'');
+}
+
+async function saveAdminProfile(){
+  if(!currentUser||!currentProfile||currentProfile.role!=='admin'){
+    toast('Yalnızca yönetici kendi kişisel bilgilerini düzenleyebilir.');
+    return;
+  }
+  const payload={
+    full_name:document.getElementById('adminProfileName').value.trim(),
+    birth_date:document.getElementById('adminProfileBirth').value||null,
+    gender:document.getElementById('adminProfileGender').value||null,
+    profession:document.getElementById('adminProfileProfession').value||null,
+    education_status:document.getElementById('adminProfileEducation').value||null,
+    professional_title:document.getElementById('adminProfileTitle').value||null
+  };
+  if(!payload.full_name){
+    document.getElementById('adminProfileMsg').textContent='Ad Soyad boş bırakılamaz.';
+    return;
+  }
+  const {error}=await sb.from('profiles').update(payload).eq('id',currentUser.id);
+  if(error){
+    document.getElementById('adminProfileMsg').textContent='Güncelleme başarısız: '+error.message;
+    return;
+  }
+  currentProfile={...currentProfile,...payload};
+  document.getElementById('userText').textContent=''+(payload.full_name||'İsmail Deniz')+' • admin';
+  document.getElementById('avatar').textContent=(payload.full_name||'İD').split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('adminProfileMsg').textContent='Kişisel bilgileriniz güncellendi.';
+  toast('Kişisel bilgiler güncellendi');
+  renderAdmin();
+}
+
 async function renderAdmin(){
  const {data,error}=await sb.rpc('admin_list_profiles');
  if(error){document.getElementById('adminMsg').textContent='Kullanıcı listesi okunamadı: '+error.message;return}
  document.getElementById('userTable').innerHTML=(data||[]).map(u=>`<tr><td>${u.full_name||'-'}</td><td>${u.role}</td><td><span class="badge ${u.approval_status==='approved'?'g':u.approval_status==='pending'?'y':'r'}">${u.approval_status}</span></td><td>${u.approval_status==='pending'?`<button class="btn btn-success" onclick="approveUser('${u.id}')">Onayla</button><button class="btn btn-danger" onclick="rejectUser('${u.id}')">Reddet</button>`:''}${u.role!=='admin'?`<button class="btn btn-danger" onclick="deleteUser('${u.id}')">Kullanıcıyı Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="4">Kullanıcı yok.</td></tr>';
+ await loadAdminProfileForm();
 }
 async function approveUser(id){
  const {error}=await sb.rpc('admin_set_user_status',{target_id:id,new_status:'approved'});

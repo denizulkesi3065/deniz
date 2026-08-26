@@ -767,48 +767,93 @@ function updatePatientBMI(){
  const el=document.getElementById('newBMI');
  if(el) el.value=calculateBMIValue();
 }
+
+function setPatientSaveState(loading){
+  const b=document.getElementById('patientSaveBtn');
+  if(!b)return;
+  b.disabled=loading;
+  b.textContent=loading?'Kaydediliyor...':(window.editingPatientId?'Hasta Güncelle':'Hasta Kaydet');
+}
+function setAssessmentSaveState(loading){
+  const b=document.querySelector('#assessment button[onclick="evaluateAndSave()"]');
+  if(!b)return;
+  b.disabled=loading;
+  b.textContent=loading?'Kaydediliyor...':'Değerlendir ve Kaydet';
+}
+async function withTimeout(promise,ms,label){
+  let timer;
+  const timeout=new Promise((_,reject)=>{
+    timer=setTimeout(()=>reject(new Error(label+' zaman aşımına uğradı. İnternet bağlantınızı kontrol edip tekrar deneyin.')),ms);
+  });
+  try{return await Promise.race([promise,timeout]);}
+  finally{clearTimeout(timer);}
+}
+
 async function addPatient(){
  if(window.patientSaveInFlight)return;
  window.patientSaveInFlight=true;
- const saveBtn=document.getElementById('patientSaveBtn');
- if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Kaydediliyor...'}
- if(window.editingPatientId){try{await updatePatient()}finally{window.patientSaveInFlight=false;if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Hasta Güncelle'}};return}
- const code=v('newPid').trim(), identifier=v('newPatientIdentifier').trim(), name=v('newPatientName').trim();
- const birth=v('newBirthDate'), gender=v('newGender');
- const height=v('newHeight'), weight=v('newWeight'), pod=v('newPod');
- if(!code){toast('Hasta kodu gerekli');return}
- if(!identifier){toast('Hasta T.C. Kimlik No / Dosya No girin');return}
- if(!name){toast('Hasta adı soyadı gerekli');return}
- if(!birth){toast('Doğum tarihi gerekli');return}
- if(!gender){toast('Cinsiyet seçin');return}
- if(!height||!weight||pod===''){toast('Boy, kilo ve postoperatif gün alanlarını doldurun');return}
- const birthDate=new Date(birth+'T00:00:00');
- const today=new Date();
- let age=today.getFullYear()-birthDate.getFullYear();
- const md=today.getMonth()-birthDate.getMonth();
- if(md<0 || (md===0 && today.getDate()<birthDate.getDate())) age--;
- const payload={
-   patient_code:code,
-   patient_name:name,
-   birth_date:birth,
-   age:Math.max(0,age),
-   height_cm:Number(height),
-   weight_kg:Number(weight),
-   postoperative_day:Number(pod),
-   gender:gender,
-   medical_record_no:identifier,
-   national_id:null,
-   created_by:currentUser.id
- };
- const {error}=await sb.from('patients').insert(payload);
- if(error){toast('Hasta kaydedilemedi: '+error.message);window.patientSaveInFlight=false;if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Hasta Kaydet'};return}
- ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newPod'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
- const g=document.getElementById('newGender'); if(g)g.value='';
- toast('Hasta kaydedildi');
- window.patientSaveInFlight=false;
- if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Hasta Kaydet'}
- refresh()
+ setPatientSaveState(true);
+
+ try{
+   if(window.editingPatientId){
+     await withTimeout(updatePatient(),20000,'Hasta güncelleme');
+     toast('Hasta güncellendi');
+     return;
+   }
+
+   const code=v('newPid').trim(), identifier=v('newPatientIdentifier').trim(), name=v('newPatientName').trim();
+   const birth=v('newBirthDate'), gender=v('newGender');
+   const height=v('newHeight'), weight=v('newWeight'), pod=v('newPod');
+
+   if(!code){toast('Hasta kodu gerekli');return}
+   if(!identifier){toast('Hasta T.C. Kimlik No / Dosya No girin');return}
+   if(!name){toast('Hasta adı soyadı gerekli');return}
+   if(!birth){toast('Doğum tarihi gerekli');return}
+   if(!gender){toast('Cinsiyet seçin');return}
+   if(!height||!weight||pod===''){toast('Boy, kilo ve postoperatif gün alanlarını doldurun');return}
+
+   const birthDate=new Date(birth+'T00:00:00');
+   const today=new Date();
+   let age=today.getFullYear()-birthDate.getFullYear();
+   const md=today.getMonth()-birthDate.getMonth();
+   if(md<0 || (md===0 && today.getDate()<birthDate.getDate())) age--;
+
+   const payload={
+     patient_code:code,
+     patient_name:name,
+     birth_date:birth,
+     age:Math.max(0,age),
+     height_cm:Number(height),
+     weight_kg:Number(weight),
+     postoperative_day:Number(pod),
+     gender:gender,
+     medical_record_no:identifier,
+     national_id:null,
+     created_by:currentUser.id
+   };
+
+   if(!navigator.onLine) throw new Error('İnternet bağlantısı yok. Bağlantınızı kontrol edin.');
+
+   const result=await withTimeout(sb.from('patients').insert(payload),20000,'Hasta kaydetme');
+   if(result.error)throw new Error(result.error.message);
+
+   ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newPod'].forEach(id=>{
+     const el=document.getElementById(id);if(el)el.value='';
+   });
+   const g=document.getElementById('newGender');if(g)g.value='';
+
+   toast('Hasta kaydedildi');
+   // Refresh is intentionally not awaited; the save confirmation must not be blocked by a list refresh.
+   refresh().catch(err=>console.error('Liste yenileme:',err));
+ }catch(e){
+   console.error('Hasta kaydetme:',e);
+   toast('Hasta kaydedilemedi: '+(e?.message||'Beklenmeyen hata'));
+ }finally{
+   window.patientSaveInFlight=false;
+   setPatientSaveState(false);
+ }
 }
+
 async function deletePatient(id){
  if(!currentProfile||currentProfile.role!=='admin'){
    toast('Sadece yönetici hasta silebilir.');return
@@ -838,10 +883,11 @@ async function deletePatient(id){
 async function evaluateAndSave(){
  if(window.assessmentSaveInFlight)return;
  window.assessmentSaveInFlight=true;
- const evalBtn=document.querySelector('#assessment button[onclick="evaluateAndSave()"]');
- if(evalBtn){evalBtn.disabled=true;evalBtn.textContent='Kaydediliyor...'}
+ setAssessmentSaveState(true);
+ try{
+
  const patientId=v('pid');
- if(!patientId){toast('Önce Hastalar bölümünden bir hasta seçin.');window.assessmentSaveInFlight=false;if(evalBtn){evalBtn.disabled=false;evalBtn.textContent='Değerlendir ve Kaydet'};return}
+ if(!patientId){toast('Önce Hastalar bölümünden bir hasta seçin.');return}
 
  const t=n('temp'), hr=n('hr'), sbp=n('sbp'), rr=n('rr'), sp=n('spo2'), painScore=n('painScore'), concern=n('concern'), consciousness=n('con');
  const news2Score=news2();
@@ -908,8 +954,9 @@ async function evaluateAndSave(){
    recommended_action:action
  };
 
- const {error}=await sb.from('assessments').insert(payload);
- if(error){toast('Değerlendirme kaydedilemedi: '+error.message);window.assessmentSaveInFlight=false;if(evalBtn){evalBtn.disabled=false;evalBtn.textContent='Değerlendir ve Kaydet'};return}
+ if(!navigator.onLine) throw new Error('İnternet bağlantısı yok. Bağlantınızı kontrol edin.');
+ const result=await withTimeout(sb.from('assessments').insert(payload),20000,'Değerlendirme kaydetme');
+ if(result.error)throw new Error(result.error.message);
 
  const cls=risk==='YÜKSEK'?'r':risk==='ORTA'?'y':'g';
  document.getElementById('result').innerHTML=`<div class="result-panel ${cls}">
@@ -924,6 +971,13 @@ async function evaluateAndSave(){
  window.assessmentSaveInFlight=false;
  if(evalBtn){evalBtn.disabled=false;evalBtn.textContent='Değerlendir ve Kaydet'}
  refresh();
+ }catch(e){
+   console.error('Değerlendirme kaydetme:',e);
+   toast('Değerlendirme kaydedilemedi: '+(e?.message||'Beklenmeyen hata'));
+ }finally{
+   window.assessmentSaveInFlight=false;
+   setAssessmentSaveState(false);
+ }
 }
 function clearAssessment(){document.querySelectorAll('#assessment input').forEach(e=>{if(e.type==='checkbox')e.checked=false});document.getElementById('result').innerHTML=''}
 

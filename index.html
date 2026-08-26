@@ -143,7 +143,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="v4.5.43-18-yas-dahil">
+<body data-build="v4.5.44-cerrahi-katki-aciklama">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -1138,8 +1138,13 @@ async function evaluateAndSave(){
  document.getElementById('result').innerHTML=`<div class="result-panel ${cls}">
    <h3>${risk} RİSK</h3>
    <p><b>NEWS2:</b> ${news2Score}</p>
-   <p><b>S-CDIAPS cerrahi katkı düzeyi:</b> ${scdiapsExtra}</p>
-   <p><b>Saptanan bulgular:</b></p>
+   <p><b>S-CDIAPS cerrahi katkı düzeyi:</b>
+   <span title="Bu, sistemde cerrahi/GİS bulgularının risk değerlendirmesine katkısını gösteren iç göstergedir; bağımsız bir klinik skor değildir.">
+   ${scdiapsExtra===3?'Yüksek (3)':scdiapsExtra===2?'Orta (2)':scdiapsExtra===1?'Düşük (1)':'Belirgin katkı yok (0)'}
+   </span>
+</p>
+   <p class="small" style="margin-top:4px">Cerrahi katkı düzeyi, S-CDIAPS içindeki cerrahi/GİS bulgularının risk değerlendirmesine katkısını gösteren yardımcı bir göstergedir; tek başına tanı veya tedavi kararı değildir.</p>
+    <p><b>Saptanan bulgular:</b></p>
    <ul>${(reasons.length?reasons:['Belirgin risk göstergesi saptanmadı']).map(x=>`<li>${x}</li>`).join('')}</ul>
    <p><b>Önerilen eylem:</b> ${action}</p>
  </div>`;

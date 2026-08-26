@@ -316,7 +316,7 @@ const SUPABASE_URL='https://nndtcprefcrevdulxzhy.supabase.co';
 const SUPABASE_KEY='sb_publishable_7IeSV5cMQoAPAbfzE7KVpw_rnfXwZ2e';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const ADMIN_EMAIL='ismaildeniz0192@gmail.com';
-let currentUser=null,currentProfile=null,loginTurnstileToken='',registerTurnstileToken='',recoveryTurnstileToken='',patientCache=[],loginInFlight=false,registerInFlight=false,recoveryInFlight=false;
+let currentUser=null,currentProfile=null,loginTurnstileToken='',registerTurnstileToken='',recoveryTurnstileToken='',patientCache=[],loginInFlight=false,registerInFlight=false,recoveryInFlight=false,recoveryMode=false;
 
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2800)}
 function n(id){const x=parseFloat(document.getElementById(id).value);return Number.isFinite(x)?x:0}
@@ -324,6 +324,7 @@ function v(id){return document.getElementById(id).value}
 function ck(id){return document.getElementById(id).checked}
 function showRegister(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('registerPage').classList.remove('hidden');setTimeout(()=>{renderTurnstileWidgets();if(registerTurnstileWidgetId!==null)try{window.turnstile.reset(registerTurnstileWidgetId)}catch(e){}},50)}
 function showLogin(){
+  recoveryMode=false;
   currentUser=null;
   currentProfile=null;
   document.getElementById('app').classList.add('hidden');
@@ -452,6 +453,7 @@ async function updatePassword(){
     document.getElementById('resetPage').classList.add('hidden');
     window.history.replaceState({},document.title,window.location.pathname);
     await sb.auth.signOut();
+    recoveryMode=false;
     showLogin();
     const loginMsg=document.getElementById('loginMsg');
     if(loginMsg) loginMsg.textContent='Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz.';
@@ -850,14 +852,35 @@ async function deleteUser(id){
 
 sb.auth.onAuthStateChange((event)=>{
   if(event==='PASSWORD_RECOVERY'){
+    recoveryMode=true;
     document.getElementById('app').classList.add('hidden');
     document.getElementById('loginPage').classList.add('hidden');
     document.getElementById('registerPage').classList.add('hidden');
     document.getElementById('recoveryPage').classList.add('hidden');
     document.getElementById('resetPage').classList.remove('hidden');
+    return;
   }
 });
-(async()=>{const {data}=await sb.auth.getSession();if(data.session){const u=data.session.user;const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',u.id).maybeSingle();if((u.email||'').toLowerCase()===ADMIN_EMAIL){currentUser=u;currentProfile={id:u.id,full_name:(p&&p.full_name)||'Sistem Yöneticisi',role:'admin',approval_status:'approved'};document.getElementById('loginPage').classList.add('hidden');document.getElementById('app').classList.remove('hidden');document.getElementById('userText').textContent='Sistem Yöneticisi • admin';document.getElementById('avatar').textContent='S';document.getElementById('adminNav').classList.remove('hidden');refresh()}}})();
+(async()=>{
+  const isRecoveryUrl = /(?:^|[?#&])(?:type=)?recovery(?:[&#]|$)/i.test(window.location.hash+window.location.search);
+  if(isRecoveryUrl) recoveryMode=true;
+
+  const {data}=await sb.auth.getSession();
+  if(data.session && !recoveryMode){
+    const u=data.session.user;
+    const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',u.id).maybeSingle();
+    if((u.email||'').toLowerCase()===ADMIN_EMAIL){
+      currentUser=u;
+      currentProfile={id:u.id,full_name:(p&&p.full_name)||'Sistem Yöneticisi',role:'admin',approval_status:'approved'};
+      document.getElementById('loginPage').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      document.getElementById('userText').textContent='Sistem Yöneticisi • admin';
+      document.getElementById('avatar').textContent='S';
+      document.getElementById('adminNav').classList.remove('hidden');
+      refresh();
+    }
+  }
+})();
 </script>
 
 <script>

@@ -114,6 +114,7 @@ button,input,select{touch-action:manipulation}
 }
 </style>
 
+<link rel="preconnect" href="https://challenges.cloudflare.com" />
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -128,7 +129,7 @@ button,input,select{touch-action:manipulation}
     <input id="rememberLogin" type="checkbox" style="width:auto;min-height:auto">
     <span>Beni hatırla</span>
   </label>
-  <div id="loginTurnstile" class="turnstile-box"></div><div id="turnstileStatus" class="notice" style="margin-top:8px">Güvenlik doğrulaması yükleniyor…</div>
+  <div id="loginTurnstile" class="cf-turnstile turnstile-box" data-sitekey="0x4AAAAAAEb9_9_AajNi7Dlp" data-callback="onLoginTurnstile" data-error-callback="onLoginTurnstileError"></div><div id="turnstileStatus" class="notice" style="margin-top:8px">Güvenlik doğrulaması yükleniyor…</div>
   <div class="actions" style="margin-top:14px">
     <button class="btn btn-primary" onclick="login()">Giriş Yap</button>
     <button class="btn btn-light" onclick="showRegister()">Yeni Kayıt</button>
@@ -143,7 +144,7 @@ button,input,select{touch-action:manipulation}
   <div class="logo">Şifre Sıfırlama</div>
   <p style="margin-top:0;color:#64748b">E-posta adresinize şifre sıfırlama bağlantısı göndereceğiz.</p>
   <div class="field"><label>E-posta</label><input id="recoveryEmail" type="email"></div>
-  <div id="recoveryTurnstile" class="turnstile-box"></div>
+  <div id="recoveryTurnstile" class="cf-turnstile turnstile-box" data-sitekey="0x4AAAAAAEb9_9_AajNi7Dlp" data-callback="onRecoveryTurnstile" data-error-callback="onRecoveryTurnstileError"></div>
   <div class="actions" style="margin-top:14px">
     <button class="btn btn-primary" onclick="sendRecovery()">Sıfırlama bağlantısı gönder</button>
     <button class="btn btn-light" onclick="showLogin()">Girişe dön</button>
@@ -174,7 +175,7 @@ button,input,select{touch-action:manipulation}
   <div class="field" style="margin-top:10px"><label>Eğitim Durumu</label><select id="regEducation"><option value="">Önce meslek seçiniz</option></select></div>
   <div class="field" style="margin-top:10px"><label>Mesleki / Akademik Unvan</label><select id="regTitle"><option value="">Önce meslek seçiniz</option></select></div>
   <div class="field" style="margin-top:10px"><label>Şifre</label><input id="regPassword" type="password"></div>
-  <div id="registerTurnstile" class="turnstile-box"></div>
+  <div id="registerTurnstile" class="cf-turnstile turnstile-box" data-sitekey="0x4AAAAAAEb9_9_AajNi7Dlp" data-callback="onRegisterTurnstile" data-error-callback="onRegisterTurnstileError"></div>
   <div class="field" style="margin-top:10px"><label>Rol</label><select id="regRole"><option value="hemsire">Hemşire</option><option value="doktor">Hekim</option></select></div>
   <div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="registerUser()">Kayıt Talebi</button><button class="btn btn-light" onclick="showLogin()">Geri</button></div>
   <div id="regMsg" class="notice" style="margin-top:14px"></div>
@@ -553,13 +554,21 @@ function showLogin(){
 }
 function go(id,btn){if(id==='assessment' && !document.getElementById('pid').value){document.getElementById('assessmentPatientIdentifier').value='';document.getElementById('assessmentPatientName').value=''} if(id==='admin'&&(!currentProfile||currentProfile.role!=='admin')){toast('Yönetici yetkisi gerekir');return}document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');refresh()}
 function retryTurnstile(){
- try{
-  if(!window.turnstile){return}
-  if(loginTurnstileWidgetId!==null){window.turnstile.reset(loginTurnstileWidgetId);loginTurnstileToken=''}
-  if(registerTurnstileWidgetId!==null){window.turnstile.reset(registerTurnstileWidgetId);registerTurnstileToken=''}
-  renderTurnstileWidgets();
- }catch(e){console.error('Turnstile yeniden başlatılamadı:',e)}
+  try{
+    loginTurnstileToken='';
+    registerTurnstileToken='';
+    recoveryTurnstileToken='';
+    const widgets=document.querySelectorAll('.cf-turnstile');
+    widgets.forEach(el=>{
+      try{
+        if(window.turnstile && window.turnstile.reset) window.turnstile.reset(el);
+      }catch(e){}
+    });
+    const s=document.getElementById('turnstileStatus');
+    if(s)s.textContent='Güvenlik doğrulaması yeniden yükleniyor…';
+  }catch(e){console.error('Turnstile yeniden başlatılamadı:',e)}
 }
+
 async function login(){
  const email=v('loginEmail').trim().toLowerCase(), password=document.getElementById('loginPassword').value;
  const msg=document.getElementById('loginMsg');
@@ -1336,6 +1345,21 @@ window.addEventListener('load', async ()=>{
 <script>
 let loginTurnstileWidgetId=null, registerTurnstileWidgetId=null, recoveryTurnstileWidgetId=null;
 
+function onLoginTurnstileError(code){
+  loginTurnstileToken='';
+  const s=document.getElementById('turnstileStatus');
+  if(s)s.textContent='Güvenlik doğrulaması yüklenemedi. Sayfayı yenileyip tekrar deneyin.';
+  console.error('Turnstile login error:',code);
+}
+function onRecoveryTurnstileError(code){
+  recoveryTurnstileToken='';
+  console.error('Turnstile recovery error:',code);
+}
+function onRegisterTurnstileError(code){
+  registerTurnstileToken='';
+  console.error('Turnstile register error:',code);
+}
+
 function onLoginTurnstile(token){ loginTurnstileToken=token||''; const s=document.getElementById('turnstileStatus'); if(s) s.textContent='Güvenlik doğrulaması tamamlandı.'; }
 function onRegisterTurnstile(token){ registerTurnstileToken=token||''; }
 
@@ -1347,56 +1371,7 @@ function turnstileError(which, code){
   if(el) el.textContent='Güvenlik doğrulaması yüklenemedi. Giriş/kayıt güvenlik amacıyla engellendi.'+(detail||'')+' Cloudflare Site Key ve alan adını kontrol edin.';
 }
 
-function renderTurnstileWidgets(){
-  if(!window.turnstile) return false;
-  if(!TURNSTILE_SITEKEY || TURNSTILE_SITEKEY.startsWith('BURAYA_')) return false;
-
-  const loginEl=document.getElementById('loginTurnstile');
-  const regEl=document.getElementById('registerTurnstile');
-  const recoveryEl=document.getElementById('recoveryTurnstile');
-
-  if(loginEl && loginTurnstileWidgetId===null){
-    try{
-      loginTurnstileWidgetId=window.turnstile.render(loginEl,{
-        sitekey:TURNSTILE_SITEKEY,
-        size:'flexible',
-        retry:'auto',
-        'retry-interval':8000,
-        callback:onLoginTurnstile,
-        'error-callback':(code)=>turnstileError('login',code),
-        'expired-callback':()=>{loginTurnstileToken='';}
-      });
-    }catch(e){turnstileError('login',e);}
-  }
-
-  if(regEl && registerTurnstileWidgetId===null){
-    try{
-      registerTurnstileWidgetId=window.turnstile.render(regEl,{
-        sitekey:TURNSTILE_SITEKEY,
-        size:'flexible',
-        retry:'auto',
-        'retry-interval':8000,
-        callback:onRegisterTurnstile,
-        'error-callback':(code)=>turnstileError('register',code),
-        'expired-callback':()=>{registerTurnstileToken='';}
-      });
-    }catch(e){turnstileError('register',e);}
-  }
-  if(recoveryEl && recoveryTurnstileWidgetId===null){
-    try{
-      recoveryTurnstileWidgetId=window.turnstile.render(recoveryEl,{
-        sitekey:TURNSTILE_SITEKEY,
-        size:'flexible',
-        retry:'auto',
-        'retry-interval':8000,
-        callback:onRecoveryTurnstile,
-        'error-callback':(code)=>turnstileError('recovery',code),
-        'expired-callback':()=>{recoveryTurnstileToken='';}
-      });
-    }catch(e){turnstileError('recovery',e);}
-  }
-  return true;
-}
+function renderTurnstileWidgets(){ return !!window.turnstile; }
 
 function retryTurnstile(){
   try{
@@ -1408,12 +1383,7 @@ function retryTurnstile(){
   }catch(e){console.error(e);}
 }
 
-window.addEventListener('load',()=>{loadRememberedEmail();
-  const wait=setInterval(()=>{
-    if(renderTurnstileWidgets()){clearInterval(wait);}
-  },250);
-  setTimeout(()=>clearInterval(wait),15000);
-});
+window.addEventListener('load',()=>{loadRememberedEmail();});
 </script>
 </body>
 </html>

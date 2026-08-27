@@ -143,7 +143,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="v4.5.45-kayit-veritabani-duzeltildi">
+<body data-build="v4.5.46-yonetici-24-saat-silme-yetkisi">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -1203,6 +1203,15 @@ async function saveClinicalOutcome(){
   if(error)throw error; toast('24 saatlik klinik sonuç kaydedildi.'); closeOutcomeModal(); loadClinicalOutcomes();
  }catch(e){console.error(e);toast('Klinik sonuç kaydedilemedi: '+(e?.message||'Beklenmeyen hata'));}
 }
+async function deleteClinicalOutcome(id){
+ if(!currentProfile||currentProfile.role!=='admin'){toast('Sadece yönetici 24 saatlik sonuç kaydı silebilir.');return}
+ if(!confirm('Bu 24 saatlik klinik sonuç kaydını silmek istediğinize emin misiniz?'))return;
+ const {data,error}=await sb.from('clinical_outcomes').delete().eq('id',id).select('id');
+ if(error){console.error(error);toast('Sonuç kaydı silinemedi: '+error.message);return}
+ if(!data||data.length===0){toast('Sonuç kaydı silinemedi veya bulunamadı.');return}
+ toast('24 saatlik klinik sonuç kaydı silindi.');
+ await loadClinicalOutcomes();
+}
 async function loadClinicalOutcomes(){
  const body=document.getElementById('outcomesTable'); if(!body)return; body.innerHTML='<tr><td colspan="6">Yükleniyor...</td></tr>';
  try{
@@ -1213,7 +1222,10 @@ async function loadClinicalOutcomes(){
   const pr=ids.length?await sb.from('patients').select('id,patient_name,patient_code,medical_record_no').in('id',ids):{data:[]};
   const ar=aids.length?await sb.from('assessments').select('id,scdiaps_risk,news2_score').in('id',aids):{data:[]};
   const pm=new Map((pr.data||[]).map(p=>[p.id,p])), am=new Map((ar.data||[]).map(a=>[a.id,a]));
-  body.innerHTML=data.map(x=>{const p=pm.get(x.patient_id)||{},a=am.get(x.assessment_id)||{},name=p.patient_name||p.patient_code||p.medical_record_no||'Hasta';const status=x.outcome_status==='COMPLETED'?`<span class="outcome-done">${x.deterioration?'Kötüleşme var':'Kötüleşme yok'}</span>`:`<span class="outcome-pending">Bekliyor</span>`;return `<tr><td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td><td>${name}</td><td>${a.scdiaps_risk||'—'}</td><td>${a.news2_score??'—'}</td><td>${status}</td><td><button class="btn ${x.outcome_status==='COMPLETED'?'':'btn-primary'}" onclick="openOutcomeModal('${x.assessment_id}')">${x.outcome_status==='COMPLETED'?'Görüntüle / Düzenle':'Sonucu Kaydet'}</button></td></tr>`;}).join('');
+  body.innerHTML=data.map(x=>{const p=pm.get(x.patient_id)||{},a=am.get(x.assessment_id)||{},name=p.patient_name||p.patient_code||p.medical_record_no||'Hasta';const status=x.outcome_status==='COMPLETED'?`<span class="outcome-done">${x.deterioration?'Kötüleşme var':'Kötüleşme yok'}</span>`:`<span class="outcome-pending">Bekliyor</span>`;return `<tr><td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td><td>${name}</td><td>${a.scdiaps_risk||'—'}</td><td>${a.news2_score??'—'}</td><td>${status}</td><td>
+<button class="btn ${x.outcome_status==='COMPLETED'?'':'btn-primary'}" onclick="openOutcomeModal('${x.assessment_id}')">${x.outcome_status==='COMPLETED'?'Görüntüle / Düzenle':'Sonucu Kaydet'}</button>
+${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deleteClinicalOutcome('${x.id}')">Sil</button>`:''}
+</td></tr>`;}).join('');
  }catch(e){console.error(e);body.innerHTML=`<tr><td colspan="6">Yüklenemedi: ${e?.message||'Beklenmeyen hata'}</td></tr>`;}
 }
 

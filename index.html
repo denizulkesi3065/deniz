@@ -152,7 +152,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="v4.5.63-oturum-koruma-ve-hasta-kapsami">
+<body data-build="v4.5.64-oturum-koruma-klinik-hasta-gorunurlugu">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -846,8 +846,9 @@ async function login(){
    document.getElementById('userText').textContent=((currentProfile.role==='admin'?'İsmail Deniz':(currentProfile.full_name||email))+' • '+currentProfile.role);
    document.getElementById('avatar').textContent=((currentProfile.role==='admin'?'İD':(currentProfile.full_name||'A').slice(0,1).toUpperCase()));
    document.getElementById('adminNav').classList.toggle('hidden',currentProfile.role!=='admin');
-   try{localStorage.setItem(SESSION_MARKER,'1')}catch(e){}
+   try{localStorage.setItem(SESSION_MARKER,'1');sessionStorage.setItem(SESSION_MARKER,'1')}catch(e){}
    scheduleSessionTimeout();
+   subscribePatientScopeChanges();
    refresh();
    toast('Giriş başarılı');
  }catch(error){
@@ -1560,30 +1561,17 @@ async function runClinicalAdvisor(){
   }
 }
 
-function normalizeScope(v){
-  let x=String(v||'').trim().toLocaleLowerCase('tr-TR');
-  x=x.replace(/[\u2018\u2019\u201c\u201d]/g,'').replace(/\s+/g,' ').replace(/[.,;:]/g,'');
-  // Eski kayıtlardaki seçenek adı ile yeni seçenek adını aynı klinik olarak kabul et.
-  if(x==='diğer') x='diğer cerrahi klinik / bölüm';
-  if(x==='diger') x='diğer cerrahi klinik / bölüm';
-  return x;
-}
+function normalizeScope(v){return String(v||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('tr-TR');}
 function isAdminUser(){return currentProfile&&currentProfile.role==='admin';}
 function sameScope(a,b){const x=normalizeScope(a),y=normalizeScope(b);return !!x&&!!y&&x===y;}
-function userRegisteredHospital(){
-  if(!currentProfile) return '';
-  return currentProfile.hospital_name||currentProfile.hospital||'';
-}
-function userRegisteredClinic(){
-  if(!currentProfile) return '';
-  return currentProfile.department_name||currentProfile.surgical_clinic||currentProfile.clinic||currentProfile.department||'';
-}
+function userRegisteredHospital(){return currentProfile?.hospital_name||currentProfile?.hospital||'';}
+function userRegisteredClinic(){return currentProfile?.department_name||currentProfile?.surgical_clinic||currentProfile?.clinic||currentProfile?.department||'';}
+
 function canAccessPatient(p){
   if(isAdminUser()) return true;
-  // Kullanıcı yalnızca kayıt olurken bildirdiği aynı hastane ve aynı cerrahi kliniğe ait hastaları görür.
-  // Yönetici hasta kaydının hastanesini veya kliniğini değiştirdiğinde yeni eşleşen kullanıcılar
-  // bir sonraki yenilemede/otomatik güncellemede hastayı görür.
-  return sameScope(p?.hospital_name,userRegisteredHospital()) && sameScope(p?.surgical_clinic,userRegisteredClinic());
+  // Kullanıcı sadece kayıt olurken kaydedilen hastane + cerrahi klinik kapsamındaki hastaları görür.
+  return sameScope(p?.hospital_name, userRegisteredHospital()) &&
+         sameScope(p?.surgical_clinic, userRegisteredClinic());
 }
 
 function syncPatientHospitalField(){
@@ -1606,6 +1594,18 @@ function clearPatientForm(){
   });
   const g=document.getElementById('newGender'); if(g) g.value='';
   syncPatientHospitalField();
+}
+
+let patientRealtimeChannel=null;
+function subscribePatientScopeChanges(){
+  try{
+    if(patientRealtimeChannel) return;
+    patientRealtimeChannel=sb.channel('patients-scope-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'patients'},()=>{
+        if(currentUser && currentProfile) refresh();
+      })
+      .subscribe();
+  }catch(e){console.warn('Hasta canlı güncelleme aboneliği kurulamadı:',e);}
 }
 
 async function refresh(){
@@ -1967,7 +1967,7 @@ sb.auth.onAuthStateChange((event)=>{
     document.getElementById('userText').textContent=((currentProfile.role==='admin'?'İsmail Deniz':(currentProfile.full_name||email))+' • '+currentProfile.role);
     document.getElementById('avatar').textContent=((currentProfile.role==='admin'?'İD':(currentProfile.full_name||'A').slice(0,1).toUpperCase()));
     document.getElementById('adminNav').classList.toggle('hidden',currentProfile.role!=='admin');
-    try{localStorage.setItem(SESSION_MARKER,'1')}catch(e){}
+    try{localStorage.setItem(SESSION_MARKER,'1');sessionStorage.setItem(SESSION_MARKER,'1')}catch(e){}
     syncPatientHospitalField();
     scheduleSessionTimeout();
     refresh();

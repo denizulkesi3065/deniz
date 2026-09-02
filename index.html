@@ -143,12 +143,14 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="v4.5.46-yonetici-24-saat-silme-yetkisi">
+<body data-build="v4.5.52-yeni-hasta-cerrahi-klinik-duzeltildi">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
   <p style="margin-top:0;color:#64748b">Cerrahi Klinik Kötüleşme ve Alarm Önceliklendirme Sistemi</p>
   <div class="field"><label>E-posta</label><input id="loginEmail" type="email" value=""></div>
+  <div class="field" style="margin-top:10px"><label>Çalıştığı Hastane / Kurum Adı</label><input id="regHospital" type="text" placeholder="Örn. Ankara Şehir Hastanesi"></div>
+  <div class="field" style="margin-top:10px"><label>Çalıştığı Bölüm / Birim</label><input id="regDepartment" type="text" placeholder="Örn. Genel Cerrahi"></div>
   <div class="field" style="margin-top:10px"><label>Şifre</label><input id="loginPassword" type="password"></div>
   <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#475569">
     <input id="rememberLogin" type="checkbox" style="width:auto;min-height:auto">
@@ -318,11 +320,29 @@ button,input,select{touch-action:manipulation}
     <div class="field"><label>Boy (cm)</label><input id="newHeight" type="number" min="30" max="250" step="0.1" placeholder="cm" oninput="updatePatientBMI()"></div>
     <div class="field"><label>Kilo (kg)</label><input id="newWeight" type="number" min="1" max="400" step="0.1" placeholder="kg" oninput="updatePatientBMI()"></div>
     <div class="field"><label>VKİ</label><input id="newBMI" type="text" readonly placeholder="Otomatik hesaplanır"></div>
+    <div class="field">
+      <label>Cerrahi Klinikler Bölümü</label>
+      <select id="newSurgicalClinic">
+        <option value="">Cerrahi kliniği seçiniz</option>
+        <option value="Genel Cerrahi">Genel Cerrahi</option>
+        <option value="Ortopedi ve Travmatoloji">Ortopedi ve Travmatoloji</option>
+        <option value="Beyin ve Sinir Cerrahisi">Beyin ve Sinir Cerrahisi</option>
+        <option value="Kalp ve Damar Cerrahisi">Kalp ve Damar Cerrahisi</option>
+        <option value="Göğüs Cerrahisi">Göğüs Cerrahisi</option>
+        <option value="Üroloji">Üroloji</option>
+        <option value="Kadın Hastalıkları ve Doğum">Kadın Hastalıkları ve Doğum</option>
+        <option value="Plastik, Rekonstrüktif ve Estetik Cerrahi">Plastik, Rekonstrüktif ve Estetik Cerrahi</option>
+        <option value="Kulak Burun Boğaz">Kulak Burun Boğaz</option>
+        <option value="Çocuk Cerrahisi">Çocuk Cerrahisi</option>
+        <option value="Diğer">Diğer</option>
+      </select>
+    </div>
+    <div class="field"><label>Yatak No</label><input id="newBedNumber" placeholder="Örn. 12-A"></div>
     <div class="field"><label>Postoperatif gün</label><input id="newPod" type="number" min="0" placeholder="Gün"></div>
   </div>
   <div class="notice" style="margin-top:12px">Hasta T.C. Kimlik No / Dosya No bilgisi, kurumunuzun yetkilendirme ve veri koruma kurallarına uygun şekilde kullanılmalıdır.</div>
   <div class="actions" style="margin-top:14px"><button id="patientSaveBtn" class="btn btn-primary" onclick="addPatient()">Hasta Kaydet</button></div></div>
-  <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Hasta T.C. Kimlik No / Dosya No</th><th>Hasta Adı Soyadı</th><th>Doğum Tarihi</th><th>Cinsiyet</th><th>Boy (cm)</th><th>Kilo (kg)</th><th>Postoperatif gün</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
+  <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Hasta T.C. Kimlik No / Dosya No</th><th>Hasta Adı Soyadı</th><th>Doğum Tarihi</th><th>Cinsiyet</th><th>Boy (cm)</th><th>Kilo (kg)</th><th>Cerrahi Klinik / Servis</th><th>Yatak No</th><th>Cerrahi Klinikler Bölümü</th><th>Yatak No</th><th>Postoperatif gün</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
 </section>
 
 <section id="assessment" class="page hidden">
@@ -331,6 +351,9 @@ button,input,select{touch-action:manipulation}
     <div class="formgrid">
       <div class="field"><label>Hasta Dosya No / T.C. Kimlik No</label><input id="assessmentPatientIdentifier" type="text" readonly placeholder="Hasta seçiniz"></div>
       <div class="field"><label>Hasta Adı Soyadı</label><input id="assessmentPatientName" type="text" readonly placeholder="Hasta seçiniz"></div>
+      <div class="field"><label>Cerrahi Klinik / Servis</label><input id="assessmentSurgicalClinic" type="text" readonly placeholder="Hasta seçiniz"></div>
+      <div class="field"><label>Yatak No</label><input id="assessmentBedNumber" type="text" readonly placeholder="Hasta seçiniz"></div>
+      
       <div class="field"><label>Postoperatif gün</label><input id="pod" type="number" value="2"></div>
       <div class="field"><label>Değerlendirme zamanı</label><input id="evalTime" type="datetime-local"></div>
       <select id="pid" class="hidden" aria-hidden="true"></select>
@@ -699,63 +722,83 @@ async function login(){
  const msg=document.getElementById('loginMsg');
  if(loginInFlight)return;
  if(!email||!password){msg.textContent='E-posta ve şifre gerekli.';return}
- if(!loginTurnstileToken){msg.textContent='Lütfen güvenlik doğrulamasını tamamlayın.';return}
+
+ // Re-render security verification if it was lost, but do not reuse an old token.
+ if(!loginTurnstileToken){
+   try{renderTurnstileWidgets();if(window.turnstile&&loginTurnstileWidgetId!==null)window.turnstile.reset(loginTurnstileWidgetId)}catch(e){}
+   msg.textContent='Lütfen güvenlik doğrulamasını tamamlayın.';
+   return;
+ }
 
  loginInFlight=true;
  const btn=document.querySelector('#loginPage button[onclick="login()"]');
  if(btn){btn.disabled=true;btn.textContent='Giriş yapılıyor...';}
 
  const token=loginTurnstileToken;
- // Prevent the same Turnstile token from being reused.
  loginTurnstileToken='';
 
- const {data,error}=await sb.auth.signInWithPassword({
-   email,
-   password,
-   options:{captchaToken:token}
- });
+ try{
+   const {data,error}=await sb.auth.signInWithPassword({
+     email,
+     password,
+     options:{captchaToken:token}
+   });
 
- if(error){
-   msg.textContent='Giriş başarısız: '+error.message;
+   if(error) throw error;
+   if(!data||!data.user) throw new Error('Kullanıcı oturumu oluşturulamadı.');
+
+   currentUser=data.user;
+   applyRememberEmail();
+
+   // Administrator is not blocked by a profile lookup/RLS delay.
+   if(email===ADMIN_EMAIL){
+     currentProfile={id:currentUser.id,full_name:'İsmail Deniz',role:'admin',approval_status:'approved'};
+   }else{
+     const {data:p,error:profileError}=await sb.from('profiles')
+       .select('id,full_name,role,approval_status')
+       .eq('id',currentUser.id)
+       .maybeSingle();
+
+     if(profileError) throw new Error('Kullanıcı profili okunamadı: '+profileError.message);
+     if(!p){
+       await sb.auth.signOut({scope:'local'});
+       clearLoginFormFields();
+       msg.textContent='Kullanıcı profili bulunamadı. Lütfen yöneticiye başvurun.';
+       return;
+     }
+     if(p.approval_status!=='approved'){
+       await sb.auth.signOut({scope:'local'});
+       clearLoginFormFields();
+       msg.textContent=p.approval_status==='pending'
+         ? 'Kaydınız başarıyla oluşturulmuştur. Sisteme giriş yapabilmeniz için yönetici onayının tamamlanması gerekmektedir. Yönetici onayından sonra sisteme giriş yapabilirsiniz.'
+         : 'Hesabınız henüz onaylanmadı. Lütfen yönetici onayından sonra tekrar giriş yapın.';
+       return;
+     }
+     currentProfile=p;
+   }
+
+   document.getElementById('loginPage').classList.add('hidden');
+   document.getElementById('app').classList.remove('hidden');
+   document.getElementById('userText').textContent=((currentProfile.role==='admin'?'İsmail Deniz':(currentProfile.full_name||email))+' • '+currentProfile.role);
+   document.getElementById('avatar').textContent=((currentProfile.role==='admin'?'İD':(currentProfile.full_name||'A').slice(0,1).toUpperCase()));
+   document.getElementById('adminNav').classList.toggle('hidden',currentProfile.role!=='admin');
+   try{sessionStorage.setItem(SESSION_MARKER,'1')}catch(e){}
+   scheduleSessionTimeout();
+   refresh();
+   toast('Giriş başarılı');
+ }catch(error){
+   console.error('Login error:',error);
+   msg.textContent='Giriş başarısız: '+(error.message||'Bilinmeyen hata');
    try{
-     if(window.turnstile && loginTurnstileWidgetId!==null) window.turnstile.reset(loginTurnstileWidgetId);
+     if(window.turnstile&&loginTurnstileWidgetId!==null){
+       loginTurnstileToken='';
+       window.turnstile.reset(loginTurnstileWidgetId);
+     }
    }catch(e){}
+ }finally{
    loginInFlight=false;
    if(btn){btn.disabled=false;btn.textContent='Giriş Yap';}
-   return;
  }
-
- currentUser=data.user;
- applyRememberEmail();
- const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',currentUser.id).maybeSingle();
- if(email===ADMIN_EMAIL){
-   currentProfile={id:currentUser.id,full_name:'İsmail Deniz',role:'admin',approval_status:'approved'}
- }else{
-   if(!p){await sb.auth.signOut();
- clearLoginFormFields();
- clearLoginFormFields();msg.textContent='Kullanıcı profili bulunamadı.';loginInFlight=false;if(btn){btn.disabled=false;btn.textContent='Giriş Yap'};return}
-   // Yönetici onayı olmadan yeni kullanıcı sisteme alınmaz.
-   if(p.approval_status!=='approved'){
-     await sb.auth.signOut({scope:'local'});
-     clearLoginFormFields();
-     const statusText=p.approval_status==='pending'
-       ? 'Kaydınız başarıyla oluşturulmuştur. Sisteme giriş yapabilmeniz için yönetici onayının tamamlanması gerekmektedir. Yönetici onayından sonra sisteme giriş yapabilirsiniz.'
-       : 'Hesabınız henüz onaylanmadı. Lütfen yönetici onayından sonra tekrar giriş yapın.';
-     msg.textContent=statusText;
-     msg.classList.add('show');
-     loginInFlight=false;
-     if(btn){btn.disabled=false;btn.textContent='Giriş Yap'}
-     return;
-   }
-   currentProfile=p
- }
- document.getElementById('loginPage').classList.add('hidden');document.getElementById('app').classList.remove('hidden');
- document.getElementById('userText').textContent=((currentProfile.role==='admin'?'İsmail Deniz':(currentProfile.full_name||email))+' • '+currentProfile.role);document.getElementById('avatar').textContent=((currentProfile.role==='admin'?'İD':(currentProfile.full_name||'A').slice(0,1).toUpperCase()));
- document.getElementById('adminNav').classList.toggle('hidden',currentProfile.role!=='admin');
- loginInFlight=false;
- try{sessionStorage.setItem(SESSION_MARKER,'1')}catch(e){}
- scheduleSessionTimeout();
- refresh();toast('Giriş başarılı')
 }
 
 function onRecoveryTurnstile(token){recoveryTurnstileToken=token||'';}
@@ -846,7 +889,7 @@ function updateRegistrationOptions(){
 async function registerUser(){
  const name=v('regName').trim(),email=v('regEmail').trim().toLowerCase(),password=document.getElementById('regPassword').value;
  const birth=v('regBirthDate'),gender=v('regGender'),profession=v('regProfession'),education=v('regEducation'),title=v('regTitle');
- if(!name||!email||!password||!birth||!gender||!profession||!education||!title){
+ if(!name||!email||!password||!birth||!gender||!profession||!education||!title||!hospital||!department){
    document.getElementById('regMsg').textContent='Tüm kayıt bilgilerini doldurun.';return
  }
  const emailPattern=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -882,6 +925,8 @@ async function registerUser(){
      education_status:education,
      professional_education:education,
      professional_title:title,
+     hospital_name:hospital,
+     department_name:department,
      role:role
    }}
  });
@@ -907,11 +952,14 @@ async function updatePatient(){
  const height=v('newHeight')!==''?Number(v('newHeight')):null;
  const weight=v('newWeight')!==''?Number(v('newWeight')):null;
  const pod=v('newPod')!==''?Number(v('newPod')):null;
+ const surgicalClinic=v('newSurgicalClinic').trim();
+ const bedNumber=v('newBedNumber').trim();
 
  if(!patientCode||!identifier||!patientName||!birth||!gender){
    toast('Hasta kodu, Hastahane Adı/T.C. Kimlik No, Ad Soyad, Doğum Tarihi ve Cinsiyet zorunludur');
    return;
  }
+ if(!surgicalClinic||!bedNumber){toast('Cerrahi klinik/servis ve yatak no alanlarını doldurun');return;}
  if(height===null||weight===null||pod===null){
    toast('Boy, kilo ve postoperatif gün alanlarını doldurun');
    return;
@@ -926,7 +974,9 @@ async function updatePatient(){
    p_gender:gender,
    p_height:height,
    p_weight:weight,
-   p_postop_day:pod
+   p_postop_day:pod,
+   p_surgical_clinic:surgicalClinic,
+   p_bed_number:bedNumber
  });
 
  if(error){console.error(error);toast('Hasta güncellenemedi: '+error.message);return}
@@ -935,7 +985,7 @@ async function updatePatient(){
  window.editingPatientId=null;
  const btn=document.getElementById('patientSaveBtn');
  if(btn){btn.textContent='Hasta Kaydet';btn.dataset.mode='add';btn.setAttribute('onclick','addPatient()')}
- ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newWeight','newPod'].forEach(x=>{
+ ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newSurgicalClinic','newBedNumber','newPod'].forEach(x=>{
    const el=document.getElementById(x);if(el)el.value='';
  });
  const g=document.getElementById('newGender');if(g)g.value='';
@@ -978,12 +1028,14 @@ async function addPatient(){
    const code=v('newPid').trim(), identifier=v('newPatientIdentifier').trim(), name=v('newPatientName').trim();
    const birth=v('newBirthDate'), gender=v('newGender');
    const height=v('newHeight'), weight=v('newWeight'), pod=v('newPod');
+   const surgicalClinic=v('newSurgicalClinic').trim(), bedNumber=v('newBedNumber').trim();
 
    if(!code){toast('Hasta kodu gerekli');return}
    if(!identifier){toast('Hasta T.C. Kimlik No / Dosya No girin');return}
    if(!name){toast('Hasta adı soyadı gerekli');return}
    if(!birth){toast('Doğum tarihi gerekli');return}
    if(!gender){toast('Cinsiyet seçin');return}
+   if(!surgicalClinic||!bedNumber){toast('Cerrahi Klinikler Bölümü ve Yatak No alanlarını doldurun');return}
    if(!height||!weight||pod===''){toast('Boy, kilo ve postoperatif gün alanlarını doldurun');return}
 
    const {data:{user},error:authError}=await sb.auth.getUser();
@@ -1006,6 +1058,8 @@ async function addPatient(){
      gender:gender,
      medical_record_no:identifier,
      national_id:null,
+     surgical_clinic:surgicalClinic,
+     bed_number:bedNumber,
      created_by:user.id
    };
 
@@ -1014,7 +1068,7 @@ async function addPatient(){
    const result=await sb.from('patients').insert(payload).select('id').single();
    if(result.error)throw new Error(result.error.message);
 
-   ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newPod'].forEach(id=>{
+   ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newSurgicalClinic','newBedNumber','newPod'].forEach(id=>{
      const el=document.getElementById(id);if(el)el.value='';
    });
    const g=document.getElementById('newGender');if(g)g.value='';
@@ -1509,6 +1563,8 @@ async function selectPatient(id){
  const pod=document.getElementById('pod');
  if(identifier) identifier.value=patient.medical_record_no||patient.national_id||'';
  if(name) name.value=patient.patient_name||'';
+  const surgicalClinic=document.getElementById('assessmentSurgicalClinic'); if(surgicalClinic) surgicalClinic.value=patient.surgical_clinic||'';
+  const bedNumber=document.getElementById('assessmentBedNumber'); if(bedNumber) bedNumber.value=patient.bed_number||'';
  if(pod && patient.postoperative_day!==null && patient.postoperative_day!==undefined) pod.value=patient.postoperative_day;
  go('assessment');
 }
@@ -1604,6 +1660,8 @@ function openUserDetail(id){
     ['Eğitim Durumu',u.education_status],
     ['Mesleki Eğitim',u.professional_education],
     ['Unvan',u.professional_title],
+    ['Çalıştığı Hastane / Kurum',u.hospital_name],
+    ['Çalıştığı Bölüm / Birim',u.department_name],
     ['Rol',u.role],
     ['Hesap Durumu',u.approval_status],
     ['Kayıt Tarihi',u.created_at?new Date(u.created_at).toLocaleString('tr-TR'):'-'],

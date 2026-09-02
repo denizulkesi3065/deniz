@@ -1353,13 +1353,10 @@ async function evaluateAndSave(){
  ].join('; ');
  const payload={
    patient_id:patientId,
-   patient_code:selectedPatient.patient_code || '',
-   patient_identifier:patientIdentifier,
-   patient_name:selectedPatient.patient_name || '',
    assessed_at:new Date().toISOString(),
    news2_score:news2Score,
-   risk:risk,
-   reasons:evaluationReasons,
+   scdiaps_risk:risk,
+   risk_reasons:evaluationReasons,
    recommended_action:action
  };
 

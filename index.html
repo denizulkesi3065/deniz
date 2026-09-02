@@ -152,7 +152,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="v4.5.56-giris-yeni-kayit-duzenli-cerrahi-klinik-secimli">
+<body data-build="v4.5.57-hastane-klinik-yetkilendirme">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -1114,6 +1114,8 @@ async function addPatient(){
      national_id:null,
      surgical_clinic:surgicalClinic,
      bed_number:bedNumber,
+     hospital_name:(currentProfile?.hospital_name||currentProfile?.hospital||''),
+     surgical_clinic:surgicalClinic,
      created_by:user.id
    };
 
@@ -1480,6 +1482,16 @@ async function runClinicalAdvisor(){
     console.error('Klinik danışman:',e);
     box.innerHTML=`<div class="ai-empty">Analiz oluşturulamadı: ${e?.message||'Beklenmeyen hata'}</div>`;
   }
+}
+
+function normalizeScope(v){return String(v||'').trim().toLocaleLowerCase('tr-TR');}
+function isAdminUser(){return currentProfile&&currentProfile.role==='admin';}
+function sameScope(a,b){return normalizeScope(a)===normalizeScope(b);}
+function canAccessPatient(p){
+  if(isAdminUser()) return true;
+  if(!currentProfile) return false;
+  return sameScope(p.hospital_name||p.hospital, currentProfile.hospital_name||currentProfile.hospital)
+      && sameScope(p.surgical_clinic||p.clinic||p.department, currentProfile.department||currentProfile.surgical_clinic||currentProfile.clinic);
 }
 
 async function refresh(){

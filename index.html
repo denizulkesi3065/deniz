@@ -143,7 +143,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="v4.5.53-admin-muaf-yeni-kayit-hastane-klinik-zorunlu">
+<body data-build="v4.5.54-yeni-kayit-hastane-ve-klinik-zorunlu">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -199,9 +199,11 @@ button,input,select{touch-action:manipulation}
   <div class="field" style="margin-top:10px"><label>Meslek</label><select id="regProfession" onchange="updateRegistrationOptions()"><option value="">Seçiniz</option><option value="Hemşire">Hemşire</option><option value="Hekim">Hekim</option></select></div>
   <div class="field" style="margin-top:10px"><label>Eğitim Durumu</label><select id="regEducation"><option value="">Önce meslek seçiniz</option></select></div>
   <div class="field" style="margin-top:10px"><label>Mesleki / Akademik Unvan</label><select id="regTitle"><option value="">Önce meslek seçiniz</option></select></div>
-  <div class="field" style="margin-top:10px"><label>Çalıştığı Hastane / Kurum Adı <span style="color:#b42318">*</span></label><input id="regHospital" type="text" placeholder="Örn. Ankara Şehir Hastanesi" required></div>
-  <div class="field" style="margin-top:10px"><label>Çalıştığı Klinik / Bölüm <span style="color:#b42318">*</span></label><input id="regDepartment" type="text" placeholder="Örn. Genel Cerrahi" required></div>
-  <div class="notice" style="margin-top:10px">Hastane / kurum ve çalıştığınız klinik / bölüm bilgileri yeni kullanıcı kayıtlarında zorunludur.</div>
+  <div class="formgrid" style="margin-top:10px">
+    <div class="field"><label>Hastane Adı <span style="color:#b42318">*</span></label><input id="regHospital" type="text" placeholder="Örn. Ankara Şehir Hastanesi" required></div>
+    <div class="field"><label>Çalıştığı Klinik / Bölüm <span style="color:#b42318">*</span></label><input id="regDepartment" type="text" placeholder="Örn. Genel Cerrahi" required></div>
+  </div>
+  <div class="notice" style="margin-top:10px">Yeni kullanıcı kaydında hastane adı ve çalıştığı klinik / bölüm bilgisi zorunludur.</div>
   <div class="field" style="margin-top:10px"><label>Şifre</label><input id="regPassword" type="password"></div>
   <div id="registerTurnstile" class="turnstile-box"></div>
   <div class="field" style="margin-top:10px"><label>Rol</label><select id="regRole"><option value="hemsire">Hemşire</option><option value="doktor">Hekim</option></select></div>
@@ -892,7 +894,7 @@ async function registerUser(){
  const birth=v('regBirthDate'),gender=v('regGender'),profession=v('regProfession'),education=v('regEducation'),title=v('regTitle');
  const hospital=v('regHospital').trim(),department=v('regDepartment').trim();
  if(!name||!email||!password||!birth||!gender||!profession||!education||!title||!hospital||!department){
-   document.getElementById('regMsg').textContent='Tüm kayıt bilgilerini doldurun. Hastane / kurum ve çalıştığınız klinik / bölüm bilgileri zorunludur.';return
+   document.getElementById('regMsg').textContent='Tüm kayıt bilgilerini doldurun. Hastane adı ve çalıştığınız klinik / bölüm bilgisi zorunludur.';return
  }
  const emailPattern=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
  if(!emailPattern.test(email)){

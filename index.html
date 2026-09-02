@@ -1061,22 +1061,45 @@ async function updatePatient(){
    return;
  }
 
- const {data,error}=await sb.rpc('update_patient_record',{
-   target_id:id,
-   p_patient_code:patientCode,
-   p_identifier:identifier,
-   p_patient_name:patientName,
-   p_birth_date:birth,
-   p_gender:gender,
-   p_height:height,
-   p_weight:weight,
-   p_postop_day:pod,
-   p_surgical_clinic:surgicalClinic,
-   p_bed_number:bedNumber
- });
+ // RPC kullanmak yerine doğrudan patients tablosunu güncelle.
+ // Böylece Supabase tarafında update_patient_record RPC'sinin eksik olması
+ // "Düzenle" işlemini engellemez.
+ const birthDate=new Date(birth+'T00:00:00');
+ const today=new Date();
+ let age=today.getFullYear()-birthDate.getFullYear();
+ const monthDiff=today.getMonth()-birthDate.getMonth();
+ if(monthDiff<0 || (monthDiff===0 && today.getDate()<birthDate.getDate())) age--;
 
- if(error){console.error(error);toast('Hasta güncellenemedi: '+error.message);return}
- if(data!==true){toast('Hasta kaydı bulunamadı veya güncellenemedi.');return}
+ const updatePayload={
+   patient_code:patientCode,
+   medical_record_no:identifier,
+   national_id:null,
+   patient_name:patientName,
+   birth_date:birth,
+   age:Math.max(0,age),
+   gender:gender,
+   height_cm:height,
+   weight_kg:weight,
+   postoperative_day:pod,
+   surgical_clinic:surgicalClinic,
+   bed_number:bedNumber
+ };
+
+ const {data,error}=await sb.from('patients')
+   .update(updatePayload)
+   .eq('id',id)
+   .select('id')
+   .single();
+
+ if(error){
+   console.error('Hasta güncelleme hatası:',error);
+   toast('Hasta güncellenemedi: '+error.message);
+   return;
+ }
+ if(!data || !data.id){
+   toast('Hasta kaydı bulunamadı veya güncellenemedi.');
+   return;
+ }
 
  window.editingPatientId=null;
  const btn=document.getElementById('patientSaveBtn');
@@ -1117,7 +1140,6 @@ async function addPatient(){
  try{
    if(window.editingPatientId){
      await updatePatient();
-     toast('Hasta güncellendi');
      return;
    }
 

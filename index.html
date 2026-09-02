@@ -143,12 +143,17 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="v4.5.54-yeni-kayit-hastane-ve-klinik-zorunlu">
+<body data-build="v4.5.55-giris-ve-yeni-kayit-hastane-klinik">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
   <p style="margin-top:0;color:#64748b">Cerrahi Klinik Kötüleşme ve Alarm Önceliklendirme Sistemi</p>
   <div class="field"><label>E-posta</label><input id="loginEmail" type="email" value=""></div>
+  <div class="formgrid" style="margin-top:10px">
+    <div class="field"><label>Hastane Adı <span style="color:#b42318">*</span></label><input id="loginHospital" type="text" placeholder="Çalıştığınız hastane / kurum"></div>
+    <div class="field"><label>Çalıştığı Klinik / Bölüm <span style="color:#b42318">*</span></label><input id="loginDepartment" type="text" placeholder="Örn. Genel Cerrahi"></div>
+  </div>
+  <div class="notice" style="margin-top:10px">Yönetici hesabı bu alanları boş bırakabilir. Diğer kullanıcılar için hastane ve klinik / bölüm bilgisi zorunludur.</div>
   <div class="field" style="margin-top:10px"><label>Şifre</label><input id="loginPassword" type="password"></div>
   <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#475569">
     <input id="rememberLogin" type="checkbox" style="width:auto;min-height:auto">
@@ -667,7 +672,7 @@ function showRegister(){
  setRegistrationBirthDateLimit();document.getElementById('loginPage').classList.add('hidden');document.getElementById('registerPage').classList.remove('hidden');setTimeout(()=>{renderTurnstileWidgets();if(registerTurnstileWidgetId!==null)try{window.turnstile.reset(registerTurnstileWidgetId)}catch(e){}},50)}
 
 function clearLoginFormFields(){
-  const ids=['loginEmail','loginPassword'];
+  const ids=['loginEmail','loginHospital','loginDepartment','loginPassword'];
   ids.forEach(id=>{
     const el=document.getElementById(id);
     if(el){
@@ -721,10 +726,12 @@ function retryTurnstile(){
  }catch(e){console.error('Turnstile yeniden başlatılamadı:',e)}
 }
 async function login(){
- const email=v('loginEmail').trim().toLowerCase(), password=document.getElementById('loginPassword').value;
+ const email=v('loginEmail').trim().toLowerCase(), hospital=v('loginHospital').trim(), department=v('loginDepartment').trim(), password=document.getElementById('loginPassword').value;
  const msg=document.getElementById('loginMsg');
  if(loginInFlight)return;
  if(!email||!password){msg.textContent='E-posta ve şifre gerekli.';return}
+ // Yönetici hastane ve klinik/bölüm bilgisi girmeden giriş yapabilir.
+ if(email!==ADMIN_EMAIL&&(!hospital||!department)){msg.textContent='Giriş için hastane adı ve çalıştığınız klinik / bölüm bilgisi gereklidir.';return}
 
  // Re-render security verification if it was lost, but do not reuse an old token.
  if(!loginTurnstileToken){

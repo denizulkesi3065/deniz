@@ -1343,39 +1343,37 @@ async function evaluateAndSave(){
    ? 'Klinik yeniden değerlendirme yapın ve kurum protokolüne göre izlem sıklığını artırın.'
    : 'Rutin klinik izleme devam edin.';
 
+ // Değerlendirme tablosundaki mevcut alan adlarıyla uyumlu kayıt.
+ // Supabase şemasında bulunmayan scdiaps_score / scdiaps_risk gibi alanlar
+ // doğrudan gönderilmez; böylece değerlendirme kaydı şema hatası nedeniyle engellenmez.
+ const selectedPatient=(typeof getClinicalPatients==='function' ? getClinicalPatients() : []).find(p=>String(p.id)===String(patientId)) || {};
+ const patientIdentifier=selectedPatient.medical_record_no || selectedPatient.national_id || selectedPatient.patient_code || '';
+ const evaluatorName=currentProfile?.full_name || currentProfile?.name || currentProfile?.email || '—';
+ const evaluationReasons=[
+   `S-CDIAPS Skoru: ${scdiapsExtra}`,
+   `S-CDIAPS Risk Düzeyi: ${risk}`,
+   ...reasons
+ ].join('; ');
  const payload={
    patient_id:patientId,
-   assessed_by:currentUser.id,
-   temperature:t,
-   heart_rate:hr,
-   systolic_bp:sbp,
-   diastolic_bp:n('dbp'),
-   respiratory_rate:rr,
-   spo2:sp,
-   oxygen_l_min:n('o2'),
-   consciousness_change:consciousness!==0,
-   nurse_concern:concern,
-   wound_redness:ck('redness'),
-   drain_change:ck('drain'),
-   purulent_discharge:ck('pus'),
-   wound_dehiscence:ck('dehiscence'),
-   abdominal_distension:ck('dist'),
-   vomiting:ck('vomit'),
-   no_gas:ck('nogas'),
-   increased_pain:painScore>=1,
-   pain_score:painScore,
-   oliguria:ck('oliguria'),
-   news2_score:news2Score,
-   scdiaps_score:scdiapsExtra,
-   scdiaps_risk:risk,
-   risk_reasons:reasons.join('; '),
+   patient_code:selectedPatient.patient_code || '',
+   patient_identifier:patientIdentifier,
+   patient_name:selectedPatient.patient_name || '',
+   hospital_name:selectedPatient.hospital_name || currentProfile?.hospital_name || '',
+   evaluator_id:currentUser.id,
+   evaluator_name:evaluatorName,
+   assessed_at:new Date().toISOString(),
+   news2:news2Score,
+   risk:risk,
+   reasons:evaluationReasons,
    recommended_action:action
  };
 
  if(!navigator.onLine)throw new Error('İnternet bağlantısı yok.');
  const {data:{user},error:authError}=await sb.auth.getUser();
  if(authError||!user)throw new Error('Oturum doğrulanamadı. Lütfen çıkış yapıp yeniden giriş yapın.');
- payload.assessed_by=user.id;
+ payload.evaluator_id=user.id;
+ if(payload.evaluator_name==='—') payload.evaluator_name=user.email||'—';
  const result=await sb.from('assessments').insert(payload).select('id').single();
  if(result.error)throw new Error(result.error.message);
  const assessedAt=new Date().toISOString();
@@ -1462,9 +1460,9 @@ async function loadClinicalOutcomes(){
   if(!data?.length){body.innerHTML='<tr><td colspan="6">Henüz sonuç takibi kaydı yok.</td></tr>';return;}
   const ids=[...new Set(data.map(x=>x.patient_id).filter(Boolean))], aids=[...new Set(data.map(x=>x.assessment_id).filter(Boolean))];
   const pr=ids.length?await sb.from('patients').select('id,patient_name,patient_code,medical_record_no').in('id',ids):{data:[]};
-  const ar=aids.length?await sb.from('assessments').select('id,scdiaps_risk,news2_score').in('id',aids):{data:[]};
+  const ar=aids.length?await sb.from('assessments').select('id,risk,news2,reasons').in('id',aids):{data:[]};
   const pm=new Map((pr.data||[]).map(p=>[p.id,p])), am=new Map((ar.data||[]).map(a=>[a.id,a]));
-  body.innerHTML=data.map(x=>{const p=pm.get(x.patient_id)||{},a=am.get(x.assessment_id)||{},name=p.patient_name||p.patient_code||p.medical_record_no||'Hasta';const status=x.outcome_status==='COMPLETED'?`<span class="outcome-done">${x.deterioration?'Kötüleşme var':'Kötüleşme yok'}</span>`:`<span class="outcome-pending">Bekliyor</span>`;return `<tr><td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td><td>${name}</td><td>${a.scdiaps_risk||'—'}</td><td>${a.news2_score??'—'}</td><td>${status}</td><td>
+  body.innerHTML=data.map(x=>{const p=pm.get(x.patient_id)||{},a=am.get(x.assessment_id)||{},name=p.patient_name||p.patient_code||p.medical_record_no||'Hasta';const status=x.outcome_status==='COMPLETED'?`<span class="outcome-done">${x.deterioration?'Kötüleşme var':'Kötüleşme yok'}</span>`:`<span class="outcome-pending">Bekliyor</span>`;return `<tr><td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td><td>${name}</td><td>${a.risk||'—'}</td><td>${a.news2??'—'}</td><td>${status}</td><td>
 <button class="btn ${x.outcome_status==='COMPLETED'?'':'btn-primary'}" onclick="openOutcomeModal('${x.assessment_id}')">${x.outcome_status==='COMPLETED'?'Görüntüle / Düzenle':'Sonucu Kaydet'}</button>
 ${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deleteClinicalOutcome('${x.id}')">Sil</button>`:''}
 </td></tr>`;}).join('');
@@ -1709,8 +1707,8 @@ async function refresh(){
  const records=isAdminUser()?allRecords:allRecords.filter(r=>allowedPatientIds.has(String(r.patient_id)));
  patientCache=patients; window.__statisticsPatients=patients; window.__statisticsRecords=records;
  if(hr.error){console.error(hr.error); toast('Değerlendirme geçmişi okunamadı: '+hr.error.message);return}
- document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
- document.getElementById('rLow').textContent=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
+ document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>(x.scdiaps_risk||x.risk)==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>(x.scdiaps_risk||x.risk)==='YÜKSEK').length;
+ document.getElementById('rLow').textContent=records.filter(x=>(x.scdiaps_risk||x.risk)==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>(x.scdiaps_risk||x.risk)==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>(x.scdiaps_risk||x.risk)==='YÜKSEK').length;
  document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code} — ${p.patient_name||'Ad Soyad yok'} — ${p.medical_record_no||'TC/Dosya No yok'}</option>`).join('');
  document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr>
 <td><b>${p.patient_code??'-'}</b></td>
@@ -1794,9 +1792,9 @@ ${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" 
  // Statistics
  const totalAssessments=records.length;
  const evaluatedPatients=new Set(records.map(x=>x.patient_id).filter(Boolean)).size;
- const lowCount=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;
- const midCount=records.filter(x=>x.scdiaps_risk==='ORTA').length;
- const highCount=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
+ const lowCount=records.filter(x=>(x.scdiaps_risk||x.risk)==='DÜŞÜK').length;
+ const midCount=records.filter(x=>(x.scdiaps_risk||x.risk)==='ORTA').length;
+ const highCount=records.filter(x=>(x.scdiaps_risk||x.risk)==='YÜKSEK').length;
  const newsValues=records.map(x=>Number(x.news2)).filter(Number.isFinite);
  const avgNews2=newsValues.length ? newsValues.reduce((a,b)=>a+b,0)/newsValues.length : 0;
  const maxNews2=newsValues.length ? Math.max(...newsValues) : 0;

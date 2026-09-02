@@ -157,7 +157,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="degerlendirme-hasta-veri-birlestirme-duzeltildi">
+<body data-build="scdiaps-skoru-kaydetme-ve-istatistik-duzeltildi">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -1369,6 +1369,7 @@ async function evaluateAndSave(){
    pain_score:painScore,
    oliguria:ck('oliguria'),
    news2_score:news2Score,
+   scdiaps_score:scdiapsExtra,
    scdiaps_risk:risk,
    risk_reasons:reasons.join('; '),
    recommended_action:action
@@ -1545,7 +1546,7 @@ function exportStatisticsExcel(){
       'Postoperatif Gün':firstValue(r,['postoperative_day']) || p.postoperative_day || '',
       'Değerlendiren':firstValue(r,['assessed_by','evaluator_name','created_by_name']) || '',
       'NEWS2':firstValue(r,['news2','news2_score','news_score']) || '',
-      'S-CDIAPS Skoru':firstValue(r,['scdiaps_score','s_cdiaps_score','score']) || '',
+      'S-CDIAPS Skoru':firstValue(r,['scdiaps_score','s_cdiaps_score','surgical_contribution_score','score']) ?? '',
       'S-CDIAPS Risk Düzeyi':firstValue(r,['scdiaps_risk','s_cdiaps_risk','risk_level','risk']) || ''
     };
   });

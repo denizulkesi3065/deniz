@@ -994,6 +994,48 @@ async function registerUser(){
 async function logout(){
   await forceSessionLogout('Oturum kapatıldı. Yeniden giriş yapmanız gerekiyor.');
 }
+function editPatient(id){
+  const patient=(patientCache||[]).find(p=>String(p.id)===String(id));
+  if(!patient){
+    toast('Düzenlenecek hasta bulunamadı. Listeyi yenileyip tekrar deneyin.');
+    return;
+  }
+
+  // Düzenleme modu yalnızca kullanıcının erişebildiği hasta için açılır.
+  if(!canAccessPatient(patient)){
+    toast('Bu hastayı düzenleme yetkiniz yok.');
+    return;
+  }
+
+  window.editingPatientId=patient.id;
+
+  document.getElementById('newPid').value=patient.patient_code||'';
+  document.getElementById('newPatientIdentifier').value=patient.medical_record_no||patient.national_id||'';
+  document.getElementById('newPatientName').value=patient.patient_name||'';
+  document.getElementById('newBirthDate').value=patient.birth_date||'';
+  document.getElementById('newGender').value=patient.gender||'';
+  document.getElementById('newHeight').value=patient.height_cm??'';
+  document.getElementById('newWeight').value=patient.weight_kg??'';
+  document.getElementById('newSurgicalClinic').value=patient.surgical_clinic||'';
+  document.getElementById('newBedNumber').value=patient.bed_number||'';
+  document.getElementById('newPod').value=patient.postoperative_day??'';
+  updatePatientBMI();
+
+  const btn=document.getElementById('patientSaveBtn');
+  if(btn){
+    btn.textContent='Hasta Güncelle';
+    btn.dataset.mode='edit';
+    btn.setAttribute('onclick','addPatient()');
+  }
+
+  const page=document.getElementById('patients');
+  if(page){
+    page.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  document.getElementById('newPid')?.focus();
+  toast('Hasta düzenleme modunda açıldı. Değişiklikleri yaptıktan sonra Hasta Güncelle düğmesine basın.');
+}
+
 async function updatePatient(){
  const id=window.editingPatientId;
  if(!id){toast('Düzenlenecek hasta seçilmedi.');return}
@@ -1010,7 +1052,7 @@ async function updatePatient(){
  const bedNumber=v('newBedNumber').trim();
 
  if(!patientCode||!identifier||!patientName||!birth||!gender){
-   toast('Hasta kodu, Hastahane Adı/T.C. Kimlik No, Ad Soyad, Doğum Tarihi ve Cinsiyet zorunludur');
+   toast('Hasta kodu, Hasta T.C. Kimlik No / Dosya No, Ad Soyad, Doğum Tarihi ve Cinsiyet zorunludur');
    return;
  }
  if(!surgicalClinic||!bedNumber){toast('Cerrahi klinik/servis ve yatak no alanlarını doldurun');return;}
@@ -1510,7 +1552,7 @@ async function refresh(){
  document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('rLow').textContent=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code} — ${p.patient_name||'Ad Soyad yok'} — ${p.medical_record_no||'TC/Dosya No yok'}</option>`).join('');
- document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.medical_record_no??'-'}</td><td>${p.patient_name??'-'}</td><td>${p.birth_date?new Date(p.birth_date+'T00:00:00').toLocaleDateString('tr-TR'):'-'}</td><td>${p.gender??'-'}</td><td>${p.height_cm??'-'} cm</td><td>${p.weight_kg??'-'} kg</td><td>${p.postoperative_day??'-'}</td><td><button class="btn btn-primary" onclick="editPatient('${p.id}')">Düzenle</button><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="8">Hasta bulunmuyor.</td></tr>';
+ document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.medical_record_no??'-'}</td><td>${p.patient_name??'-'}</td><td>${p.birth_date?new Date(p.birth_date+'T00:00:00').toLocaleDateString('tr-TR'):'-'}</td><td>${p.gender??'-'}</td><td>${p.height_cm??'-'} cm</td><td>${p.weight_kg??'-'} kg</td><td>${p.postoperative_day??'-'}</td><td><button class="btn btn-primary" onclick="editPatient('${p.id}')">Düzenle</button><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="13">Hasta bulunmuyor.</td></tr>';
  const latestByPatient={};
  const grouped={};
  records.forEach(x=>{

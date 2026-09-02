@@ -1706,6 +1706,8 @@ async function refresh(){
  const allRecords=hr.data||[];
  const records=isAdminUser()?allRecords:allRecords.filter(r=>allowedPatientIds.has(String(r.patient_id)));
  patientCache=patients; window.__statisticsPatients=patients; window.__statisticsRecords=records;
+ // Klinik değerlendirme hasta seçim kutularını hasta verisi gelir gelmez doldur.
+ if(typeof fillAssessmentPatientSelects==='function') fillAssessmentPatientSelects();
  if(hr.error){console.error(hr.error); toast('Değerlendirme geçmişi okunamadı: '+hr.error.message);return}
  document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>(x.scdiaps_risk||x.risk)==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>(x.scdiaps_risk||x.risk)==='YÜKSEK').length;
  document.getElementById('rLow').textContent=records.filter(x=>(x.scdiaps_risk||x.risk)==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>(x.scdiaps_risk||x.risk)==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>(x.scdiaps_risk||x.risk)==='YÜKSEK').length;
@@ -2322,7 +2324,7 @@ function clinicalName(p){ return p?.patient_name || ''; }
 function clinicalClinic(p){ return p?.surgical_clinic || ''; }
 function clinicalBed(p){ return p?.bed_number || ''; }
 
-function fillAssessmentPatientSelects(){
+function fillAssessmentPatientSelects(force=false){
   const patients=getClinicalPatients();
   const fields=[
     ['assessmentPatientIdentifier',clinicalIdentifier],
@@ -2330,15 +2332,26 @@ function fillAssessmentPatientSelects(){
     ['assessmentSurgicalClinic',clinicalClinic],
     ['assessmentBedNumber',clinicalBed]
   ];
+  const signature=patients.map(p=>[
+    p.id,clinicalIdentifier(p),clinicalName(p),clinicalClinic(p),clinicalBed(p)
+  ].join('|')).join('||');
+
   fields.forEach(([id,getText])=>{
     const sel=document.getElementById(id);
     if(!sel) return;
+    // Her 700 ms'de seçenekleri yeniden yazmak ilk tıklamada açılan menüyü kapatıyordu.
+    // Yalnızca hasta listesi gerçekten değiştiğinde seçenekleri yeniden oluştur.
+    if(!force && sel.dataset.patientSignature===signature) return;
     const old=sel.value;
-    sel.innerHTML='<option value="">Hasta seçiniz...</option>'+patients.map(p=>{
+    const options=['<option value="">Hasta seçiniz...</option>'];
+    patients.forEach(p=>{
       const value=String(p.id ?? '');
       const text=getText(p)||'Belirtilmemiş';
-      return `<option value="${value}">${text}</option>`;
-    }).join('');
+      options.push(`<option value="${value}">${text}</option>`);
+    });
+    sel.innerHTML=options.join('');
+    sel.dataset.patientSignature=signature;
+    sel.disabled=patients.length===0;
     if(old && patients.some(p=>String(p.id)===String(old))) sel.value=old;
   });
 }
@@ -2372,8 +2385,13 @@ document.addEventListener('change',function(e){
   if(ids.includes(e.target?.id)) syncAssessmentPatient(e.target.value);
 });
 
-// Hasta listesi yüklendikten sonra seçenekleri görünür hale getir.
-setInterval(fillAssessmentPatientSelects,700);
+// Sayfa ilk açıldığında mevcut önbellek varsa doldur.
+// Sürekli setInterval kullanmıyoruz; bu, ilk tıklamada açılan seçimi yeniden çizip kapatıyordu.
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>fillAssessmentPatientSelects(true),{once:true});
+}else{
+  fillAssessmentPatientSelects(true);
+}
 </script>
 <div id="outcomeModal" class="outcome-modal hidden" aria-hidden="true"><div class="outcome-modal-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><h3 style="margin:0">24 Saatlik Klinik Sonuç</h3><button class="btn" onclick="closeOutcomeModal()">Kapat</button></div><p id="outcomeModalInfo" class="muted"></p><div class="field"><label>24 saat içinde klinik kötüleşme oldu mu?</label><div class="outcome-options"><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="false"><span><b>Hayır</b><br><small>Klinik kötüleşme gözlenmedi.</small></span></label><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="true"><span><b>Evet</b><br><small>Klinik kötüleşme gözlendi.</small></span></label></div></div><div class="field"><label>Kötüleşme türü (varsa)</label><select id="outcomeType"><option value="">Seçiniz</option><option value="NEWS2_ARTISI">NEWS2 belirgin artışı</option><option value="ACIL_MUDAHALE">Acil müdahale gereksinimi</option><option value="UST_DUZEY_BAKIM">Üst düzey bakım / yoğun bakım gereksinimi</option><option value="HEKIM_KLINIK_KOTULESME">Hekim tarafından klinik kötüleşme değerlendirmesi</option><option value="DIGER">Diğer</option></select></div><div class="field"><label>Açıklama</label><textarea id="outcomeDetails" rows="4" placeholder="Gerekirse klinik sonucu kısaca açıklayın."></textarea></div><div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px"><button class="btn" onclick="closeOutcomeModal()">İptal</button><button class="btn btn-primary" onclick="saveClinicalOutcome()">Sonucu Kaydet</button></div></div></div></body>
 </html>

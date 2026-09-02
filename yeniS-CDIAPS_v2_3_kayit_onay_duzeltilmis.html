@@ -1045,7 +1045,6 @@ async function registerUser(){
      education_status:education,
      professional_education:education,
      professional_title:title,
-     hospital_name:hospital,
      department_name:department,
      role:role
    }}
@@ -1152,7 +1151,6 @@ async function updatePatient(){
    height_cm:height,
    weight_kg:weight,
    postoperative_day:pod,
-   hospital_name:hospitalName,
    surgical_clinic:surgicalClinic,
    bed_number:bedNumber
  };
@@ -1249,7 +1247,6 @@ async function addPatient(){
      national_id:null,
      surgical_clinic:surgicalClinic,
      bed_number:bedNumber,
-     hospital_name:hospitalName,
      created_by:user.id
    };
 
@@ -1359,7 +1356,6 @@ async function evaluateAndSave(){
    patient_code:selectedPatient.patient_code || '',
    patient_identifier:patientIdentifier,
    patient_name:selectedPatient.patient_name || '',
-   hospital_name:selectedPatient.hospital_name || currentProfile?.hospital_name || '',
    assessed_at:new Date().toISOString(),
    news2:news2Score,
    risk:risk,
@@ -1883,7 +1879,6 @@ ${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" 
    birth_date:'Doğum Tarihi',
    height_cm:'Boy (cm)',
    weight_kg:'Kilo (kg)',
-   hospital_name:'Hastane / Kurum Adı',
    bmi:'VKİ',
    bed_number:'Yatak No',
    surgical_clinic:'Cerrahi Klinikler Bölümü',

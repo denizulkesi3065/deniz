@@ -320,11 +320,13 @@ button,input,select{touch-action:manipulation}
     <div class="field"><label>Boy (cm)</label><input id="newHeight" type="number" min="30" max="250" step="0.1" placeholder="cm" oninput="updatePatientBMI()"></div>
     <div class="field"><label>Kilo (kg)</label><input id="newWeight" type="number" min="1" max="400" step="0.1" placeholder="kg" oninput="updatePatientBMI()"></div>
     <div class="field"><label>VKİ</label><input id="newBMI" type="text" readonly placeholder="Otomatik hesaplanır"></div>
+    <div class="field"><label>Cerrahi Klinik / Servis</label><input id="newSurgicalClinic" placeholder="Örn. Genel Cerrahi"></div>
+    <div class="field"><label>Yatak No</label><input id="newBedNumber" placeholder="Örn. 12-A"></div>
     <div class="field"><label>Postoperatif gün</label><input id="newPod" type="number" min="0" placeholder="Gün"></div>
   </div>
   <div class="notice" style="margin-top:12px">Hasta T.C. Kimlik No / Dosya No bilgisi, kurumunuzun yetkilendirme ve veri koruma kurallarına uygun şekilde kullanılmalıdır.</div>
   <div class="actions" style="margin-top:14px"><button id="patientSaveBtn" class="btn btn-primary" onclick="addPatient()">Hasta Kaydet</button></div></div>
-  <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Hasta T.C. Kimlik No / Dosya No</th><th>Hasta Adı Soyadı</th><th>Doğum Tarihi</th><th>Cinsiyet</th><th>Boy (cm)</th><th>Kilo (kg)</th><th>Postoperatif gün</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
+  <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Hasta T.C. Kimlik No / Dosya No</th><th>Hasta Adı Soyadı</th><th>Doğum Tarihi</th><th>Cinsiyet</th><th>Boy (cm)</th><th>Kilo (kg)</th><th>Cerrahi Klinik / Servis</th><th>Yatak No</th><th>Postoperatif gün</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
 </section>
 
 <section id="assessment" class="page hidden">
@@ -333,6 +335,9 @@ button,input,select{touch-action:manipulation}
     <div class="formgrid">
       <div class="field"><label>Hasta Dosya No / T.C. Kimlik No</label><input id="assessmentPatientIdentifier" type="text" readonly placeholder="Hasta seçiniz"></div>
       <div class="field"><label>Hasta Adı Soyadı</label><input id="assessmentPatientName" type="text" readonly placeholder="Hasta seçiniz"></div>
+      <div class="field"><label>Cerrahi Klinik / Servis</label><input id="assessmentSurgicalClinic" type="text" readonly placeholder="Hasta seçiniz"></div>
+      <div class="field"><label>Yatak No</label><input id="assessmentBedNumber" type="text" readonly placeholder="Hasta seçiniz"></div>
+      
       <div class="field"><label>Postoperatif gün</label><input id="pod" type="number" value="2"></div>
       <div class="field"><label>Değerlendirme zamanı</label><input id="evalTime" type="datetime-local"></div>
       <select id="pid" class="hidden" aria-hidden="true"></select>
@@ -911,11 +916,14 @@ async function updatePatient(){
  const height=v('newHeight')!==''?Number(v('newHeight')):null;
  const weight=v('newWeight')!==''?Number(v('newWeight')):null;
  const pod=v('newPod')!==''?Number(v('newPod')):null;
+ const surgicalClinic=v('newSurgicalClinic').trim();
+ const bedNumber=v('newBedNumber').trim();
 
  if(!patientCode||!identifier||!patientName||!birth||!gender){
    toast('Hasta kodu, Hastahane Adı/T.C. Kimlik No, Ad Soyad, Doğum Tarihi ve Cinsiyet zorunludur');
    return;
  }
+ if(!surgicalClinic||!bedNumber){toast('Cerrahi klinik/servis ve yatak no alanlarını doldurun');return;}
  if(height===null||weight===null||pod===null){
    toast('Boy, kilo ve postoperatif gün alanlarını doldurun');
    return;
@@ -930,7 +938,9 @@ async function updatePatient(){
    p_gender:gender,
    p_height:height,
    p_weight:weight,
-   p_postop_day:pod
+   p_postop_day:pod,
+   p_surgical_clinic:surgicalClinic,
+   p_bed_number:bedNumber
  });
 
  if(error){console.error(error);toast('Hasta güncellenemedi: '+error.message);return}
@@ -939,7 +949,7 @@ async function updatePatient(){
  window.editingPatientId=null;
  const btn=document.getElementById('patientSaveBtn');
  if(btn){btn.textContent='Hasta Kaydet';btn.dataset.mode='add';btn.setAttribute('onclick','addPatient()')}
- ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newWeight','newPod'].forEach(x=>{
+ ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newSurgicalClinic','newBedNumber','newPod'].forEach(x=>{
    const el=document.getElementById(x);if(el)el.value='';
  });
  const g=document.getElementById('newGender');if(g)g.value='';
@@ -982,12 +992,14 @@ async function addPatient(){
    const code=v('newPid').trim(), identifier=v('newPatientIdentifier').trim(), name=v('newPatientName').trim();
    const birth=v('newBirthDate'), gender=v('newGender');
    const height=v('newHeight'), weight=v('newWeight'), pod=v('newPod');
+   const surgicalClinic=v('newSurgicalClinic').trim(), bedNumber=v('newBedNumber').trim();
 
    if(!code){toast('Hasta kodu gerekli');return}
    if(!identifier){toast('Hasta T.C. Kimlik No / Dosya No girin');return}
    if(!name){toast('Hasta adı soyadı gerekli');return}
    if(!birth){toast('Doğum tarihi gerekli');return}
    if(!gender){toast('Cinsiyet seçin');return}
+   if(!surgicalClinic||!bedNumber){toast('Cerrahi klinik/servis ve yatak no alanlarını doldurun');return}
    if(!height||!weight||pod===''){toast('Boy, kilo ve postoperatif gün alanlarını doldurun');return}
 
    const {data:{user},error:authError}=await sb.auth.getUser();
@@ -1010,6 +1022,8 @@ async function addPatient(){
      gender:gender,
      medical_record_no:identifier,
      national_id:null,
+     surgical_clinic:surgicalClinic,
+     bed_number:bedNumber,
      created_by:user.id
    };
 
@@ -1018,7 +1032,7 @@ async function addPatient(){
    const result=await sb.from('patients').insert(payload).select('id').single();
    if(result.error)throw new Error(result.error.message);
 
-   ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newPod'].forEach(id=>{
+   ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newSurgicalClinic','newBedNumber','newPod'].forEach(id=>{
      const el=document.getElementById(id);if(el)el.value='';
    });
    const g=document.getElementById('newGender');if(g)g.value='';
@@ -1513,6 +1527,8 @@ async function selectPatient(id){
  const pod=document.getElementById('pod');
  if(identifier) identifier.value=patient.medical_record_no||patient.national_id||'';
  if(name) name.value=patient.patient_name||'';
+  const surgicalClinic=document.getElementById('assessmentSurgicalClinic'); if(surgicalClinic) surgicalClinic.value=patient.surgical_clinic||'';
+  const bedNumber=document.getElementById('assessmentBedNumber'); if(bedNumber) bedNumber.value=patient.bed_number||'';
  if(pod && patient.postoperative_day!==null && patient.postoperative_day!==undefined) pod.value=patient.postoperative_day;
  go('assessment');
 }

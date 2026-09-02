@@ -157,7 +157,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="klinik-degerlendirme-hasta-secimi-sadece-istenen-alanlar">
+<body data-build="evaluator-id-schema-hatasi-duzeltildi">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -1360,8 +1360,7 @@ async function evaluateAndSave(){
    patient_identifier:patientIdentifier,
    patient_name:selectedPatient.patient_name || '',
    hospital_name:selectedPatient.hospital_name || currentProfile?.hospital_name || '',
-   evaluator_id:currentUser.id,
-   evaluator_name:evaluatorName,
+evaluator_name:evaluatorName,
    assessed_at:new Date().toISOString(),
    news2:news2Score,
    risk:risk,
@@ -1893,8 +1892,7 @@ ${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" 
    created_at:'Kayıt Tarihi',
    created_by:'Kaydı Oluşturan',
    assessed_at:'Değerlendirme Tarihi',
-   evaluator_id:'Değerlendiren ID',
-   evaluator_name:'Değerlendiren',
+evaluator_name:'Değerlendiren',
    news2:'NEWS2',
    news2_score:'NEWS2 Skoru',
    scdiaps_score:'S-CDIAPS Skoru',

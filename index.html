@@ -152,7 +152,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="assessments-news2-schema-duzeltildi">
+<body data-build="v4.5.66-tam-surum-degerlendirme-schema-duzeltildi">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -394,7 +394,7 @@ button,input,select{touch-action:manipulation}
   </div>
   <div class="notice" style="margin-top:12px">Hasta T.C. Kimlik No / Dosya No bilgisi, kurumunuzun yetkilendirme ve veri koruma kurallarına uygun şekilde kullanılmalıdır.</div>
   <div class="actions" style="margin-top:14px"><button id="patientSaveBtn" class="btn btn-primary" onclick="addPatient()">Hasta Kaydet</button></div></div>
-  <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Hasta T.C. Kimlik No / Dosya No</th><th>Hasta Adı Soyadı</th><th>Doğum Tarihi</th><th>Cinsiyet</th><th>Boy (cm)</th><th>Kilo (kg)</th><th>Cerrahi Klinik / Servis</th><th>Yatak No</th><th>Cerrahi Klinikler Bölümü</th><th>Yatak No</th><th>Postoperatif gün</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
+  <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Hasta T.C. Kimlik No / Dosya No</th><th>Hasta Adı Soyadı</th><th>Doğum Tarihi</th><th>Cinsiyet</th><th>Boy (cm)</th><th>Kilo (kg)</th><th>Hastane / Kurum Adı</th><th>Cerrahi Klinikler Bölümü</th><th>Yatak No</th><th>Postoperatif gün</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
 </section>
 
 <section id="assessment" class="page hidden">
@@ -595,7 +595,7 @@ function news2(){
   return score;
 }
 
-const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
+const SESSION_TIMEOUT_MS = 0; // Oturum yalnızca kullanıcı Çıkış Yap'a bastığında kapatılır.
 const SESSION_MARKER = 'scdiaps_session_active';
 
 function clearSessionTimeout(){
@@ -650,13 +650,8 @@ async function forceSessionLogout(message='Oturumunuz güvenlik nedeniyle sonlan
   },100);
 }
 
-function scheduleSessionTimeout(){
-  clearSessionTimeout();
-  lastActivityAt=Date.now();
-  sessionTimeoutTimer=setTimeout(()=>{
-    forceSessionLogout('5 dakika boyunca işlem yapılmadığı için oturumunuz sonlandırıldı. Lütfen yeniden giriş yapın.');
-  }, SESSION_TIMEOUT_MS);
-}
+function scheduleSessionTimeout(){ clearSessionTimeout(); }
+
 
 function markActivity(){
   if(!currentUser || recoveryMode || sessionEnding) return;
@@ -991,7 +986,6 @@ async function registerUser(){
      education_status:education,
      professional_education:education,
      professional_title:title,
-     hospital_name:hospital,
      department_name:department,
      role:role
    }}
@@ -1098,7 +1092,6 @@ async function updatePatient(){
    height_cm:height,
    weight_kg:weight,
    postoperative_day:pod,
-   hospital_name:hospitalName,
    surgical_clinic:surgicalClinic,
    bed_number:bedNumber
  };
@@ -1195,7 +1188,6 @@ async function addPatient(){
      national_id:null,
      surgical_clinic:surgicalClinic,
      bed_number:bedNumber,
-     hospital_name:hospitalName,
      created_by:user.id
    };
 
@@ -1622,7 +1614,7 @@ async function refresh(){
  document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('rLow').textContent=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code} — ${p.patient_name||'Ad Soyad yok'} — ${p.medical_record_no||'TC/Dosya No yok'}</option>`).join('');
- document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.medical_record_no??'-'}</td><td>${p.patient_name??'-'}</td><td>${p.birth_date?new Date(p.birth_date+'T00:00:00').toLocaleDateString('tr-TR'):'-'}</td><td>${p.gender??'-'}</td><td>${p.height_cm??'-'} cm</td><td>${p.weight_kg??'-'} kg</td><td>${p.postoperative_day??'-'}</td><td><button class="btn btn-primary" onclick="editPatient('${p.id}')">Düzenle</button><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="13">Hasta bulunmuyor.</td></tr>';
+ document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.medical_record_no??'-'}</td><td>${p.patient_name??'-'}</td><td>${p.birth_date?new Date(p.birth_date+'T00:00:00').toLocaleDateString('tr-TR'):'-'}</td><td>${p.gender??'-'}</td><td>${p.height_cm??'-'} cm</td><td>${p.weight_kg??'-'} kg</td><td>${p.hospital_name??'-'}</td><td>${p.surgical_clinic??'-'}</td><td>${p.bed_number??'-'}</td><td>${p.postoperative_day??'-'}</td><td><button class="btn btn-primary" onclick="editPatient('${p.id}')">Düzenle</button><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="12">Hasta bulunmuyor.</td></tr>';
  const latestByPatient={};
  const grouped={};
  records.forEach(x=>{
@@ -1915,7 +1907,14 @@ setInterval(()=>{
   }
 });
 
-sb.auth.onAuthStateChange((event)=>{
+sb.auth.onAuthStateChange((event,session)=>{
+  if((event==='SIGNED_OUT')){
+    // Yalnızca gerçek Supabase çıkışı gerçekleştiğinde giriş ekranına dön.
+    currentUser=null; currentProfile=null;
+    document.getElementById('app')?.classList.add('hidden');
+    document.getElementById('loginPage')?.classList.remove('hidden');
+    return;
+  }
   if(event==='PASSWORD_RECOVERY'){
     recoveryMode=true;
     document.getElementById('app').classList.add('hidden');
@@ -1972,36 +1971,18 @@ sb.auth.onAuthStateChange((event)=>{
     scheduleSessionTimeout();
     refresh();
   }catch(e){
-    console.warn('Oturum geri yüklenemedi:',e);
-    currentUser=null; currentProfile=null;
-    // Hata durumunda eski/bozuk yerel oturumu temizle.
-    try{await sb.auth.signOut({scope:'local'})}catch(x){}
-    try{localStorage.removeItem(SESSION_MARKER)}catch(x){}
+    console.warn('Oturum geri yüklenirken geçici hata oluştu:',e);
+    // ÖNEMLİ: Sayfa yenileme sırasında geçici ağ/profil hatasında kullanıcıyı ASLA çıkışa zorlama.
+    // Supabase oturumu korunur; sonraki yenilemede veya bağlantı düzeldiğinde tekrar geri yüklenir.
+    currentUser=null;
+    currentProfile=null;
+    const msg=document.getElementById('loginMsg');
+    if(msg) msg.textContent='Oturum doğrulanıyor. Bağlantı geçici olarak yanıt vermedi; oturumunuz kapatılmadı.';
   }
 })();;
 </script>
 
-<script>
-/* Mobile/PWA cache reset: prevents an older cached index.html from running on iOS/Android. */
-window.addEventListener('load', async ()=>{
-  try{
-    const FLAG='scdiaps_cache_reset_4563';
-    if(sessionStorage.getItem(FLAG)!=='1' && 'serviceWorker' in navigator){
-      sessionStorage.setItem(FLAG,'1');
-      const regs=await navigator.serviceWorker.getRegistrations();
-      for(const r of regs){try{await r.unregister()}catch(e){}}
-      if(window.caches){
-        const keys=await caches.keys();
-        await Promise.all(keys.map(k=>caches.delete(k)));
-      }
-      window.location.reload();
-      return;
-    }
-  }catch(e){
-    console.warn('Cache reset:',e);
-  }
-});
-</script>
+<script>/* Cache reset disabled: it was forcing a reload and could interrupt session restoration. */</script>
 
 
 <script>
@@ -2092,5 +2073,21 @@ window.addEventListener('load',()=>{
   },250);
 });
 </script>
-<div id="outcomeModal" class="outcome-modal hidden" aria-hidden="true"><div class="outcome-modal-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><h3 style="margin:0">24 Saatlik Klinik Sonuç</h3><button class="btn" onclick="closeOutcomeModal()">Kapat</button></div><p id="outcomeModalInfo" class="muted"></p><div class="field"><label>24 saat içinde klinik kötüleşme oldu mu?</label><div class="outcome-options"><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="false"><span><b>Hayır</b><br><small>Klinik kötüleşme gözlenmedi.</small></span></label><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="true"><span><b>Evet</b><br><small>Klinik kötüleşme gözlendi.</small></span></label></div></div><div class="field"><label>Kötüleşme türü (varsa)</label><select id="outcomeType"><option value="">Seçiniz</option><option value="NEWS2_ARTISI">NEWS2 belirgin artışı</option><option value="ACIL_MUDAHALE">Acil müdahale gereksinimi</option><option value="UST_DUZEY_BAKIM">Üst düzey bakım / yoğun bakım gereksinimi</option><option value="HEKIM_KLINIK_KOTULESME">Hekim tarafından klinik kötüleşme değerlendirmesi</option><option value="DIGER">Diğer</option></select></div><div class="field"><label>Açıklama</label><textarea id="outcomeDetails" rows="4" placeholder="Gerekirse klinik sonucu kısaca açıklayın."></textarea></div><div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px"><button class="btn" onclick="closeOutcomeModal()">İptal</button><button class="btn btn-primary" onclick="saveClinicalOutcome()">Sonucu Kaydet</button></div></div></div></body>
+<div id="outcomeModal" class="outcome-modal hidden" aria-hidden="true"><div class="outcome-modal-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><h3 style="margin:0">24 Saatlik Klinik Sonuç</h3><button class="btn" onclick="closeOutcomeModal()">Kapat</button></div><p id="outcomeModalInfo" class="muted"></p><div class="field"><label>24 saat içinde klinik kötüleşme oldu mu?</label><div class="outcome-options"><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="false"><span><b>Hayır</b><br><small>Klinik kötüleşme gözlenmedi.</small></span></label><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="true"><span><b>Evet</b><br><small>Klinik kötüleşme gözlendi.</small></span></label></div></div><div class="field"><label>Kötüleşme türü (varsa)</label><select id="outcomeType"><option value="">Seçiniz</option><option value="NEWS2_ARTISI">NEWS2 belirgin artışı</option><option value="ACIL_MUDAHALE">Acil müdahale gereksinimi</option><option value="UST_DUZEY_BAKIM">Üst düzey bakım / yoğun bakım gereksinimi</option><option value="HEKIM_KLINIK_KOTULESME">Hekim tarafından klinik kötüleşme değerlendirmesi</option><option value="DIGER">Diğer</option></select></div><div class="field"><label>Açıklama</label><textarea id="outcomeDetails" rows="4" placeholder="Gerekirse klinik sonucu kısaca açıklayın."></textarea></div><div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px"><button class="btn" onclick="closeOutcomeModal()">İptal</button><button class="btn btn-primary" onclick="saveClinicalOutcome()">Sonucu Kaydet</button></div></div></div>
+<script>
+/* v4.5.65: Yenileme sonrası Supabase oturumunu ikinci kez güvenli biçimde doğrula. */
+window.addEventListener('load',()=>{
+  setTimeout(async()=>{
+    try{
+      if(currentUser) return;
+      const {data}=await sb.auth.getSession();
+      if(data && data.session && !recoveryMode){
+        window.location.reload();
+      }
+    }catch(e){ console.warn('Oturum yedek kontrolü:',e); }
+  },700);
+});
+</script>
+
+</body>
 </html>

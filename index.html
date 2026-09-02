@@ -157,7 +157,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="vki-otomatik-hesaplama-ortalama-vki-duzeltildi">
+<body data-build="klinik-degerlendirme-hasta-secimi-ve-otomatik-bilgiler-duzeltildi">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -290,6 +290,17 @@ button,input,select{touch-action:manipulation}
     <div class="stat-card"><div class="stat-label">Toplam değerlendirme</div><div class="stat-value" id="sAssess">0</div><div class="stat-foot">Son kayıtlar</div></div>
     <div class="stat-card"><div class="stat-label">Orta risk</div><div class="stat-value yellow" id="sMid">0</div><div class="stat-foot">Yeniden değerlendirme</div></div>
     <div class="stat-card"><div class="stat-label">Yüksek risk</div><div class="stat-value red" id="sHigh">0</div><div class="stat-foot">Öncelikli klinik değerlendirme</div></div>
+<div class="card" id="clinicalPatientInfoCard">
+  <h3>Hasta Bilgileri</h3>
+  <div class="grid2">
+    <div class="field"><label>Hasta Dosya No / T.C. Kimlik No</label><input type="text" id="clinicalPatientIdentifier" readonly></div>
+    <div class="field"><label>Hasta Adı Soyadı</label><input type="text" id="clinicalPatientName" readonly></div>
+    <div class="field"><label>Cerrahi Klinik / Servis</label><input type="text" id="clinicalPatientClinic" readonly></div>
+    <div class="field"><label>Yatak No</label><input type="text" id="clinicalPatientBed" readonly></div>
+    <div class="field"><label>Postoperatif gün</label><input type="text" id="clinicalPatientPostopDay" readonly></div>
+  </div>
+</div>
+
   </div>
   <div class="card"><h3>Risk dağılımı</h3><div class="risk-row">
     <div class="risk g"><span>🟢 Düşük</span><b id="rLow">0</b><span>Rutin izlem</span></div>
@@ -447,7 +458,24 @@ button,input,select{touch-action:manipulation}
 </section>
 
 <section id="assessment" class="page hidden">
-  <div class="toolbar"><div class="page-title"><h2>Klinik Değerlendirme</h2><p>Vardiya değerlendirmesi ve otomatik risk analizi</p></div></div>
+  <div class="toolbar"><div class="page-title"><h2>Klinik Değerlendirme</h2><p>Vardiya değerlendirmesi ve otomatik risk analizi</p></div>
+<div class="card" id="clinicalPatientSelectionCard">
+  <h3>Hasta Seçimi ve Otomatik Bilgiler</h3>
+  <div class="field">
+    <label>Hasta Seçiniz</label>
+    <select id="clinicalPatientSelectAuto">
+      <option value="">Hasta seçiniz...</option>
+    </select>
+  </div>
+  <div class="grid2">
+    <div class="field"><label>Hasta Dosya No / T.C. Kimlik No</label><input type="text" id="clinicalPatientIdentifier" readonly></div>
+    <div class="field"><label>Hasta Adı Soyadı</label><input type="text" id="clinicalPatientName" readonly></div>
+    <div class="field"><label>Cerrahi Klinik / Servis</label><input type="text" id="clinicalPatientClinic" readonly></div>
+    <div class="field"><label>Yatak No</label><input type="text" id="clinicalPatientBed" readonly></div>
+    <div class="field"><label>Postoperatif gün</label><input type="text" id="clinicalPatientPostopDay" readonly></div>
+  </div>
+</div>
+</div>
   <div class="card">
     <div class="formgrid">
       <div class="field"><label>Hasta Dosya No / T.C. Kimlik No</label><input id="assessmentPatientIdentifier" type="text" readonly placeholder="Hasta seçiniz"></div>
@@ -2322,6 +2350,66 @@ window.addEventListener('load',()=>{
     if(renderTurnstileWidgets() || tries>=120) clearInterval(wait);
   },250);
 });
+
+
+function clinicalPatientList(){
+  return window.currentPatients || window.__statisticsPatients || window.patients || window.allPatients || [];
+}
+function fillClinicalPatientInfo(patient){
+  if(!patient) return;
+  const identifier=patient.medical_record_no || patient.national_id || patient.patient_identifier || '';
+  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val??'';};
+  set('clinicalPatientIdentifier',identifier);
+  set('clinicalPatientName',patient.patient_name || patient.name || '');
+  set('clinicalPatientClinic',patient.surgical_clinic || patient.clinic || '');
+  set('clinicalPatientBed',patient.bed_number || patient.bed || '');
+  set('clinicalPatientPostopDay',
+    patient.postoperative_day!==null && patient.postoperative_day!==undefined && patient.postoperative_day!=='' ? patient.postoperative_day : '');
+}
+function populateClinicalPatientSelect(){
+  const select=document.getElementById('clinicalPatientSelectAuto');
+  if(!select) return;
+  const current=select.value;
+  const list=clinicalPatientList();
+  if(!Array.isArray(list) || !list.length) return;
+  select.innerHTML='<option value="">Hasta seçiniz...</option>'+
+    list.map(p=>{
+      const id=String(p.id??'');
+      const name=p.patient_name||p.name||'İsimsiz Hasta';
+      const code=p.patient_code||p.medical_record_no||p.national_id||'';
+      return `<option value="${id}">${name}${code?' - '+code:''}</option>`;
+    }).join('');
+  if(current) select.value=current;
+}
+function refreshClinicalPatientInfo(){
+  populateClinicalPatientSelect();
+  const auto=document.getElementById('clinicalPatientSelectAuto');
+  let patientId=auto?.value||'';
+  if(!patientId){
+    const selectorIds=['clinicalPatientSelect','assessmentPatientSelect','patientSelect','selectedPatient'];
+    for(const id of selectorIds){
+      const el=document.getElementById(id);
+      if(el&&el.value){patientId=el.value;break;}
+    }
+  }
+  if(!patientId) return;
+  const patient=clinicalPatientList().find(p=>String(p.id)===String(patientId));
+  if(patient) fillClinicalPatientInfo(patient);
+}
+document.addEventListener('change',function(e){
+  if(e.target?.id==='clinicalPatientSelectAuto'){
+    const p=clinicalPatientList().find(x=>String(x.id)===String(e.target.value));
+    if(p) fillClinicalPatientInfo(p);
+    return;
+  }
+  if(['clinicalPatientSelect','assessmentPatientSelect','patientSelect','selectedPatient'].includes(e.target?.id)){
+    const auto=document.getElementById('clinicalPatientSelectAuto');
+    if(auto) auto.value=e.target.value;
+    const p=clinicalPatientList().find(x=>String(x.id)===String(e.target.value));
+    if(p) fillClinicalPatientInfo(p);
+  }
+});
+setInterval(populateClinicalPatientSelect,1500);
 </script>
 <div id="outcomeModal" class="outcome-modal hidden" aria-hidden="true"><div class="outcome-modal-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><h3 style="margin:0">24 Saatlik Klinik Sonuç</h3><button class="btn" onclick="closeOutcomeModal()">Kapat</button></div><p id="outcomeModalInfo" class="muted"></p><div class="field"><label>24 saat içinde klinik kötüleşme oldu mu?</label><div class="outcome-options"><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="false"><span><b>Hayır</b><br><small>Klinik kötüleşme gözlenmedi.</small></span></label><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="true"><span><b>Evet</b><br><small>Klinik kötüleşme gözlendi.</small></span></label></div></div><div class="field"><label>Kötüleşme türü (varsa)</label><select id="outcomeType"><option value="">Seçiniz</option><option value="NEWS2_ARTISI">NEWS2 belirgin artışı</option><option value="ACIL_MUDAHALE">Acil müdahale gereksinimi</option><option value="UST_DUZEY_BAKIM">Üst düzey bakım / yoğun bakım gereksinimi</option><option value="HEKIM_KLINIK_KOTULESME">Hekim tarafından klinik kötüleşme değerlendirmesi</option><option value="DIGER">Diğer</option></select></div><div class="field"><label>Açıklama</label><textarea id="outcomeDetails" rows="4" placeholder="Gerekirse klinik sonucu kısaca açıklayın."></textarea></div><div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px"><button class="btn" onclick="closeOutcomeModal()">İptal</button><button class="btn btn-primary" onclick="saveClinicalOutcome()">Sonucu Kaydet</button></div></div></div></body>
 </html>

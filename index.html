@@ -152,7 +152,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="v4.5.62-oturum-yenileme-korundu-tek-tiklama-giris">
+<body data-build="v4.5.63-oturum-koruma-ve-hasta-kapsami">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -371,6 +371,7 @@ button,input,select{touch-action:manipulation}
     <div class="field"><label>Boy (cm)</label><input id="newHeight" type="number" min="30" max="250" step="0.1" placeholder="cm" oninput="updatePatientBMI()"></div>
     <div class="field"><label>Kilo (kg)</label><input id="newWeight" type="number" min="1" max="400" step="0.1" placeholder="kg" oninput="updatePatientBMI()"></div>
     <div class="field"><label>VKİ</label><input id="newBMI" type="text" readonly placeholder="Otomatik hesaplanır"></div>
+    <div class="field"><label>Hastane / Kurum Adı</label><input id="newHospitalName" type="text" placeholder="Hastane / kurum adı"></div>
     <div class="field">
       <label>Cerrahi Klinikler Bölümü</label>
       <select id="newSurgicalClinic">
@@ -528,7 +529,7 @@ const SUPABASE_KEY='sb_publishable_7IeSV5cMQoAPAbfzE7KVpw_rnfXwZ2e';
 const TAB_SESSION_KEY='scdiaps_auth_session';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
   auth:{
-    storage:window.sessionStorage,
+    storage:window.localStorage,
     storageKey:TAB_SESSION_KEY,
     persistSession:true,
     autoRefreshToken:true,
@@ -616,7 +617,7 @@ async function forceSessionLogout(message='Oturumunuz güvenlik nedeniyle sonlan
     console.warn('Oturum kapatma:',e);
   }
 
-  try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
+  try{localStorage.removeItem(SESSION_MARKER)}catch(e){}
 
   currentUser=null;
   currentProfile=null;
@@ -731,7 +732,7 @@ function clearLoginFormFields(){
 function showLogin(){
  clearLoginFormFields();
   clearSessionTimeout();
-  try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
+  try{localStorage.removeItem(SESSION_MARKER)}catch(e){}
   recoveryMode=false;
   currentUser=null;
   currentProfile=null;
@@ -845,7 +846,7 @@ async function login(){
    document.getElementById('userText').textContent=((currentProfile.role==='admin'?'İsmail Deniz':(currentProfile.full_name||email))+' • '+currentProfile.role);
    document.getElementById('avatar').textContent=((currentProfile.role==='admin'?'İD':(currentProfile.full_name||'A').slice(0,1).toUpperCase()));
    document.getElementById('adminNav').classList.toggle('hidden',currentProfile.role!=='admin');
-   try{sessionStorage.setItem(SESSION_MARKER,'1')}catch(e){}
+   try{localStorage.setItem(SESSION_MARKER,'1')}catch(e){}
    scheduleSessionTimeout();
    refresh();
    toast('Giriş başarılı');
@@ -1026,6 +1027,8 @@ function editPatient(id){
   document.getElementById('newGender').value=patient.gender||'';
   document.getElementById('newHeight').value=patient.height_cm??'';
   document.getElementById('newWeight').value=patient.weight_kg??'';
+  document.getElementById('newHospitalName').value=patient.hospital_name||userRegisteredHospital()||'';
+  syncPatientHospitalField();
   document.getElementById('newSurgicalClinic').value=patient.surgical_clinic||'';
   document.getElementById('newBedNumber').value=patient.bed_number||'';
   document.getElementById('newPod').value=patient.postoperative_day??'';
@@ -1059,13 +1062,15 @@ async function updatePatient(){
  const weight=v('newWeight')!==''?Number(v('newWeight')):null;
  const pod=v('newPod')!==''?Number(v('newPod')):null;
  const surgicalClinic=v('newSurgicalClinic').trim();
+ const hospitalName=v('newHospitalName').trim();
  const bedNumber=v('newBedNumber').trim();
 
  if(!patientCode||!identifier||!patientName||!birth||!gender){
    toast('Hasta kodu, Hasta T.C. Kimlik No / Dosya No, Ad Soyad, Doğum Tarihi ve Cinsiyet zorunludur');
    return;
  }
- if(!surgicalClinic||!bedNumber){toast('Cerrahi klinik/servis ve yatak no alanlarını doldurun');return;}
+ if(!hospitalName||!surgicalClinic||!bedNumber){toast('Hastane, cerrahi klinik/servis ve yatak no alanlarını doldurun');return;}
+ if(!isAdminUser()&&!sameScope(hospitalName,userRegisteredHospital())){toast('Hasta kaydının hastanesi, kayıt olurken bildirdiğiniz hastaneden farklı olamaz.');return;}
  if(!isAdminUser()&&!sameScope(surgicalClinic,userRegisteredClinic())){toast('Hasta kaydının cerrahi kliniği, kayıt olurken seçtiğiniz klinikten farklı olamaz.');return;}
  if(height===null||weight===null||pod===null){
    toast('Boy, kilo ve postoperatif gün alanlarını doldurun');
@@ -1092,6 +1097,7 @@ async function updatePatient(){
    height_cm:height,
    weight_kg:weight,
    postoperative_day:pod,
+   hospital_name:hospitalName,
    surgical_clinic:surgicalClinic,
    bed_number:bedNumber
  };
@@ -1115,11 +1121,8 @@ async function updatePatient(){
  window.editingPatientId=null;
  const btn=document.getElementById('patientSaveBtn');
  if(btn){btn.textContent='Hasta Kaydet';btn.dataset.mode='add';btn.setAttribute('onclick','addPatient()')}
- ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newSurgicalClinic','newBedNumber','newPod'].forEach(x=>{
-   const el=document.getElementById(x);if(el)el.value='';
- });
- const g=document.getElementById('newGender');if(g)g.value='';
- toast('Hasta bilgileri başarıyla güncellendi');
+ clearPatientForm();
+ toast('Hasta bilgileri başarıyla güncellendi. Hastane ve klinik erişim kapsamı da güncellendi.');
  await refresh();
 }
 function calculateBMIValue(){
@@ -1157,14 +1160,15 @@ async function addPatient(){
    const code=v('newPid').trim(), identifier=v('newPatientIdentifier').trim(), name=v('newPatientName').trim();
    const birth=v('newBirthDate'), gender=v('newGender');
    const height=v('newHeight'), weight=v('newWeight'), pod=v('newPod');
-   const surgicalClinic=v('newSurgicalClinic').trim(), bedNumber=v('newBedNumber').trim();
+   const surgicalClinic=v('newSurgicalClinic').trim(), hospitalName=v('newHospitalName').trim(), bedNumber=v('newBedNumber').trim();
 
    if(!code){toast('Hasta kodu gerekli');return}
    if(!identifier){toast('Hasta T.C. Kimlik No / Dosya No girin');return}
    if(!name){toast('Hasta adı soyadı gerekli');return}
    if(!birth){toast('Doğum tarihi gerekli');return}
    if(!gender){toast('Cinsiyet seçin');return}
-   if(!surgicalClinic||!bedNumber){toast('Cerrahi Klinikler Bölümü ve Yatak No alanlarını doldurun');return}
+   if(!hospitalName||!surgicalClinic||!bedNumber){toast('Hastane / Kurum, Cerrahi Klinikler Bölümü ve Yatak No alanlarını doldurun');return}
+   if(!isAdminUser()&&!sameScope(hospitalName,userRegisteredHospital())){toast('Yalnızca kayıt olurken bildirdiğiniz hastaneye hasta kaydı yapabilirsiniz.');return}
    if(!isAdminUser()&&!sameScope(surgicalClinic,userRegisteredClinic())){toast('Yalnızca kayıt olurken seçtiğiniz cerrahi kliniğe hasta kaydı yapabilirsiniz.');return}
    if(!height||!weight||pod===''){toast('Boy, kilo ve postoperatif gün alanlarını doldurun');return}
 
@@ -1190,7 +1194,7 @@ async function addPatient(){
      national_id:null,
      surgical_clinic:surgicalClinic,
      bed_number:bedNumber,
-     hospital_name:(currentProfile?.hospital_name||currentProfile?.hospital||''),
+     hospital_name:hospitalName,
      created_by:user.id
    };
 
@@ -1199,10 +1203,7 @@ async function addPatient(){
    const result=await sb.from('patients').insert(payload).select('id').single();
    if(result.error)throw new Error(result.error.message);
 
-   ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newSurgicalClinic','newBedNumber','newPod'].forEach(id=>{
-     const el=document.getElementById(id);if(el)el.value='';
-   });
-   const g=document.getElementById('newGender');if(g)g.value='';
+   clearPatientForm();
 
    toast('Hasta kaydedildi');
    refresh().catch(e=>console.error('Liste yenileme:',e));
@@ -1559,7 +1560,14 @@ async function runClinicalAdvisor(){
   }
 }
 
-function normalizeScope(v){return String(v||'').trim().toLocaleLowerCase('tr-TR');}
+function normalizeScope(v){
+  let x=String(v||'').trim().toLocaleLowerCase('tr-TR');
+  x=x.replace(/[\u2018\u2019\u201c\u201d]/g,'').replace(/\s+/g,' ').replace(/[.,;:]/g,'');
+  // Eski kayıtlardaki seçenek adı ile yeni seçenek adını aynı klinik olarak kabul et.
+  if(x==='diğer') x='diğer cerrahi klinik / bölüm';
+  if(x==='diger') x='diğer cerrahi klinik / bölüm';
+  return x;
+}
 function isAdminUser(){return currentProfile&&currentProfile.role==='admin';}
 function sameScope(a,b){const x=normalizeScope(a),y=normalizeScope(b);return !!x&&!!y&&x===y;}
 function userRegisteredHospital(){
@@ -1573,7 +1581,31 @@ function userRegisteredClinic(){
 function canAccessPatient(p){
   if(isAdminUser()) return true;
   // Kullanıcı yalnızca kayıt olurken bildirdiği aynı hastane ve aynı cerrahi kliniğe ait hastaları görür.
-  return sameScope(p.hospital_name,userRegisteredHospital()) && sameScope(p.surgical_clinic,userRegisteredClinic());
+  // Yönetici hasta kaydının hastanesini veya kliniğini değiştirdiğinde yeni eşleşen kullanıcılar
+  // bir sonraki yenilemede/otomatik güncellemede hastayı görür.
+  return sameScope(p?.hospital_name,userRegisteredHospital()) && sameScope(p?.surgical_clinic,userRegisteredClinic());
+}
+
+function syncPatientHospitalField(){
+  const el=document.getElementById('newHospitalName');
+  if(!el) return;
+  if(isAdminUser()){
+    el.readOnly=false;
+    el.placeholder='Hastanın bulunduğu hastane / kurum';
+    return;
+  }
+  const hospital=userRegisteredHospital();
+  el.value=hospital;
+  el.readOnly=true;
+  el.title='Kayıt olurken bildirdiğiniz hastane otomatik kullanılır.';
+}
+
+function clearPatientForm(){
+  ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newHospitalName','newSurgicalClinic','newBedNumber','newPod'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  const g=document.getElementById('newGender'); if(g) g.value='';
+  syncPatientHospitalField();
 }
 
 async function refresh(){
@@ -1864,6 +1896,15 @@ async function deleteUser(id){
 
 
 
+// Yönetici başka bir hastanın klinik/hastane kapsamını değiştirdiğinde ilgili kullanıcılar
+// sayfayı yeniden açmak zorunda kalmadan görünürlük listesini yenileyebilsin.
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden && currentUser && !recoveryMode){refresh().catch(e=>console.warn('Hasta listesi yenilenemedi:',e));}
+});
+setInterval(()=>{
+  if(currentUser && !document.hidden && !recoveryMode){refresh().catch(()=>{});}
+},30000);
+
 // Bilgiler doğruysa Giriş Yap düğmesine tek tıklamayla giriş yapılır; Enter da aynı işlemi başlatır.
 ['loginEmail','loginHospital','loginDepartment','loginPassword'].forEach(id=>{
   const el=document.getElementById(id);
@@ -1911,7 +1952,7 @@ sb.auth.onAuthStateChange((event)=>{
       // Onaysız/reddedilmiş hesaplar eski bir oturumla sayfa yenileyerek sisteme dönemez.
       if(!p || p.approval_status!=='approved'){
         await sb.auth.signOut({scope:'local'});
-        try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
+        try{localStorage.removeItem(SESSION_MARKER)}catch(e){}
         currentUser=null; currentProfile=null;
         return;
       }
@@ -1926,7 +1967,8 @@ sb.auth.onAuthStateChange((event)=>{
     document.getElementById('userText').textContent=((currentProfile.role==='admin'?'İsmail Deniz':(currentProfile.full_name||email))+' • '+currentProfile.role);
     document.getElementById('avatar').textContent=((currentProfile.role==='admin'?'İD':(currentProfile.full_name||'A').slice(0,1).toUpperCase()));
     document.getElementById('adminNav').classList.toggle('hidden',currentProfile.role!=='admin');
-    try{sessionStorage.setItem(SESSION_MARKER,'1')}catch(e){}
+    try{localStorage.setItem(SESSION_MARKER,'1')}catch(e){}
+    syncPatientHospitalField();
     scheduleSessionTimeout();
     refresh();
   }catch(e){
@@ -1934,7 +1976,7 @@ sb.auth.onAuthStateChange((event)=>{
     currentUser=null; currentProfile=null;
     // Hata durumunda eski/bozuk yerel oturumu temizle.
     try{await sb.auth.signOut({scope:'local'})}catch(x){}
-    try{sessionStorage.removeItem(SESSION_MARKER)}catch(x){}
+    try{localStorage.removeItem(SESSION_MARKER)}catch(x){}
   }
 })();;
 </script>
@@ -1943,7 +1985,7 @@ sb.auth.onAuthStateChange((event)=>{
 /* Mobile/PWA cache reset: prevents an older cached index.html from running on iOS/Android. */
 window.addEventListener('load', async ()=>{
   try{
-    const FLAG='scdiaps_cache_reset_4527';
+    const FLAG='scdiaps_cache_reset_4563';
     if(sessionStorage.getItem(FLAG)!=='1' && 'serviceWorker' in navigator){
       sessionStorage.setItem(FLAG,'1');
       const regs=await navigator.serviceWorker.getRegistrations();

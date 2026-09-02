@@ -80,6 +80,15 @@ button:disabled,.btn:disabled{opacity:.65;cursor:not-allowed;}
 .user-detail-item small{display:block;color:#64748b;font-size:11px;margin-bottom:3px}
 .user-detail-item strong{font-size:13px;color:#0f172a;word-break:break-word}
 @media(max-width:650px){.user-detail-grid{grid-template-columns:1fr}}
+
+/* Giriş ve yeni kayıt alanlarının düzenli görünümü */
+.login .auth-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:10px}
+.login .auth-full{grid-column:1 / -1}
+.login .field{min-width:0}
+.login .field input,.login .field select{min-height:46px}
+.login .auth-section{margin-top:12px;padding:14px;border:1px solid #dbe5ee;border-radius:12px;background:#f8fafc}
+.login .auth-section-title{font-size:12px;font-weight:800;color:#173f5f;margin:0 0 10px}
+@media(max-width:700px){.login .auth-grid{grid-template-columns:1fr;gap:10px}.login .auth-full{grid-column:auto}}
 </style>
 
 <meta name="theme-color" content="#102a43">
@@ -143,22 +152,43 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="v4.5.52-yeni-hasta-cerrahi-klinik-duzeltildi">
+<body data-build="v4.5.64-oturum-koruma-klinik-hasta-gorunurlugu">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
   <p style="margin-top:0;color:#64748b">Cerrahi Klinik Kötüleşme ve Alarm Önceliklendirme Sistemi</p>
-  <div class="field"><label>E-posta</label><input id="loginEmail" type="email" value=""></div>
-  <div class="field" style="margin-top:10px"><label>Çalıştığı Hastane / Kurum Adı</label><input id="regHospital" type="text" placeholder="Örn. Ankara Şehir Hastanesi"></div>
-  <div class="field" style="margin-top:10px"><label>Çalıştığı Bölüm / Birim</label><input id="regDepartment" type="text" placeholder="Örn. Genel Cerrahi"></div>
-  <div class="field" style="margin-top:10px"><label>Şifre</label><input id="loginPassword" type="password"></div>
+  <div class="auth-grid">
+    <div class="field auth-full"><label>E-posta</label><input id="loginEmail" type="email" value="" placeholder="E-posta adresinizi giriniz"></div>
+  </div>
+  <div class="auth-section">
+    <div class="auth-section-title">Kurum ve Klinik Bilgileri</div>
+    <div class="auth-grid" style="margin-top:0">
+      <div class="field"><label>Hastane Adı <span style="color:#b42318">*</span></label><input id="loginHospital" type="text" placeholder="Çalıştığınız hastane / kurum"></div>
+      <div class="field"><label>Çalıştığı Cerrahi Klinik <span style="color:#b42318">*</span></label><select id="loginDepartment"><option value="">Cerrahi kliniği seçiniz</option>
+<option value="Genel Cerrahi">Genel Cerrahi</option>
+<option value="Ortopedi ve Travmatoloji">Ortopedi ve Travmatoloji</option>
+<option value="Beyin ve Sinir Cerrahisi">Beyin ve Sinir Cerrahisi</option>
+<option value="Kalp ve Damar Cerrahisi">Kalp ve Damar Cerrahisi</option>
+<option value="Göğüs Cerrahisi">Göğüs Cerrahisi</option>
+<option value="Plastik, Rekonstrüktif ve Estetik Cerrahi">Plastik, Rekonstrüktif ve Estetik Cerrahi</option>
+<option value="Üroloji">Üroloji</option>
+<option value="Kadın Hastalıkları ve Doğum">Kadın Hastalıkları ve Doğum</option>
+<option value="Kulak Burun Boğaz">Kulak Burun Boğaz</option>
+<option value="Göz Hastalıkları">Göz Hastalıkları</option>
+<option value="Çocuk Cerrahisi">Çocuk Cerrahisi</option>
+<option value="Ağız, Diş ve Çene Cerrahisi">Ağız, Diş ve Çene Cerrahisi</option>
+<option value="Diğer Cerrahi Klinik / Bölüm">Diğer Cerrahi Klinik / Bölüm</option></select></div>
+    </div>
+  </div>
+  <div class="notice" style="margin-top:10px">Yönetici hesabı hastane ve cerrahi klinik alanlarını boş bırakabilir. Diğer kullanıcılar için bu bilgiler zorunludur ve kayıt olurken bildirilen hastane adı ile cerrahi klinik bilgisiyle aynı olmalıdır.</div>
+  <div class="field" style="margin-top:10px"><label>Şifre</label><input id="loginPassword" type="password" placeholder="Şifrenizi giriniz"></div>
   <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#475569">
     <input id="rememberLogin" type="checkbox" style="width:auto;min-height:auto">
     <span>Beni hatırla</span>
   </label>
   <div id="loginTurnstile" class="turnstile-box"></div><div id="turnstileStatus" class="notice" style="margin-top:8px">Güvenlik doğrulaması yükleniyor…</div>
   <div class="actions" style="margin-top:14px">
-    <button class="btn btn-primary" onclick="login()">Giriş Yap</button>
+    <button type="button" id="loginButton" class="btn btn-primary" onclick="login()">Giriş Yap</button>
     <button class="btn btn-light" onclick="showRegister()">Yeni Kayıt</button>
   </div>
   <div id="loginMsg" class="notice" style="margin-top:14px">Hesabınızla giriş yapın.</div>
@@ -192,16 +222,37 @@ button,input,select{touch-action:manipulation}
 
 <div id="registerPage" class="login card hidden">
   <div class="logo">Yeni Kullanıcı Kaydı</div>
-  <div class="field"><label>Ad Soyad</label><input id="regName"></div>
-  <div class="field" style="margin-top:10px"><label>E-posta</label><input id="regEmail" type="email"></div>
-  <div class="formgrid" style="margin-top:10px">
+  <div class="auth-grid">
+    <div class="field"><label>Ad Soyad</label><input id="regName" placeholder="Adınızı ve soyadınızı giriniz"></div>
+    <div class="field"><label>E-posta</label><input id="regEmail" type="email" placeholder="E-posta adresinizi giriniz"></div>
     <div class="field"><label>Doğum Tarihi</label><input id="regBirthDate" type="date"></div>
     <div class="field"><label>Cinsiyet</label><select id="regGender"><option value="">Seçiniz</option><option value="Kadın">Kadın</option><option value="Erkek">Erkek</option><option value="Belirtmek istemiyor">Belirtmek istemiyor</option></select></div>
+    <div class="field"><label>Meslek</label><select id="regProfession" onchange="updateRegistrationOptions()"><option value="">Seçiniz</option><option value="Hemşire">Hemşire</option><option value="Hekim">Hekim</option></select></div>
+    <div class="field"><label>Eğitim Durumu</label><select id="regEducation"><option value="">Önce meslek seçiniz</option></select></div>
+    <div class="field auth-full"><label>Mesleki / Akademik Unvan</label><select id="regTitle"><option value="">Önce meslek seçiniz</option></select></div>
   </div>
-  <div class="field" style="margin-top:10px"><label>Meslek</label><select id="regProfession" onchange="updateRegistrationOptions()"><option value="">Seçiniz</option><option value="Hemşire">Hemşire</option><option value="Hekim">Hekim</option></select></div>
-  <div class="field" style="margin-top:10px"><label>Eğitim Durumu</label><select id="regEducation"><option value="">Önce meslek seçiniz</option></select></div>
-  <div class="field" style="margin-top:10px"><label>Mesleki / Akademik Unvan</label><select id="regTitle"><option value="">Önce meslek seçiniz</option></select></div>
-  <div class="field" style="margin-top:10px"><label>Şifre</label><input id="regPassword" type="password"></div>
+  <div class="auth-section">
+    <div class="auth-section-title">Çalışma Yeri Bilgileri</div>
+    <div class="auth-grid" style="margin-top:0">
+      <div class="field"><label>Hastane Adı <span style="color:#b42318">*</span></label><input id="regHospital" type="text" placeholder="Örn. Ankara Şehir Hastanesi" required></div>
+      <div class="field"><label>Çalıştığı Cerrahi Klinik <span style="color:#b42318">*</span></label><select id="regDepartment" required><option value="">Cerrahi kliniği seçiniz</option>
+<option value="Genel Cerrahi">Genel Cerrahi</option>
+<option value="Ortopedi ve Travmatoloji">Ortopedi ve Travmatoloji</option>
+<option value="Beyin ve Sinir Cerrahisi">Beyin ve Sinir Cerrahisi</option>
+<option value="Kalp ve Damar Cerrahisi">Kalp ve Damar Cerrahisi</option>
+<option value="Göğüs Cerrahisi">Göğüs Cerrahisi</option>
+<option value="Plastik, Rekonstrüktif ve Estetik Cerrahi">Plastik, Rekonstrüktif ve Estetik Cerrahi</option>
+<option value="Üroloji">Üroloji</option>
+<option value="Kadın Hastalıkları ve Doğum">Kadın Hastalıkları ve Doğum</option>
+<option value="Kulak Burun Boğaz">Kulak Burun Boğaz</option>
+<option value="Göz Hastalıkları">Göz Hastalıkları</option>
+<option value="Çocuk Cerrahisi">Çocuk Cerrahisi</option>
+<option value="Ağız, Diş ve Çene Cerrahisi">Ağız, Diş ve Çene Cerrahisi</option>
+<option value="Diğer Cerrahi Klinik / Bölüm">Diğer Cerrahi Klinik / Bölüm</option></select></div>
+    </div>
+  </div>
+  <div class="notice" style="margin-top:10px">Yeni kullanıcı kaydında hastane adı ve çalıştığı cerrahi klinik seçimi zorunludur.</div>
+  <div class="field" style="margin-top:10px"><label>Şifre</label><input id="regPassword" type="password" placeholder="En az 6 karakter şifre oluşturunuz"></div>
   <div id="registerTurnstile" class="turnstile-box"></div>
   <div class="field" style="margin-top:10px"><label>Rol</label><select id="regRole"><option value="hemsire">Hemşire</option><option value="doktor">Hekim</option></select></div>
   <div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="registerUser()">Kayıt Talebi</button><button class="btn btn-light" onclick="showLogin()">Geri</button></div>
@@ -320,6 +371,7 @@ button,input,select{touch-action:manipulation}
     <div class="field"><label>Boy (cm)</label><input id="newHeight" type="number" min="30" max="250" step="0.1" placeholder="cm" oninput="updatePatientBMI()"></div>
     <div class="field"><label>Kilo (kg)</label><input id="newWeight" type="number" min="1" max="400" step="0.1" placeholder="kg" oninput="updatePatientBMI()"></div>
     <div class="field"><label>VKİ</label><input id="newBMI" type="text" readonly placeholder="Otomatik hesaplanır"></div>
+    <div class="field"><label>Hastane / Kurum Adı</label><input id="newHospitalName" type="text" placeholder="Hastane / kurum adı"></div>
     <div class="field">
       <label>Cerrahi Klinikler Bölümü</label>
       <select id="newSurgicalClinic">
@@ -473,10 +525,11 @@ button,input,select{touch-action:manipulation}
 const TURNSTILE_SITEKEY='0x4AAAAAAEb9_9_AajNi7Dlp';
 const SUPABASE_URL='https://nndtcprefcrevdulxzhy.supabase.co';
 const SUPABASE_KEY='sb_publishable_7IeSV5cMQoAPAbfzE7KVpw_rnfXwZ2e';
-const TAB_SESSION_KEY='scdiaps_'+(crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2));
+// Sabit anahtar: sayfa yenilendiğinde aynı sekmedeki oturum korunur. sessionStorage sekme kapandığında temizlenir.
+const TAB_SESSION_KEY='scdiaps_auth_session';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
   auth:{
-    storage:window.sessionStorage,
+    storage:window.localStorage,
     storageKey:TAB_SESSION_KEY,
     persistSession:true,
     autoRefreshToken:true,
@@ -564,7 +617,7 @@ async function forceSessionLogout(message='Oturumunuz güvenlik nedeniyle sonlan
     console.warn('Oturum kapatma:',e);
   }
 
-  try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
+  try{localStorage.removeItem(SESSION_MARKER)}catch(e){}
 
   currentUser=null;
   currentProfile=null;
@@ -615,15 +668,9 @@ function markActivity(){
   document.addEventListener(evt,markActivity,{passive:true});
 });
 
-window.addEventListener('pagehide',()=>{
-  try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
-  // The browser may not finish an async signOut during page close; the session marker
-  // is therefore also cleared so the next page load forces a fresh login.
-});
-
-window.addEventListener('beforeunload',()=>{
-  try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
-});
+// Sayfa yenileme / gezinme sırasında oturumu kapatma.
+// Kullanıcı yalnızca açıkça "Çıkış" düğmesine bastığında oturum sonlandırılır.
+// SESSION_MARKER sayfa yenilendiğinde korunur ve başlangıçta mevcut Supabase oturumu geri yüklenir.
 
 
 const REMEMBER_EMAIL_KEY='scdiaps_remember_email';
@@ -664,7 +711,7 @@ function showRegister(){
  setRegistrationBirthDateLimit();document.getElementById('loginPage').classList.add('hidden');document.getElementById('registerPage').classList.remove('hidden');setTimeout(()=>{renderTurnstileWidgets();if(registerTurnstileWidgetId!==null)try{window.turnstile.reset(registerTurnstileWidgetId)}catch(e){}},50)}
 
 function clearLoginFormFields(){
-  const ids=['loginEmail','loginPassword'];
+  const ids=['loginEmail','loginHospital','loginDepartment','loginPassword'];
   ids.forEach(id=>{
     const el=document.getElementById(id);
     if(el){
@@ -685,7 +732,7 @@ function clearLoginFormFields(){
 function showLogin(){
  clearLoginFormFields();
   clearSessionTimeout();
-  try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
+  try{localStorage.removeItem(SESSION_MARKER)}catch(e){}
   recoveryMode=false;
   currentUser=null;
   currentProfile=null;
@@ -718,10 +765,12 @@ function retryTurnstile(){
  }catch(e){console.error('Turnstile yeniden başlatılamadı:',e)}
 }
 async function login(){
- const email=v('loginEmail').trim().toLowerCase(), password=document.getElementById('loginPassword').value;
+ const email=v('loginEmail').trim().toLowerCase(), hospital=v('loginHospital').trim(), department=v('loginDepartment').trim(), password=document.getElementById('loginPassword').value;
  const msg=document.getElementById('loginMsg');
  if(loginInFlight)return;
  if(!email||!password){msg.textContent='E-posta ve şifre gerekli.';return}
+ // Yönetici hastane ve klinik/bölüm bilgisi girmeden giriş yapabilir.
+ if(email!==ADMIN_EMAIL&&(!hospital||!department)){msg.textContent='Giriş için hastane adı ve çalıştığınız klinik / bölüm bilgisi gereklidir.';return}
 
  // Re-render security verification if it was lost, but do not reuse an old token.
  if(!loginTurnstileToken){
@@ -731,7 +780,7 @@ async function login(){
  }
 
  loginInFlight=true;
- const btn=document.querySelector('#loginPage button[onclick="login()"]');
+ const btn=document.getElementById('loginButton')||document.querySelector('#loginPage button[onclick="login()"]');
  if(btn){btn.disabled=true;btn.textContent='Giriş yapılıyor...';}
 
  const token=loginTurnstileToken;
@@ -755,7 +804,7 @@ async function login(){
      currentProfile={id:currentUser.id,full_name:'İsmail Deniz',role:'admin',approval_status:'approved'};
    }else{
      const {data:p,error:profileError}=await sb.from('profiles')
-       .select('id,full_name,role,approval_status')
+       .select('id,full_name,role,approval_status,hospital_name,department_name')
        .eq('id',currentUser.id)
        .maybeSingle();
 
@@ -774,6 +823,21 @@ async function login(){
          : 'Hesabınız henüz onaylanmadı. Lütfen yönetici onayından sonra tekrar giriş yapın.';
        return;
      }
+     // Yeni kullanıcılar yalnızca kayıt sırasında kaydedilen hastane ve cerrahi klinik bilgileriyle giriş yapabilir.
+     const registeredHospital=p.hospital_name||'';
+     const registeredDepartment=p.department_name||'';
+     if(!registeredHospital||!registeredDepartment){
+       await sb.auth.signOut({scope:'local'});
+       clearLoginFormFields();
+       msg.textContent='Kayıtlı hastane veya klinik bilginiz bulunamadı. Lütfen yöneticiye başvurun.';
+       return;
+     }
+     if(!sameScope(hospital,registeredHospital)||!sameScope(department,registeredDepartment)){
+       await sb.auth.signOut({scope:'local'});
+       clearLoginFormFields();
+       msg.textContent='Giriş reddedildi: Hastane adı ve cerrahi klinik bilgisi kayıt olurken bildirdiğiniz bilgilerle aynı olmalıdır. Farklı hastane veya klinik ile giriş yapılamaz.';
+       return;
+     }
      currentProfile=p;
    }
 
@@ -782,8 +846,9 @@ async function login(){
    document.getElementById('userText').textContent=((currentProfile.role==='admin'?'İsmail Deniz':(currentProfile.full_name||email))+' • '+currentProfile.role);
    document.getElementById('avatar').textContent=((currentProfile.role==='admin'?'İD':(currentProfile.full_name||'A').slice(0,1).toUpperCase()));
    document.getElementById('adminNav').classList.toggle('hidden',currentProfile.role!=='admin');
-   try{sessionStorage.setItem(SESSION_MARKER,'1')}catch(e){}
+   try{localStorage.setItem(SESSION_MARKER,'1');sessionStorage.setItem(SESSION_MARKER,'1')}catch(e){}
    scheduleSessionTimeout();
+   subscribePatientScopeChanges();
    refresh();
    toast('Giriş başarılı');
  }catch(error){
@@ -889,8 +954,9 @@ function updateRegistrationOptions(){
 async function registerUser(){
  const name=v('regName').trim(),email=v('regEmail').trim().toLowerCase(),password=document.getElementById('regPassword').value;
  const birth=v('regBirthDate'),gender=v('regGender'),profession=v('regProfession'),education=v('regEducation'),title=v('regTitle');
+ const hospital=v('regHospital').trim(),department=v('regDepartment').trim();
  if(!name||!email||!password||!birth||!gender||!profession||!education||!title||!hospital||!department){
-   document.getElementById('regMsg').textContent='Tüm kayıt bilgilerini doldurun.';return
+   document.getElementById('regMsg').textContent='Tüm kayıt bilgilerini doldurun. Hastane adı ve çalıştığınız klinik / bölüm bilgisi zorunludur.';return
  }
  const emailPattern=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
  if(!emailPattern.test(email)){
@@ -940,6 +1006,50 @@ async function registerUser(){
 async function logout(){
   await forceSessionLogout('Oturum kapatıldı. Yeniden giriş yapmanız gerekiyor.');
 }
+function editPatient(id){
+  const patient=(patientCache||[]).find(p=>String(p.id)===String(id));
+  if(!patient){
+    toast('Düzenlenecek hasta bulunamadı. Listeyi yenileyip tekrar deneyin.');
+    return;
+  }
+
+  // Düzenleme modu yalnızca kullanıcının erişebildiği hasta için açılır.
+  if(!canAccessPatient(patient)){
+    toast('Bu hastayı düzenleme yetkiniz yok.');
+    return;
+  }
+
+  window.editingPatientId=patient.id;
+
+  document.getElementById('newPid').value=patient.patient_code||'';
+  document.getElementById('newPatientIdentifier').value=patient.medical_record_no||patient.national_id||'';
+  document.getElementById('newPatientName').value=patient.patient_name||'';
+  document.getElementById('newBirthDate').value=patient.birth_date||'';
+  document.getElementById('newGender').value=patient.gender||'';
+  document.getElementById('newHeight').value=patient.height_cm??'';
+  document.getElementById('newWeight').value=patient.weight_kg??'';
+  document.getElementById('newHospitalName').value=patient.hospital_name||userRegisteredHospital()||'';
+  syncPatientHospitalField();
+  document.getElementById('newSurgicalClinic').value=patient.surgical_clinic||'';
+  document.getElementById('newBedNumber').value=patient.bed_number||'';
+  document.getElementById('newPod').value=patient.postoperative_day??'';
+  updatePatientBMI();
+
+  const btn=document.getElementById('patientSaveBtn');
+  if(btn){
+    btn.textContent='Hasta Güncelle';
+    btn.dataset.mode='edit';
+    btn.setAttribute('onclick','addPatient()');
+  }
+
+  const page=document.getElementById('patients');
+  if(page){
+    page.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  document.getElementById('newPid')?.focus();
+  toast('Hasta düzenleme modunda açıldı. Değişiklikleri yaptıktan sonra Hasta Güncelle düğmesine basın.');
+}
+
 async function updatePatient(){
  const id=window.editingPatientId;
  if(!id){toast('Düzenlenecek hasta seçilmedi.');return}
@@ -953,43 +1063,67 @@ async function updatePatient(){
  const weight=v('newWeight')!==''?Number(v('newWeight')):null;
  const pod=v('newPod')!==''?Number(v('newPod')):null;
  const surgicalClinic=v('newSurgicalClinic').trim();
+ const hospitalName=v('newHospitalName').trim();
  const bedNumber=v('newBedNumber').trim();
 
  if(!patientCode||!identifier||!patientName||!birth||!gender){
-   toast('Hasta kodu, Hastahane Adı/T.C. Kimlik No, Ad Soyad, Doğum Tarihi ve Cinsiyet zorunludur');
+   toast('Hasta kodu, Hasta T.C. Kimlik No / Dosya No, Ad Soyad, Doğum Tarihi ve Cinsiyet zorunludur');
    return;
  }
- if(!surgicalClinic||!bedNumber){toast('Cerrahi klinik/servis ve yatak no alanlarını doldurun');return;}
+ if(!hospitalName||!surgicalClinic||!bedNumber){toast('Hastane, cerrahi klinik/servis ve yatak no alanlarını doldurun');return;}
+ if(!isAdminUser()&&!sameScope(hospitalName,userRegisteredHospital())){toast('Hasta kaydının hastanesi, kayıt olurken bildirdiğiniz hastaneden farklı olamaz.');return;}
+ if(!isAdminUser()&&!sameScope(surgicalClinic,userRegisteredClinic())){toast('Hasta kaydının cerrahi kliniği, kayıt olurken seçtiğiniz klinikten farklı olamaz.');return;}
  if(height===null||weight===null||pod===null){
    toast('Boy, kilo ve postoperatif gün alanlarını doldurun');
    return;
  }
 
- const {data,error}=await sb.rpc('update_patient_record',{
-   target_id:id,
-   p_patient_code:patientCode,
-   p_identifier:identifier,
-   p_patient_name:patientName,
-   p_birth_date:birth,
-   p_gender:gender,
-   p_height:height,
-   p_weight:weight,
-   p_postop_day:pod,
-   p_surgical_clinic:surgicalClinic,
-   p_bed_number:bedNumber
- });
+ // RPC kullanmak yerine doğrudan patients tablosunu güncelle.
+ // Böylece Supabase tarafında update_patient_record RPC'sinin eksik olması
+ // "Düzenle" işlemini engellemez.
+ const birthDate=new Date(birth+'T00:00:00');
+ const today=new Date();
+ let age=today.getFullYear()-birthDate.getFullYear();
+ const monthDiff=today.getMonth()-birthDate.getMonth();
+ if(monthDiff<0 || (monthDiff===0 && today.getDate()<birthDate.getDate())) age--;
 
- if(error){console.error(error);toast('Hasta güncellenemedi: '+error.message);return}
- if(data!==true){toast('Hasta kaydı bulunamadı veya güncellenemedi.');return}
+ const updatePayload={
+   patient_code:patientCode,
+   medical_record_no:identifier,
+   national_id:null,
+   patient_name:patientName,
+   birth_date:birth,
+   age:Math.max(0,age),
+   gender:gender,
+   height_cm:height,
+   weight_kg:weight,
+   postoperative_day:pod,
+   hospital_name:hospitalName,
+   surgical_clinic:surgicalClinic,
+   bed_number:bedNumber
+ };
+
+ const {data,error}=await sb.from('patients')
+   .update(updatePayload)
+   .eq('id',id)
+   .select('id')
+   .single();
+
+ if(error){
+   console.error('Hasta güncelleme hatası:',error);
+   toast('Hasta güncellenemedi: '+error.message);
+   return;
+ }
+ if(!data || !data.id){
+   toast('Hasta kaydı bulunamadı veya güncellenemedi.');
+   return;
+ }
 
  window.editingPatientId=null;
  const btn=document.getElementById('patientSaveBtn');
  if(btn){btn.textContent='Hasta Kaydet';btn.dataset.mode='add';btn.setAttribute('onclick','addPatient()')}
- ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newSurgicalClinic','newBedNumber','newPod'].forEach(x=>{
-   const el=document.getElementById(x);if(el)el.value='';
- });
- const g=document.getElementById('newGender');if(g)g.value='';
- toast('Hasta bilgileri başarıyla güncellendi');
+ clearPatientForm();
+ toast('Hasta bilgileri başarıyla güncellendi. Hastane ve klinik erişim kapsamı da güncellendi.');
  await refresh();
 }
 function calculateBMIValue(){
@@ -1021,21 +1155,22 @@ async function addPatient(){
  try{
    if(window.editingPatientId){
      await updatePatient();
-     toast('Hasta güncellendi');
      return;
    }
 
    const code=v('newPid').trim(), identifier=v('newPatientIdentifier').trim(), name=v('newPatientName').trim();
    const birth=v('newBirthDate'), gender=v('newGender');
    const height=v('newHeight'), weight=v('newWeight'), pod=v('newPod');
-   const surgicalClinic=v('newSurgicalClinic').trim(), bedNumber=v('newBedNumber').trim();
+   const surgicalClinic=v('newSurgicalClinic').trim(), hospitalName=v('newHospitalName').trim(), bedNumber=v('newBedNumber').trim();
 
    if(!code){toast('Hasta kodu gerekli');return}
    if(!identifier){toast('Hasta T.C. Kimlik No / Dosya No girin');return}
    if(!name){toast('Hasta adı soyadı gerekli');return}
    if(!birth){toast('Doğum tarihi gerekli');return}
    if(!gender){toast('Cinsiyet seçin');return}
-   if(!surgicalClinic||!bedNumber){toast('Cerrahi Klinikler Bölümü ve Yatak No alanlarını doldurun');return}
+   if(!hospitalName||!surgicalClinic||!bedNumber){toast('Hastane / Kurum, Cerrahi Klinikler Bölümü ve Yatak No alanlarını doldurun');return}
+   if(!isAdminUser()&&!sameScope(hospitalName,userRegisteredHospital())){toast('Yalnızca kayıt olurken bildirdiğiniz hastaneye hasta kaydı yapabilirsiniz.');return}
+   if(!isAdminUser()&&!sameScope(surgicalClinic,userRegisteredClinic())){toast('Yalnızca kayıt olurken seçtiğiniz cerrahi kliniğe hasta kaydı yapabilirsiniz.');return}
    if(!height||!weight||pod===''){toast('Boy, kilo ve postoperatif gün alanlarını doldurun');return}
 
    const {data:{user},error:authError}=await sb.auth.getUser();
@@ -1060,6 +1195,7 @@ async function addPatient(){
      national_id:null,
      surgical_clinic:surgicalClinic,
      bed_number:bedNumber,
+     hospital_name:hospitalName,
      created_by:user.id
    };
 
@@ -1068,10 +1204,7 @@ async function addPatient(){
    const result=await sb.from('patients').insert(payload).select('id').single();
    if(result.error)throw new Error(result.error.message);
 
-   ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newSurgicalClinic','newBedNumber','newPod'].forEach(id=>{
-     const el=document.getElementById(id);if(el)el.value='';
-   });
-   const g=document.getElementById('newGender');if(g)g.value='';
+   clearPatientForm();
 
    toast('Hasta kaydedildi');
    refresh().catch(e=>console.error('Liste yenileme:',e));
@@ -1428,15 +1561,68 @@ async function runClinicalAdvisor(){
   }
 }
 
+function normalizeScope(v){return String(v||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('tr-TR');}
+function isAdminUser(){return currentProfile&&currentProfile.role==='admin';}
+function sameScope(a,b){const x=normalizeScope(a),y=normalizeScope(b);return !!x&&!!y&&x===y;}
+function userRegisteredHospital(){return currentProfile?.hospital_name||currentProfile?.hospital||'';}
+function userRegisteredClinic(){return currentProfile?.department_name||currentProfile?.surgical_clinic||currentProfile?.clinic||currentProfile?.department||'';}
+
+function canAccessPatient(p){
+  if(isAdminUser()) return true;
+  // Kullanıcı sadece kayıt olurken kaydedilen hastane + cerrahi klinik kapsamındaki hastaları görür.
+  return sameScope(p?.hospital_name, userRegisteredHospital()) &&
+         sameScope(p?.surgical_clinic, userRegisteredClinic());
+}
+
+function syncPatientHospitalField(){
+  const el=document.getElementById('newHospitalName');
+  if(!el) return;
+  if(isAdminUser()){
+    el.readOnly=false;
+    el.placeholder='Hastanın bulunduğu hastane / kurum';
+    return;
+  }
+  const hospital=userRegisteredHospital();
+  el.value=hospital;
+  el.readOnly=true;
+  el.title='Kayıt olurken bildirdiğiniz hastane otomatik kullanılır.';
+}
+
+function clearPatientForm(){
+  ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newHospitalName','newSurgicalClinic','newBedNumber','newPod'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  const g=document.getElementById('newGender'); if(g) g.value='';
+  syncPatientHospitalField();
+}
+
+let patientRealtimeChannel=null;
+function subscribePatientScopeChanges(){
+  try{
+    if(patientRealtimeChannel) return;
+    patientRealtimeChannel=sb.channel('patients-scope-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'patients'},()=>{
+        if(currentUser && currentProfile) refresh();
+      })
+      .subscribe();
+  }catch(e){console.warn('Hasta canlı güncelleme aboneliği kurulamadı:',e);}
+}
+
 async function refresh(){
  if(!currentUser)return;
  const [pr,hr]=await Promise.all([sb.from('patients').select('*').order('created_at',{ascending:false}),sb.rpc('assessment_history_context')]);
- const patients=pr.data||[],records=hr.data||[]; patientCache=patients; window.__statisticsPatients=patients; window.__statisticsRecords=records;
+ if(pr.error){console.error(pr.error);toast('Hasta kayıtları okunamadı: '+pr.error.message);return}
+ const allPatients=pr.data||[];
+ const patients=allPatients.filter(canAccessPatient);
+ const allowedPatientIds=new Set(patients.map(p=>String(p.id)));
+ const allRecords=hr.data||[];
+ const records=isAdminUser()?allRecords:allRecords.filter(r=>allowedPatientIds.has(String(r.patient_id)));
+ patientCache=patients; window.__statisticsPatients=patients; window.__statisticsRecords=records;
  if(hr.error){console.error(hr.error); toast('Değerlendirme geçmişi okunamadı: '+hr.error.message);return}
  document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('rLow').textContent=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code} — ${p.patient_name||'Ad Soyad yok'} — ${p.medical_record_no||'TC/Dosya No yok'}</option>`).join('');
- document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.medical_record_no??'-'}</td><td>${p.patient_name??'-'}</td><td>${p.birth_date?new Date(p.birth_date+'T00:00:00').toLocaleDateString('tr-TR'):'-'}</td><td>${p.gender??'-'}</td><td>${p.height_cm??'-'} cm</td><td>${p.weight_kg??'-'} kg</td><td>${p.postoperative_day??'-'}</td><td><button class="btn btn-primary" onclick="editPatient('${p.id}')">Düzenle</button><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="8">Hasta bulunmuyor.</td></tr>';
+ document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.medical_record_no??'-'}</td><td>${p.patient_name??'-'}</td><td>${p.birth_date?new Date(p.birth_date+'T00:00:00').toLocaleDateString('tr-TR'):'-'}</td><td>${p.gender??'-'}</td><td>${p.height_cm??'-'} cm</td><td>${p.weight_kg??'-'} kg</td><td>${p.postoperative_day??'-'}</td><td><button class="btn btn-primary" onclick="editPatient('${p.id}')">Düzenle</button><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="13">Hasta bulunmuyor.</td></tr>';
  const latestByPatient={};
  const grouped={};
  records.forEach(x=>{
@@ -1555,6 +1741,10 @@ async function refresh(){
  if(currentProfile&&currentProfile.role==='admin')renderAdmin()
 }
 async function selectPatient(id){
+ if(!isAdminUser()){
+   const scopePatient=(patientCache||[]).find(x=>String(x.id)===String(id));
+   if(!scopePatient||!canAccessPatient(scopePatient)){toast('Bu hastaya erişim yetkiniz yok.');return;}
+ }
  const patient=patientCache.find(p=>p.id===id);
  if(!patient){toast('Hasta kaydı bulunamadı. Listeyi yenileyin.');return}
  const pid=document.getElementById('pid'); if(pid) pid.value=id;
@@ -1706,6 +1896,25 @@ async function deleteUser(id){
 
 
 
+// Yönetici başka bir hastanın klinik/hastane kapsamını değiştirdiğinde ilgili kullanıcılar
+// sayfayı yeniden açmak zorunda kalmadan görünürlük listesini yenileyebilsin.
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden && currentUser && !recoveryMode){refresh().catch(e=>console.warn('Hasta listesi yenilenemedi:',e));}
+});
+setInterval(()=>{
+  if(currentUser && !document.hidden && !recoveryMode){refresh().catch(()=>{});}
+},30000);
+
+// Bilgiler doğruysa Giriş Yap düğmesine tek tıklamayla giriş yapılır; Enter da aynı işlemi başlatır.
+['loginEmail','loginHospital','loginDepartment','loginPassword'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el){
+    el.addEventListener('keydown',ev=>{
+      if(ev.key==='Enter'){ev.preventDefault();login();}
+    });
+  }
+});
+
 sb.auth.onAuthStateChange((event)=>{
   if(event==='PASSWORD_RECOVERY'){
     recoveryMode=true;
@@ -1721,35 +1930,62 @@ sb.auth.onAuthStateChange((event)=>{
   const isRecoveryUrl = /(?:^|[?#&])(?:type=)?recovery(?:[&#]|$)/i.test(window.location.hash+window.location.search);
   if(isRecoveryUrl) recoveryMode=true;
 
-  const {data}=await sb.auth.getSession();
-  let activeMarker=false;
-  try{activeMarker=sessionStorage.getItem(SESSION_MARKER)==='1'}catch(e){}
-  if(data.session && !recoveryMode && activeMarker){
-    const u=data.session.user;
-    const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',u.id).maybeSingle();
-    if((u.email||'').toLowerCase()===ADMIN_EMAIL){
-      currentUser=u;
-      currentProfile={id:u.id,full_name:(p&&p.full_name)||'Sistem Yöneticisi',role:'admin',approval_status:'approved'};
-      document.getElementById('loginPage').classList.add('hidden');
-      document.getElementById('app').classList.remove('hidden');
-      document.getElementById('userText').textContent='Sistem Yöneticisi • admin';
-      document.getElementById('avatar').textContent='S';
-      document.getElementById('adminNav').classList.remove('hidden');
-      refresh();
-    }
-  }
-  else if(data.session && !recoveryMode && !activeMarker){
-    try{await sb.auth.signOut({scope:'local'})}catch(e){}
-  }
+  // Sayfa yenilendiğinde mevcut oturumu otomatik geri yükle.
+  // Yeniden e-posta, şifre, hastane veya klinik bilgisi isteme.
+  const {data,error:sessionError}=await sb.auth.getSession();
+  if(sessionError){console.warn('Oturum okunamadı:',sessionError);return}
+  if(!data.session || recoveryMode) return;
 
-})();
+  try{
+    const u=data.session.user;
+    const email=(u.email||'').toLowerCase();
+    currentUser=u;
+
+    if(email===ADMIN_EMAIL){
+      currentProfile={id:u.id,full_name:'İsmail Deniz',role:'admin',approval_status:'approved'};
+    }else{
+      const {data:p,error:profileError}=await sb.from('profiles')
+        .select('id,full_name,role,approval_status,hospital_name,department_name')
+        .eq('id',u.id).maybeSingle();
+      if(profileError) throw profileError;
+
+      // Onaysız/reddedilmiş hesaplar eski bir oturumla sayfa yenileyerek sisteme dönemez.
+      if(!p || p.approval_status!=='approved'){
+        await sb.auth.signOut({scope:'local'});
+        try{localStorage.removeItem(SESSION_MARKER)}catch(e){}
+        currentUser=null; currentProfile=null;
+        return;
+      }
+      currentProfile=p;
+    }
+
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('registerPage').classList.add('hidden');
+    document.getElementById('recoveryPage').classList.add('hidden');
+    document.getElementById('resetPage').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    document.getElementById('userText').textContent=((currentProfile.role==='admin'?'İsmail Deniz':(currentProfile.full_name||email))+' • '+currentProfile.role);
+    document.getElementById('avatar').textContent=((currentProfile.role==='admin'?'İD':(currentProfile.full_name||'A').slice(0,1).toUpperCase()));
+    document.getElementById('adminNav').classList.toggle('hidden',currentProfile.role!=='admin');
+    try{localStorage.setItem(SESSION_MARKER,'1');sessionStorage.setItem(SESSION_MARKER,'1')}catch(e){}
+    syncPatientHospitalField();
+    scheduleSessionTimeout();
+    refresh();
+  }catch(e){
+    console.warn('Oturum geri yüklenemedi:',e);
+    currentUser=null; currentProfile=null;
+    // Hata durumunda eski/bozuk yerel oturumu temizle.
+    try{await sb.auth.signOut({scope:'local'})}catch(x){}
+    try{localStorage.removeItem(SESSION_MARKER)}catch(x){}
+  }
+})();;
 </script>
 
 <script>
 /* Mobile/PWA cache reset: prevents an older cached index.html from running on iOS/Android. */
 window.addEventListener('load', async ()=>{
   try{
-    const FLAG='scdiaps_cache_reset_4527';
+    const FLAG='scdiaps_cache_reset_4563';
     if(sessionStorage.getItem(FLAG)!=='1' && 'serviceWorker' in navigator){
       sessionStorage.setItem(FLAG,'1');
       const regs=await navigator.serviceWorker.getRegistrations();

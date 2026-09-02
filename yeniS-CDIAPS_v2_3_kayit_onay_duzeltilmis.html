@@ -157,7 +157,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="kapsam-ozeti-ekrandan-kaldirildi-excel-turkce">
+<body data-build="vki-otomatik-hesaplama-ortalama-vki-duzeltildi">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -358,7 +358,7 @@ button,input,select{touch-action:manipulation}
       <div class="stat-card"><div class="stat-label">Ortalama yaş</div><div class="stat-value" id="stAvgAge">—</div><div class="stat-foot">Doğum tarihi olan hastalar</div></div>
       <div class="stat-card"><div class="stat-label">Ortalama boy</div><div class="stat-value" id="stAvgHeight">—</div><div class="stat-foot">cm</div></div>
       <div class="stat-card"><div class="stat-label">Ortalama kilo</div><div class="stat-value" id="stAvgWeight">—</div><div class="stat-foot">kg</div></div>
-      <div class="stat-card"><div class="stat-label">Ortalama VKİ</div><div class="stat-value" id="stAvgBMI">—</div><div class="stat-foot">Kayıtlı hastalar</div></div>
+      <div class="stat-card"><div class="stat-label">Ortalama VKİ</div><div class="stat-value" id="stAvgBMI">—</div><div class="stat-foot">Boy ve kilodan otomatik hesaplanır</div></div>
     </div>
   </div>
 
@@ -1509,7 +1509,7 @@ function exportStatisticsExcel(){
     'Cinsiyet':p.gender??'',
     'Boy (cm)':p.height_cm??'',
     'Kilo (kg)':p.weight_kg??'',
-    'VKİ':p.bmi??'',
+    'VKİ':(() => { const saved=Number(p.bmi); if(Number.isFinite(saved)&&saved>0)return saved.toFixed(2); const h=Number(p.height_cm),w=Number(p.weight_kg); return Number.isFinite(h)&&Number.isFinite(w)&&h>0&&w>0?(w/((h/100)*(h/100))).toFixed(2):''; })(),
     'Hastane / Kurum Adı':p.hospital_name??'',
     'Cerrahi Klinikler Bölümü':p.surgical_clinic??'',
     'Yatak No':p.bed_number??'',
@@ -1530,7 +1530,7 @@ function exportStatisticsExcel(){
       'Cinsiyet':firstValue(r,['gender']) || p.gender || '',
       'Boy (cm)':firstValue(r,['height_cm']) || p.height_cm || '',
       'Kilo (kg)':firstValue(r,['weight_kg']) || p.weight_kg || '',
-      'VKİ':firstValue(r,['bmi']) || p.bmi || '',
+      'VKİ':firstValue(r,['bmi']) || p.bmi || (() => { const h=Number(p.height_cm),w=Number(p.weight_kg); return Number.isFinite(h)&&Number.isFinite(w)&&h>0&&w>0?(w/((h/100)*(h/100))).toFixed(2):''; })(),
       'Hastane / Kurum Adı':firstValue(r,['hospital_name']) || p.hospital_name || '',
       'Cerrahi Klinikler Bölümü':firstValue(r,['surgical_clinic']) || p.surgical_clinic || '',
       'Yatak No':firstValue(r,['bed_number']) || p.bed_number || '',
@@ -1844,7 +1844,19 @@ ${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" 
  const avgAge=ageVals.length?ageVals.reduce((a,b)=>a+b,0)/ageVals.length:null;
  const avgHeight=numAvg(patients,'height_cm');
  const avgWeight=numAvg(patients,'weight_kg');
- const avgBMI=numAvg(patients,'bmi');
+ // VKİ veritabanında boş olsa bile boy ve kilo üzerinden otomatik hesapla.
+ const bmiOf=p=>{
+   const saved=Number(p?.bmi);
+   if(Number.isFinite(saved) && saved>0) return saved;
+   const h=Number(p?.height_cm);
+   const w=Number(p?.weight_kg);
+   if(!Number.isFinite(h)||!Number.isFinite(w)||h<=0||w<=0) return null;
+   const meters=h/100;
+   const bmi=w/(meters*meters);
+   return Number.isFinite(bmi)?bmi:null;
+ };
+ const bmiVals=patients.map(bmiOf).filter(Number.isFinite);
+ const avgBMI=bmiVals.length?bmiVals.reduce((a,b)=>a+b,0)/bmiVals.length:null;
  const patientStatMap={
    stAvgAge:avgAge==null?'—':avgAge.toFixed(1),
    stAvgHeight:avgHeight==null?'—':avgHeight.toFixed(1),

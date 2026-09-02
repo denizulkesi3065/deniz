@@ -1371,8 +1371,7 @@ evaluator_name:evaluatorName,
  if(!navigator.onLine)throw new Error('İnternet bağlantısı yok.');
  const {data:{user},error:authError}=await sb.auth.getUser();
  if(authError||!user)throw new Error('Oturum doğrulanamadı. Lütfen çıkış yapıp yeniden giriş yapın.');
- payload.evaluator_id=user.id;
- if(payload.evaluator_name==='—') payload.evaluator_name=user.email||'—';
+if(payload.evaluator_name==='—') payload.evaluator_name=user.email||'—';
  const result=await sb.from('assessments').insert(payload).select('id').single();
  if(result.error)throw new Error(result.error.message);
  const assessedAt=new Date().toISOString();

@@ -1,0 +1,1808 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-CDIAPS v2.8</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --nav:#102a43;--nav2:#173f5f;--bg:#f5f7fa;--card:#fff;--border:#e5e7eb;
+  --text:#243447;--muted:#64748b;--green:#138a4b;--greenbg:#e8f7ee;
+  --yellow:#a36b00;--yellowbg:#fff6dc;--red:#b42318;--redbg:#fdecea;
+  --blue:#2563eb;--shadow:0 8px 24px rgba(15,23,42,.06);
+}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
+button,input,select{font:inherit}button{cursor:pointer}
+header{height:72px;background:var(--nav);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 28px}
+.brand{display:flex;align-items:center;gap:14px}.brandmark{width:38px;height:38px;border-radius:10px;background:#2a6f97;display:grid;place-items:center;font-weight:800}
+.brand h1{font-size:19px;margin:0}.brand p{font-size:11px;margin:4px 0 0;opacity:.72}
+.userbar{display:flex;align-items:center;gap:12px;font-size:13px}.avatar{width:34px;height:34px;border-radius:50%;background:#fff;color:var(--nav);display:grid;place-items:center;font-weight:800}
+.layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 72px)}
+.sidebar{background:#102a43;color:#dbe7f2;padding:18px 12px;border-right:1px solid #244b68}.menu-title{font-size:11px;text-transform:uppercase;letter-spacing:.08em;opacity:.55;padding:10px 12px 8px}
+.navbtn{width:100%;text-align:left;border:0;background:transparent;color:#dbe7f2;padding:11px 13px;border-radius:9px;margin:2px 0;font-weight:600}
+.navbtn:hover,.navbtn.active{background:#173f5f;color:#fff}.navicon{display:inline-block;width:24px;opacity:.9}
+.main{padding:26px;overflow:auto}.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px}
+.page-title h2{margin:0 0 5px;font-size:24px}.page-title p{margin:0;color:var(--muted);font-size:13px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:0;border-radius:9px;padding:10px 14px;font-weight:700}.btn-primary{background:#173f5f;color:#fff}.btn-light{background:#fff;border:1px solid var(--border);color:var(--text)}.btn-danger{background:#b42318;color:#fff}.btn-success{background:#15803d;color:#fff}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.stat-card{background:var(--card);padding:18px;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
+.stat-label{font-size:12px;color:var(--muted);margin-bottom:8px}.stat-value{font-size:30px;font-weight:800}.stat-foot{font-size:12px;color:var(--muted);margin-top:6px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:20px;margin-top:16px}.card h3{margin:0 0 14px}
+.risk-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}.risk{padding:18px;border-radius:12px;border:1px solid var(--border)}.risk b{font-size:22px;display:block;margin-top:6px}
+.risk.g{background:var(--greenbg);color:var(--green)}.risk.y{background:var(--yellowbg);color:var(--yellow)}.risk.r{background:var(--redbg);color:var(--red)}
+.table-wrap{overflow:auto}
+.dashboard-table table{table-layout:fixed;width:100%}
+.dashboard-table th:nth-child(1),.dashboard-table td:nth-child(1){width:15%}
+.dashboard-table th:nth-child(2),.dashboard-table td:nth-child(2){width:12%}
+.dashboard-table th:nth-child(3),.dashboard-table td:nth-child(3){width:16%}
+.dashboard-table th:nth-child(4),.dashboard-table td:nth-child(4){width:15%}
+.dashboard-table th:nth-child(5),.dashboard-table td:nth-child(5){width:10%}
+.dashboard-table th:nth-child(6),.dashboard-table td:nth-child(6){width:8%}
+.dashboard-table th:nth-child(7),.dashboard-table td:nth-child(7){width:24%}
+.dashboard-table th,.dashboard-table td{vertical-align:top;word-break:break-word}
+table{width:100%;border-collapse:collapse}th,td{padding:12px 10px;border-bottom:1px solid var(--border);text-align:left;font-size:13px}th{color:var(--muted);font-weight:700;background:#fafafa}
+.badge{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:800}.badge.g{background:var(--greenbg);color:var(--green)}.badge.y{background:var(--yellowbg);color:var(--yellow)}.badge.r{background:var(--redbg);color:var(--red)}.badge.b{background:#e8eef8;color:#204a7a}
+.formgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.field label{font-size:12px;font-weight:800;color:#475569;display:block;margin-bottom:6px}.field input,.field select{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px;background:#fff}
+.section-title{font-size:14px;font-weight:800;margin:22px 0 10px}.checks{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.check{display:flex;gap:8px;align-items:flex-start;background:#fafafa;border:1px solid var(--border);padding:10px;border-radius:9px;font-size:12px}
+.result-panel{margin-top:18px;padding:18px;border-radius:12px;border:1px solid var(--border)}.result-panel.r{background:var(--redbg)}.result-panel.y{background:var(--yellowbg)}.result-panel.g{background:var(--greenbg)}
+.timeline{display:flex;gap:12px;flex-wrap:wrap}.timeline-step{flex:1;min-width:150px;border:1px solid var(--border);border-radius:11px;padding:14px;background:#fff}.timeline-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:7px}
+.hidden{display:none}.notice{padding:12px 14px;border-radius:9px;background:#eef4fb;color:#294e74;font-size:12px;margin-bottom:14px}
+.login{max-width:440px;margin:70px auto}.login .logo{font-size:18px;font-weight:800;color:var(--nav);margin-bottom:10px}
+.toast{position:fixed;right:20px;bottom:20px;background:#173f5f;color:#fff;padding:13px 16px;border-radius:10px;box-shadow:var(--shadow);display:none;z-index:10}
+@media(max-width:1050px){.layout{grid-template-columns:80px 1fr}.sidebar .label,.sidebar .menu-title{display:none}.navbtn{text-align:center}.grid4{grid-template-columns:repeat(2,1fr)}.formgrid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){header{padding:0 14px}.layout{display:block}.sidebar{display:flex;overflow:auto;padding:8px}.navbtn{min-width:120px}.main{padding:16px}.grid4,.formgrid,.checks,.risk-row{grid-template-columns:1fr}}
+.turnstile-box{width:100%;min-height:65px;margin-top:12px}
+button,.btn{ -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+button:disabled,.btn:disabled{opacity:.65;cursor:not-allowed;}
+@media(max-width:700px){ .actions .btn{min-height:44px;} .field input,.field select{min-height:44px;} }
+.ai-advisor-card{border:1px solid #d8e4ef;background:linear-gradient(180deg,#fff 0%,#f7fbff 100%)}
+.ai-advisor-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+.ai-empty{padding:18px;border-radius:12px;background:#f8fafc;color:#64748b;margin-top:14px}
+.ai-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:14px;margin-top:14px}
+.ai-panel{border:1px solid #e2e8f0;border-radius:14px;padding:16px;background:#fff}
+.ai-panel h4{margin:0 0 10px;color:#173b5b}
+.ai-risk-score{font-size:34px;font-weight:800;line-height:1}
+.ai-risk-high{color:#b91c1c}.ai-risk-mid{color:#b77900}.ai-risk-low{color:#15803d}
+.ai-chip{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:800;margin:3px 4px 3px 0;background:#eef4f8;color:#29445d}
+.ai-path{display:grid;gap:9px}
+.ai-step{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:#f8fafc}
+.ai-step b{min-width:25px;height:25px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#1d4f73;color:#fff;font-size:12px}
+.ai-source{margin-top:12px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:12px;line-height:1.5}
+.ai-source a{color:#155e8a;text-decoration:none;font-weight:700}
+.ai-disclaimer{margin-top:12px;font-size:11px;color:#64748b;background:#fff7ed;border:1px solid #fed7aa;padding:9px 11px;border-radius:9px}
+@media(max-width:800px){.ai-advisor-head{flex-direction:column}.ai-grid{grid-template-columns:1fr}.ai-advisor-card{margin-left:0;margin-right:0}}
+.outcome-pending{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:5px 9px;border-radius:999px;font-weight:700;font-size:12px}.outcome-done{background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:5px 9px;border-radius:999px;font-weight:700;font-size:12px}.outcome-modal{position:fixed;inset:0;background:rgba(15,23,42,.48);display:flex;align-items:center;justify-content:center;padding:18px;z-index:9999}.outcome-modal.hidden{display:none}.outcome-modal-card{width:min(620px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:18px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.22)}.outcome-options{display:grid;gap:9px;margin:14px 0}.outcome-option{display:flex;gap:10px;align-items:flex-start;border:1px solid #e2e8f0;border-radius:10px;padding:11px;cursor:pointer}.outcome-option input{margin-top:3px}
+.user-detail-modal{position:fixed;inset:0;background:rgba(15,23,42,.48);display:flex;align-items:center;justify-content:center;padding:18px;z-index:10000}
+.user-detail-modal.hidden{display:none}
+.user-detail-card{width:min(720px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:18px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+.user-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;margin-top:14px}
+.user-detail-item{padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px}
+.user-detail-item small{display:block;color:#64748b;font-size:11px;margin-bottom:3px}
+.user-detail-item strong{font-size:13px;color:#0f172a;word-break:break-word}
+@media(max-width:650px){.user-detail-grid{grid-template-columns:1fr}}
+</style>
+
+<meta name="theme-color" content="#102a43">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="S-CDIAPS">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+/* Mobile/PWA enhancements */
+html{background:#f5f7fa}
+body{min-height:100vh;min-height:100dvh}
+button,input,select{touch-action:manipulation}
+@media(max-width:900px){
+  header{height:auto;min-height:64px;padding:10px 14px;gap:10px;flex-wrap:wrap}
+  .brand{min-width:0}.brand h1{font-size:17px}.brand p{font-size:10px}
+  .userbar{margin-left:auto;max-width:100%;font-size:11px}
+  .userbar .btn{padding:8px 10px}
+  .layout{display:block;min-height:calc(100dvh - 64px)}
+  .sidebar{
+    position:sticky;top:0;z-index:20;
+    display:flex;overflow-x:auto;gap:6px;padding:8px;
+    background:#102a43;border-right:0;border-bottom:1px solid #244b68;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none
+  }
+  .sidebar::-webkit-scrollbar{display:none}
+  .menu-title{display:none}
+  .navbtn{min-width:max-content;width:auto;text-align:center;padding:9px 12px;margin:0;font-size:12px}
+  .navicon{width:auto;margin-right:5px}
+  .main{padding:14px}
+  .toolbar{align-items:flex-start;flex-direction:column;gap:12px}
+  .actions{width:100%}
+  .actions .btn{flex:1}
+  .grid4{grid-template-columns:1fr 1fr;gap:10px}
+  .stat-card{padding:14px}.stat-value{font-size:24px}
+  .formgrid{grid-template-columns:1fr}
+  .checks{grid-template-columns:1fr}
+  .risk-row{grid-template-columns:1fr}
+  .card{padding:14px;border-radius:12px}
+  table{min-width:760px}
+  .table-wrap{-webkit-overflow-scrolling:touch}
+  .result-panel{padding:14px}
+}
+@media(max-width:520px){
+  .grid4{grid-template-columns:1fr}
+  .brand p{display:none}
+  .userbar #userText{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .main{padding:10px}
+  .page-title h2{font-size:20px}
+  .page-title p{font-size:12px}
+  .btn{min-height:42px}
+  input,select{min-height:44px;font-size:16px} /* prevents iOS zoom */
+  .check{min-height:44px;align-items:center}
+}
+@supports(padding:max(0px)){
+  body{padding-bottom:max(0px,env(safe-area-inset-bottom))}
+  header{padding-top:max(10px,env(safe-area-inset-top))}
+}
+</style>
+
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body data-build="v4.5.46-yonetici-24-saat-silme-yetkisi">
+
+<div id="loginPage" class="login card">
+  <div class="logo">S-CDIAPS</div>
+  <p style="margin-top:0;color:#64748b">Cerrahi Klinik Kötüleşme ve Alarm Önceliklendirme Sistemi</p>
+  <div class="field"><label>E-posta</label><input id="loginEmail" type="email" value=""></div>
+  <div class="field" style="margin-top:10px"><label>Çalıştığı Hastane / Kurum Adı</label><input id="regHospital" type="text" placeholder="Örn. Ankara Şehir Hastanesi"></div>
+  <div class="field" style="margin-top:10px"><label>Çalıştığı Bölüm / Birim</label><input id="regDepartment" type="text" placeholder="Örn. Genel Cerrahi"></div>
+  <div class="field" style="margin-top:10px"><label>Şifre</label><input id="loginPassword" type="password"></div>
+  <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#475569">
+    <input id="rememberLogin" type="checkbox" style="width:auto;min-height:auto">
+    <span>Beni hatırla</span>
+  </label>
+  <div id="loginTurnstile" class="turnstile-box"></div><div id="turnstileStatus" class="notice" style="margin-top:8px">Güvenlik doğrulaması yükleniyor…</div>
+  <div class="actions" style="margin-top:14px">
+    <button class="btn btn-primary" onclick="login()">Giriş Yap</button>
+    <button class="btn btn-light" onclick="showRegister()">Yeni Kayıt</button>
+  </div>
+  <div id="loginMsg" class="notice" style="margin-top:14px">Hesabınızla giriş yapın.</div>
+  <div style="margin-top:10px;text-align:center">
+    <button class="btn btn-light" style="border:0;background:transparent;padding:6px 0" onclick="showRecovery()">Şifremi unuttum</button>
+  </div>
+</div>
+
+<div id="recoveryPage" class="login card hidden">
+  <div class="logo">Şifre Sıfırlama</div>
+  <p style="margin-top:0;color:#64748b">E-posta adresinize şifre sıfırlama bağlantısı göndereceğiz.</p>
+  <div class="field"><label>E-posta</label><input id="recoveryEmail" type="email"></div>
+  <div id="recoveryTurnstile" class="turnstile-box"></div>
+  <div class="actions" style="margin-top:14px">
+    <button class="btn btn-primary" onclick="sendRecovery()">Sıfırlama bağlantısı gönder</button>
+    <button class="btn btn-light" onclick="showLogin()">Girişe dön</button>
+  </div>
+  <div id="recoveryMsg" class="notice" style="margin-top:14px">E-posta adresinizi girin.</div>
+</div>
+
+<div id="resetPage" class="login card hidden">
+  <div class="logo">Yeni Şifre Belirle</div>
+  <p style="margin-top:0;color:#64748b">Yeni şifrenizi iki kez girin.</p>
+  <div class="field"><label>Yeni Şifre</label><input id="newPassword" type="password"></div>
+  <div class="field" style="margin-top:10px"><label>Yeni Şifre (Tekrar)</label><input id="newPassword2" type="password"></div>
+  <div class="actions" style="margin-top:14px">
+    <button class="btn btn-primary" onclick="updatePassword()">Şifreyi Güncelle</button>
+  </div>
+  <div id="resetMsg" class="notice" style="margin-top:14px">Yeni şifrenizi belirleyin.</div>
+</div>
+
+<div id="registerPage" class="login card hidden">
+  <div class="logo">Yeni Kullanıcı Kaydı</div>
+  <div class="field"><label>Ad Soyad</label><input id="regName"></div>
+  <div class="field" style="margin-top:10px"><label>E-posta</label><input id="regEmail" type="email"></div>
+  <div class="formgrid" style="margin-top:10px">
+    <div class="field"><label>Doğum Tarihi</label><input id="regBirthDate" type="date"></div>
+    <div class="field"><label>Cinsiyet</label><select id="regGender"><option value="">Seçiniz</option><option value="Kadın">Kadın</option><option value="Erkek">Erkek</option><option value="Belirtmek istemiyor">Belirtmek istemiyor</option></select></div>
+  </div>
+  <div class="field" style="margin-top:10px"><label>Meslek</label><select id="regProfession" onchange="updateRegistrationOptions()"><option value="">Seçiniz</option><option value="Hemşire">Hemşire</option><option value="Hekim">Hekim</option></select></div>
+  <div class="field" style="margin-top:10px"><label>Eğitim Durumu</label><select id="regEducation"><option value="">Önce meslek seçiniz</option></select></div>
+  <div class="field" style="margin-top:10px"><label>Mesleki / Akademik Unvan</label><select id="regTitle"><option value="">Önce meslek seçiniz</option></select></div>
+  <div class="field" style="margin-top:10px"><label>Şifre</label><input id="regPassword" type="password"></div>
+  <div id="registerTurnstile" class="turnstile-box"></div>
+  <div class="field" style="margin-top:10px"><label>Rol</label><select id="regRole"><option value="hemsire">Hemşire</option><option value="doktor">Hekim</option></select></div>
+  <div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="registerUser()">Kayıt Talebi</button><button class="btn btn-light" onclick="showLogin()">Geri</button></div>
+  <div id="regMsg" class="notice" style="margin-top:14px"></div>
+</div>
+
+<div id="app" class="hidden">
+<header>
+  <div class="brand"><div class="brandmark">SC</div><div><h1>S-CDIAPS</h1><p>Clinical Deterioration & Alarm Prioritization</p></div></div>
+  <div class="userbar"><div id="userText"></div><div class="avatar" id="avatar">A</div><button class="btn btn-light" onclick="logout()">Çıkış</button></div>
+</header>
+
+<div class="layout">
+<aside class="sidebar">
+  <div class="menu-title">MENÜ</div>
+  <button class="navbtn active" onclick="go('dashboard',this)"><span class="navicon">⌂</span><span class="label">Dashboard</span></button>
+  <button class="navbtn" onclick="go('patients',this)"><span class="navicon">👤</span><span class="label">Hastalar</span></button>
+  <button class="navbtn" onclick="go('assessment',this)"><span class="navicon">＋</span><span class="label">Değerlendirme</span></button>
+  <button class="navbtn" onclick="go('history',this)"><span class="navicon">◷</span><span class="label">Geçmiş</span></button>
+  <button class="navbtn" onclick="go('statistics',this)"><span class="navicon">▥</span><span class="label">İstatistikler</span></button>
+  <button class="navbtn" onclick="go('outcomes',this)"><span class="navicon">✓</span><span class="label">24 Saat Sonuç</span></button>
+  <button id="adminNav" class="navbtn hidden" onclick="go('admin',this)"><span class="navicon">⚙</span><span class="label">Yönetici</span></button>
+</aside>
+
+<main class="main">
+<section id="dashboard" class="page">
+  <div class="toolbar"><div class="page-title"><h2>Dashboard</h2><p>Servisteki klinik durumun genel görünümü</p></div><div class="actions"><button class="btn btn-primary" onclick="go('assessment')">+ Yeni değerlendirme</button></div></div>
+  <div class="grid4">
+    <div class="stat-card"><div class="stat-label">Aktif hasta</div><div class="stat-value" id="sPatients">0</div><div class="stat-foot">Sistemde kayıtlı</div></div>
+    <div class="stat-card"><div class="stat-label">Toplam değerlendirme</div><div class="stat-value" id="sAssess">0</div><div class="stat-foot">Son kayıtlar</div></div>
+    <div class="stat-card"><div class="stat-label">Orta risk</div><div class="stat-value yellow" id="sMid">0</div><div class="stat-foot">Yeniden değerlendirme</div></div>
+    <div class="stat-card"><div class="stat-label">Yüksek risk</div><div class="stat-value red" id="sHigh">0</div><div class="stat-foot">Öncelikli klinik değerlendirme</div></div>
+  </div>
+  <div class="card"><h3>Risk dağılımı</h3><div class="risk-row">
+    <div class="risk g"><span>🟢 Düşük</span><b id="rLow">0</b><span>Rutin izlem</span></div>
+    <div class="risk y"><span>🟡 Orta</span><b id="rMid">0</b><span>Hemşire değerlendirmesi</span></div>
+    <div class="risk r"><span>🔴 Yüksek</span><b id="rHigh">0</b><span>Öncelikli değerlendirme</span></div>
+  </div></div>
+  <div class="card ai-advisor-card">
+    <div class="ai-advisor-head">
+      <div>
+        <h3 style="margin-bottom:4px">🤖 Klinik Yapay Zekâ Danışmanı</h3>
+        <p class="muted" style="margin:0">Hastanın mevcut verilerinden riskleri, olası kötüleşme sinyallerini ve izlenecek klinik yolu özetler.</p>
+      </div>
+      <button class="btn btn-primary" onclick="runClinicalAdvisor()">Analizi Güncelle</button>
+    </div>
+    <div id="aiAdvisorContent">
+      <div class="ai-empty">Analiz için en az bir klinik değerlendirme kaydı gereklidir.</div>
+    </div>
+  </div>
+  <div class="card"><h3>Son değerlendirmeler</h3><div class="table-wrap dashboard-table"><table><thead><tr><th>Zaman</th><th>Hasta</th><th>TC / Dosya No</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Temel neden</th></tr></thead><tbody id="dashTable"></tbody></table></div></div>
+</section>
+
+
+<section id="outcomes" class="page hidden">
+  <div class="toolbar"><div class="page-title"><h2>24 Saatlik Klinik Sonuç Takibi</h2><p>Her değerlendirme için sonraki 24 saatlik klinik sonucu standart biçimde kaydedin.</p></div><div class="actions"><button class="btn btn-primary" onclick="loadClinicalOutcomes()">Yenile</button></div></div>
+  <div class="card"><div class="ai-disclaimer"><b>Veri toplama amacı:</b> Bu sonuçlar ileride klinik kötüleşme tahmin modelinin doğrulanmış sonuç değişkenini oluşturmak için kullanılacaktır.</div></div>
+  <div class="card"><h3>Bekleyen / tamamlanan sonuçlar</h3><div class="table-wrap"><table><thead><tr><th>Değerlendirme</th><th>Hasta</th><th>Risk</th><th>NEWS2</th><th>24 saatlik durum</th><th>İşlem</th></tr></thead><tbody id="outcomesTable"><tr><td colspan="6">Veri yükleniyor...</td></tr></tbody></table></div></div>
+</section>
+
+<section id="statistics" class="page hidden">
+  <div class="toolbar">
+    <div class="page-title">
+      <h2>İstatistikler</h2>
+      <p>Sistemdeki hasta ve klinik değerlendirme verilerinin özeti</p>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="exportStatisticsExcel()">Excel'e Aktar</button>
+    </div>
+  </div>
+
+  <div class="grid4">
+    <div class="stat-card"><div class="stat-label">Toplam hasta</div><div class="stat-value" id="stTotalPatients">0</div><div class="stat-foot">Sistemde kayıtlı</div></div>
+    <div class="stat-card"><div class="stat-label">Değerlendirilen hasta</div><div class="stat-value" id="stEvaluatedPatients">0</div><div class="stat-foot">En az bir değerlendirme</div></div>
+    <div class="stat-card"><div class="stat-label">Toplam değerlendirme</div><div class="stat-value" id="stTotalAssessments">0</div><div class="stat-foot">Tüm kayıtlar</div></div>
+    <div class="stat-card"><div class="stat-label">Ortalama NEWS2</div><div class="stat-value" id="stAvgNews2">0.0</div><div class="stat-foot">Kayıtlı değerlendirmeler</div></div>
+  </div>
+
+  <div class="card">
+    <h3>Risk istatistikleri</h3>
+    <div class="risk-row">
+      <div class="risk g"><span>🟢 Düşük</span><b id="stLow">0</b><span id="stLowPct">%0</span></div>
+      <div class="risk y"><span>🟡 Orta</span><b id="stMid">0</b><span id="stMidPct">%0</span></div>
+      <div class="risk r"><span>🔴 Yüksek</span><b id="stHigh">0</b><span id="stHighPct">%0</span></div>
+    </div>
+  </div>
+
+  <div class="grid4">
+    <div class="stat-card"><div class="stat-label">Son 7 gün</div><div class="stat-value" id="st7d">0</div><div class="stat-foot">Değerlendirme</div></div>
+    <div class="stat-card"><div class="stat-label">Son 30 gün</div><div class="stat-value" id="st30d">0</div><div class="stat-foot">Değerlendirme</div></div>
+    <div class="stat-card"><div class="stat-label">En yüksek NEWS2</div><div class="stat-value red" id="stMaxNews2">0</div><div class="stat-foot">Kayıtlı en yüksek değer</div></div>
+    <div class="stat-card"><div class="stat-label">Yüksek risk oranı</div><div class="stat-value red" id="stHighPctCard">%0</div><div class="stat-foot">Tüm değerlendirmeler içinde</div></div>
+  </div>
+
+  <div class="card">
+    <h3>İstatistiksel özet</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Gösterge</th><th>Değer</th><th>Açıklama</th></tr></thead>
+        <tbody id="statsTable">
+          <tr><td>Veri yükleniyor...</td><td>—</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="patients" class="page hidden">
+  <div class="toolbar"><div class="page-title"><h2>Hastalar</h2><p>Hasta kayıtları ve hızlı klinik erişim</p></div></div>
+  <div class="card"><h3>Yeni hasta</h3><div class="formgrid">
+    <div class="field"><label>Hasta kodu</label><input id="newPid" placeholder="SC-001"></div>
+    <div class="field"><label>Hasta T.C. Kimlik No / Dosya No</label><input id="newPatientIdentifier" inputmode="numeric" placeholder="Dosya No veya 11 haneli T.C. Kimlik No"></div>
+    <div class="field"><label>Hasta Adı Soyadı</label><input id="newPatientName" placeholder="Ad Soyad"></div>
+    <div class="field"><label>Doğum Tarihi</label><input id="newBirthDate" type="date"></div>
+    <div class="field"><label>Cinsiyet</label><select id="newGender"><option value="">Seçiniz</option><option value="Kadın">Kadın</option><option value="Erkek">Erkek</option><option value="Belirtmek istemiyor">Belirtmek istemiyor</option></select></div>
+    <div class="field"><label>Boy (cm)</label><input id="newHeight" type="number" min="30" max="250" step="0.1" placeholder="cm" oninput="updatePatientBMI()"></div>
+    <div class="field"><label>Kilo (kg)</label><input id="newWeight" type="number" min="1" max="400" step="0.1" placeholder="kg" oninput="updatePatientBMI()"></div>
+    <div class="field"><label>VKİ</label><input id="newBMI" type="text" readonly placeholder="Otomatik hesaplanır"></div>
+    <div class="field"><label>Postoperatif gün</label><input id="newPod" type="number" min="0" placeholder="Gün"></div>
+  </div>
+  <div class="notice" style="margin-top:12px">Hasta T.C. Kimlik No / Dosya No bilgisi, kurumunuzun yetkilendirme ve veri koruma kurallarına uygun şekilde kullanılmalıdır.</div>
+  <div class="actions" style="margin-top:14px"><button id="patientSaveBtn" class="btn btn-primary" onclick="addPatient()">Hasta Kaydet</button></div></div>
+  <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Hasta T.C. Kimlik No / Dosya No</th><th>Hasta Adı Soyadı</th><th>Doğum Tarihi</th><th>Cinsiyet</th><th>Boy (cm)</th><th>Kilo (kg)</th><th>Postoperatif gün</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
+</section>
+
+<section id="assessment" class="page hidden">
+  <div class="toolbar"><div class="page-title"><h2>Klinik Değerlendirme</h2><p>Vardiya değerlendirmesi ve otomatik risk analizi</p></div></div>
+  <div class="card">
+    <div class="formgrid">
+      <div class="field"><label>Hasta Dosya No / T.C. Kimlik No</label><input id="assessmentPatientIdentifier" type="text" readonly placeholder="Hasta seçiniz"></div>
+      <div class="field"><label>Hasta Adı Soyadı</label><input id="assessmentPatientName" type="text" readonly placeholder="Hasta seçiniz"></div>
+      <div class="field"><label>Postoperatif gün</label><input id="pod" type="number" value="2"></div>
+      <div class="field"><label>Değerlendirme zamanı</label><input id="evalTime" type="datetime-local"></div>
+      <select id="pid" class="hidden" aria-hidden="true"></select>
+    </div>
+    <div class="section-title">Vital Bulgular</div>
+    <div class="formgrid">
+      <div class="field"><label>Ateş °C</label><input id="temp" type="number" step=".1" value="37"></div>
+      <div class="field"><label>Nabız /dk</label><input id="hr" type="number" value="84"></div>
+      <div class="field">
+<label>Kan Basıncı</label>
+<div style="display:flex;align-items:center;gap:8px">
+  <input id="sbp" type="number" value="120" min="0" placeholder="Sistolik" style="flex:1">
+  <span style="font-weight:800">/</span>
+  <input id="dbp" type="number" value="80" min="0" placeholder="Diyastolik" style="flex:1">
+  <span style="font-size:12px;color:#64748b;white-space:nowrap">mmHg</span>
+</div>
+
+</div>
+      
+      <div class="field"><label>Ağrı (0–10)</label><input id="painScore" type="number" min="0" max="10" step="1" value="0"></div>
+      <div class="field"><label>Solunum /dk</label><input id="rr" type="number" value="18"></div>
+      <div class="field"><label>SpO₂ %</label><input id="spo2" type="number" value="97"></div>
+      <div class="field"><label>Oksijen L/dk</label><input id="o2" type="number" step=".5" value="0"></div>
+      <div class="field">
+<label>Bilinç Durumu</label>
+<select id="con">
+<option value="0">A — Alert: Uyanık / normal</option>
+<option value="1">C — Confusion: Yeni konfüzyon</option>
+<option value="2">V — Voice: Sese yanıt veriyor</option>
+<option value="3">P — Pain: Ağrıya yanıt veriyor</option>
+<option value="4">U — Unresponsive: Yanıtsız</option>
+</select>
+</div>
+      <div class="field"><label>Hemşire klinik endişesi</label><select id="concern"><option value="0">Hayır</option><option value="1">Endişeliyim</option><option value="2">Belirgin şekilde endişeliyim</option></select></div>
+    </div>
+    <div class="section-title">Cerrahi / GİS / Üriner Bulgular</div>
+    <div class="checks">
+      <label class="check"><input type="checkbox" id="redness">Yeni/artan yara kızarıklığı</label>
+      <label class="check"><input type="checkbox" id="drain">Beklenmeyen dren değişikliği</label>
+      <label class="check"><input type="checkbox" id="pus">Pürülan akıntı</label>
+      <label class="check"><input type="checkbox" id="dehiscence">Yara ayrışması</label>
+      <label class="check"><input type="checkbox" id="dist">Abdominal distansiyon</label>
+      <label class="check"><input type="checkbox" id="vomit">Tekrarlayan kusma</label>
+      <label class="check"><input type="checkbox" id="nogas">Gaz çıkaramama</label>
+      
+      <label class="check"><input type="checkbox" id="oliguria">İdrar çıkışında belirgin azalma</label>
+    </div>
+    <div class="actions" style="margin-top:18px"><button class="btn btn-primary" onclick="evaluateAndSave()">Değerlendir ve Kaydet</button><button class="btn btn-light" onclick="clearAssessment()">Temizle</button></div>
+    <div id="result"></div>
+  </div>
+</section>
+
+<section id="history" class="page hidden">
+  <div class="toolbar">
+    <div class="page-title">
+      <h2>Değerlendirme Geçmişi</h2>
+      <p>Her hasta bir kez listelenir; hastaya tıklayarak tüm değerlendirmelerini görüntüleyebilirsiniz.</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:44px"></th>
+            <th>Zaman</th>
+            
+            <th>TC / Dosya No</th>
+            <th>Hasta Adı Soyadı</th>
+            <th>Değerlendiren</th>
+            <th>Risk</th>
+            <th>NEWS2</th>
+            <th>Neden</th>
+            <th>Değerlendirme</th>
+          </tr>
+        </thead>
+        <tbody id="historyTable"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="admin" class="page hidden">
+  <div class="toolbar"><div class="page-title"><h2>Yönetici Paneli</h2><p>Kullanıcı onayı ve sistem erişim yönetimi</p></div></div>
+  <div class="card">
+    <h3>Kişisel Bilgilerim</h3>
+    <div class="formgrid">
+      <div class="field"><label>Ad Soyad</label><input id="adminProfileName" type="text"></div>
+      <div class="field"><label>Doğum Tarihi</label><input id="adminProfileBirth" type="date"></div>
+      <div class="field"><label>Cinsiyet</label><select id="adminProfileGender"><option value="">Seçiniz</option><option value="Kadın">Kadın</option><option value="Erkek">Erkek</option><option value="Belirtmek istemiyor">Belirtmek istemiyor</option></select></div>
+      <div class="field"><label>Meslek</label><select id="adminProfileProfession" onchange="populateAdminProfileOptions(this.value)"><option value="Hekim">Hekim</option><option value="Hemşire">Hemşire</option></select></div>
+      <div class="field"><label>Eğitim Durumu</label><select id="adminProfileEducation"></select></div>
+      <div class="field"><label>Mesleki / Akademik Unvan</label><select id="adminProfileTitle"></select></div>
+    </div>
+    <div class="actions" style="margin-top:14px">
+      <button class="btn btn-primary" onclick="saveAdminProfile()">Kişisel Bilgilerimi Kaydet</button>
+    </div>
+    <div id="adminProfileMsg" class="notice" style="margin-top:12px"></div>
+  </div>
+  <div class="card"><div class="notice">S-CDIAPS bir klinik karar destek sistemidir. Nihai klinik karar sağlık profesyonelinin değerlendirmesine dayanır.</div><div class="notice">Yeni kullanıcılar e-posta doğrulaması ve yönetici onayı sonrasında aktifleşir.</div><div class="table-wrap"><table><thead><tr><th>Ad Soyad</th><th>Rol</th><th>Durum</th><th></th></tr></thead><tbody id="userTable"></tbody></table></div><div id="adminMsg"></div></div>
+</section>
+
+</main></div></div>
+
+<div id="userDetailModal" class="user-detail-modal hidden">
+  <div class="user-detail-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <div><h3 style="margin:0">Kullanıcı Bilgileri</h3><p id="userDetailSubtitle" style="margin:4px 0 0;color:#64748b;font-size:12px"></p></div>
+      <button class="btn btn-light" onclick="closeUserDetail()">Kapat</button>
+    </div>
+    <div id="userDetailGrid" class="user-detail-grid"></div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+const TURNSTILE_SITEKEY='0x4AAAAAAEb9_9_AajNi7Dlp';
+const SUPABASE_URL='https://nndtcprefcrevdulxzhy.supabase.co';
+const SUPABASE_KEY='sb_publishable_7IeSV5cMQoAPAbfzE7KVpw_rnfXwZ2e';
+const TAB_SESSION_KEY='scdiaps_'+(crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2));
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+  auth:{
+    storage:window.sessionStorage,
+    storageKey:TAB_SESSION_KEY,
+    persistSession:true,
+    autoRefreshToken:true,
+    detectSessionInUrl:true
+  }
+});
+const ADMIN_EMAIL='ismaildeniz0192@gmail.com';
+let currentUser=null,currentProfile=null,loginTurnstileToken='',registerTurnstileToken='',recoveryTurnstileToken='',patientCache=[],loginInFlight=false,registerInFlight=false,recoveryInFlight=false,recoveryMode=false,sessionTimeoutTimer=null,lastActivityAt=Date.now(),sessionEnding=false;
+
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2800)}
+function n(id){const x=parseFloat(document.getElementById(id).value);return Number.isFinite(x)?x:0}
+function v(id){return document.getElementById(id).value}
+function ck(id){return document.getElementById(id).checked}
+
+
+// NEWS2 (Royal College of Physicians) — standard physiological scoring.
+// The assessment form uses the standard SpO₂ Scale 1 because no Scale 2 option is exposed.
+function news2(){
+  const temp=n('temp'), hr=n('hr'), sbp=n('sbp'), rr=n('rr'), spo2=n('spo2'), o2=n('o2'), con=Number(v('con'));
+  let score=0;
+
+  // Respiratory rate
+  if(rr<=8) score+=3;
+  else if(rr<=11) score+=1;
+  else if(rr<=20) score+=0;
+  else if(rr<=24) score+=2;
+  else score+=3;
+
+  // Oxygen saturation (SpO2 Scale 1)
+  if(spo2<=91) score+=3;
+  else if(spo2<=93) score+=2;
+  else if(spo2<=95) score+=1;
+  else score+=0;
+
+  // Supplemental oxygen
+  if(o2>0) score+=2;
+
+  // Systolic blood pressure
+  if(sbp<=90) score+=3;
+  else if(sbp<=100) score+=2;
+  else if(sbp<=110) score+=1;
+  else if(sbp<=219) score+=0;
+  else score+=3;
+
+  // Pulse
+  if(hr<=40) score+=3;
+  else if(hr<=50) score+=1;
+  else if(hr<=90) score+=0;
+  else if(hr<=110) score+=1;
+  else if(hr<=130) score+=2;
+  else score+=3;
+
+  // Temperature
+  if(temp<=35.0) score+=3;
+  else if(temp<=36.0) score+=1;
+  else if(temp<=38.0) score+=0;
+  else if(temp<=39.0) score+=1;
+  else score+=2;
+
+  // Consciousness: C/V/P/U each scores 3; Alert scores 0.
+  if(con!==0) score+=3;
+
+  return score;
+}
+
+const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
+const SESSION_MARKER = 'scdiaps_session_active';
+
+function clearSessionTimeout(){
+  if(sessionTimeoutTimer){
+    clearTimeout(sessionTimeoutTimer);
+    sessionTimeoutTimer=null;
+  }
+}
+
+async function forceSessionLogout(message='Oturumunuz güvenlik nedeniyle sonlandırıldı. Lütfen yeniden giriş yapın.'){
+  if(sessionEnding) return;
+  sessionEnding=true;
+  clearSessionTimeout();
+  try{localStorage.removeItem(REMEMBER_EMAIL_KEY)}catch(e){}
+
+  try{
+    await sb.auth.signOut({scope:'local'});
+  }catch(e){
+    console.warn('Oturum kapatma:',e);
+  }
+
+  try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
+
+  currentUser=null;
+  currentProfile=null;
+  loginTurnstileToken='';
+  registerTurnstileToken='';
+  recoveryTurnstileToken='';
+  recoveryMode=false;
+
+  // Çıkışta giriş bilgilerini temizle; güvenlik doğrulaması koduna dokunma.
+  clearLoginFormFields();
+
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('registerPage').classList.add('hidden');
+  document.getElementById('recoveryPage').classList.add('hidden');
+  document.getElementById('resetPage').classList.add('hidden');
+  document.getElementById('loginPage').classList.remove('hidden');
+
+  const msg=document.getElementById('loginMsg');
+  if(msg) msg.textContent=message;
+
+  // Tarayıcı otomatik doldurursa da çıkıştan sonra alanları tekrar boşalt.
+  [150,500,1000].forEach(ms=>setTimeout(clearLoginFormFields,ms));
+
+  setTimeout(()=>{
+    sessionEnding=false;
+    renderTurnstileWidgets();
+    if(loginTurnstileWidgetId!==null){
+      try{window.turnstile.reset(loginTurnstileWidgetId)}catch(e){}
+    }
+  },100);
+}
+
+function scheduleSessionTimeout(){
+  clearSessionTimeout();
+  lastActivityAt=Date.now();
+  sessionTimeoutTimer=setTimeout(()=>{
+    forceSessionLogout('5 dakika boyunca işlem yapılmadığı için oturumunuz sonlandırıldı. Lütfen yeniden giriş yapın.');
+  }, SESSION_TIMEOUT_MS);
+}
+
+function markActivity(){
+  if(!currentUser || recoveryMode || sessionEnding) return;
+  lastActivityAt=Date.now();
+  scheduleSessionTimeout();
+}
+
+['click','keydown','mousemove','touchstart','scroll'].forEach(evt=>{
+  document.addEventListener(evt,markActivity,{passive:true});
+});
+
+window.addEventListener('pagehide',()=>{
+  try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
+  // The browser may not finish an async signOut during page close; the session marker
+  // is therefore also cleared so the next page load forces a fresh login.
+});
+
+window.addEventListener('beforeunload',()=>{
+  try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
+});
+
+
+const REMEMBER_EMAIL_KEY='scdiaps_remember_email';
+
+function loadRememberedEmail(){
+  const input=document.getElementById('loginEmail');
+  const check=document.getElementById('rememberLogin');
+  if(!input||!check)return;
+  try{
+    const saved=localStorage.getItem(REMEMBER_EMAIL_KEY)||'';
+    if(saved){
+      input.value=saved;
+      check.checked=true;
+    }else{
+      input.value='';
+      check.checked=false;
+    }
+  }catch(e){
+    input.value='';
+    check.checked=false;
+  }
+}
+
+function applyRememberEmail(){
+  const input=document.getElementById('loginEmail');
+  const check=document.getElementById('rememberLogin');
+  if(!input||!check)return;
+  try{
+    if(check.checked && input.value.trim()){
+      localStorage.setItem(REMEMBER_EMAIL_KEY,input.value.trim().toLowerCase());
+    }else{
+      localStorage.removeItem(REMEMBER_EMAIL_KEY);
+    }
+  }catch(e){}
+}
+
+function showRegister(){
+ setRegistrationBirthDateLimit();document.getElementById('loginPage').classList.add('hidden');document.getElementById('registerPage').classList.remove('hidden');setTimeout(()=>{renderTurnstileWidgets();if(registerTurnstileWidgetId!==null)try{window.turnstile.reset(registerTurnstileWidgetId)}catch(e){}},50)}
+
+function clearLoginFormFields(){
+  const ids=['loginEmail','loginPassword'];
+  ids.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){
+      el.value='';
+      el.setAttribute('value','');
+    }
+  });
+  const form=document.getElementById('loginForm');
+  if(form){
+    try{ form.reset(); }catch(e){}
+  }
+  const remember=document.getElementById('rememberMe');
+  if(remember) remember.checked=false;
+  const rememberLogin=document.getElementById('rememberLogin');
+  if(rememberLogin) rememberLogin.checked=false;
+}
+
+function showLogin(){
+ clearLoginFormFields();
+  clearSessionTimeout();
+  try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
+  recoveryMode=false;
+  currentUser=null;
+  currentProfile=null;
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('registerPage').classList.add('hidden');
+  document.getElementById('recoveryPage').classList.add('hidden');
+  document.getElementById('resetPage').classList.add('hidden');
+  document.getElementById('loginPage').classList.remove('hidden');
+  registerTurnstileToken='';
+  recoveryTurnstileToken='';
+  loginTurnstileToken='';
+  const loginEmailInput=document.getElementById('loginEmail');
+  if(loginEmailInput) loginEmailInput.value='';
+  const rememberCheck=document.getElementById('rememberLogin');
+  if(rememberCheck) rememberCheck.checked=false;
+  setTimeout(()=>{
+    if(renderTurnstileWidgets() && loginTurnstileWidgetId!==null){
+      try{window.turnstile.reset(loginTurnstileWidgetId)}catch(e){}
+    }
+  },300);
+}
+function go(id,btn){
+ if(id==='outcomes')setTimeout(loadClinicalOutcomes,0);if(id==='assessment' && !document.getElementById('pid').value){document.getElementById('assessmentPatientIdentifier').value='';document.getElementById('assessmentPatientName').value=''} if(id==='admin'&&(!currentProfile||currentProfile.role!=='admin')){toast('Yönetici yetkisi gerekir');return}document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');refresh()}
+function retryTurnstile(){
+ try{
+  if(!window.turnstile){return}
+  if(loginTurnstileWidgetId!==null){window.turnstile.reset(loginTurnstileWidgetId);loginTurnstileToken=''}
+  if(registerTurnstileWidgetId!==null){window.turnstile.reset(registerTurnstileWidgetId);registerTurnstileToken=''}
+  renderTurnstileWidgets();
+ }catch(e){console.error('Turnstile yeniden başlatılamadı:',e)}
+}
+async function login(){
+ const email=v('loginEmail').trim().toLowerCase(), password=document.getElementById('loginPassword').value;
+ const msg=document.getElementById('loginMsg');
+ if(loginInFlight)return;
+ if(!email||!password){msg.textContent='E-posta ve şifre gerekli.';return}
+ if(!loginTurnstileToken){msg.textContent='Lütfen güvenlik doğrulamasını tamamlayın.';return}
+
+ loginInFlight=true;
+ const btn=document.querySelector('#loginPage button[onclick="login()"]');
+ if(btn){btn.disabled=true;btn.textContent='Giriş yapılıyor...';}
+
+ const token=loginTurnstileToken;
+ // Prevent the same Turnstile token from being reused.
+ loginTurnstileToken='';
+
+ const {data,error}=await sb.auth.signInWithPassword({
+   email,
+   password,
+   options:{captchaToken:token}
+ });
+
+ if(error){
+   msg.textContent='Giriş başarısız: '+error.message;
+   try{
+     if(window.turnstile && loginTurnstileWidgetId!==null) window.turnstile.reset(loginTurnstileWidgetId);
+   }catch(e){}
+   loginInFlight=false;
+   if(btn){btn.disabled=false;btn.textContent='Giriş Yap';}
+   return;
+ }
+
+ currentUser=data.user;
+ applyRememberEmail();
+ const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',currentUser.id).maybeSingle();
+ if(email===ADMIN_EMAIL){
+   currentProfile={id:currentUser.id,full_name:'İsmail Deniz',role:'admin',approval_status:'approved'}
+ }else{
+   if(!p){await sb.auth.signOut();
+ clearLoginFormFields();
+ clearLoginFormFields();msg.textContent='Kullanıcı profili bulunamadı.';loginInFlight=false;if(btn){btn.disabled=false;btn.textContent='Giriş Yap'};return}
+   // Yönetici onayı olmadan yeni kullanıcı sisteme alınmaz.
+   if(p.approval_status!=='approved'){
+     await sb.auth.signOut({scope:'local'});
+     clearLoginFormFields();
+     const statusText=p.approval_status==='pending'
+       ? 'Kaydınız başarıyla oluşturulmuştur. Sisteme giriş yapabilmeniz için yönetici onayının tamamlanması gerekmektedir. Yönetici onayından sonra sisteme giriş yapabilirsiniz.'
+       : 'Hesabınız henüz onaylanmadı. Lütfen yönetici onayından sonra tekrar giriş yapın.';
+     msg.textContent=statusText;
+     msg.classList.add('show');
+     loginInFlight=false;
+     if(btn){btn.disabled=false;btn.textContent='Giriş Yap'}
+     return;
+   }
+   currentProfile=p
+ }
+ document.getElementById('loginPage').classList.add('hidden');document.getElementById('app').classList.remove('hidden');
+ document.getElementById('userText').textContent=((currentProfile.role==='admin'?'İsmail Deniz':(currentProfile.full_name||email))+' • '+currentProfile.role);document.getElementById('avatar').textContent=((currentProfile.role==='admin'?'İD':(currentProfile.full_name||'A').slice(0,1).toUpperCase()));
+ document.getElementById('adminNav').classList.toggle('hidden',currentProfile.role!=='admin');
+ loginInFlight=false;
+ try{sessionStorage.setItem(SESSION_MARKER,'1')}catch(e){}
+ scheduleSessionTimeout();
+ refresh();toast('Giriş başarılı')
+}
+
+function onRecoveryTurnstile(token){recoveryTurnstileToken=token||'';}
+
+function showRecovery(){
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('registerPage').classList.add('hidden');
+  document.getElementById('resetPage').classList.add('hidden');
+  document.getElementById('recoveryPage').classList.remove('hidden');
+  const email=v('loginEmail').trim().toLowerCase();
+  if(email)document.getElementById('recoveryEmail').value=email;
+  setTimeout(()=>{renderTurnstileWidgets();if(recoveryTurnstileWidgetId!==null)try{recoveryTurnstileToken='';window.turnstile.reset(recoveryTurnstileWidgetId)}catch(e){}},100);
+}
+
+async function sendRecovery(){
+  if(recoveryInFlight)return;
+  const email=v('recoveryEmail').trim().toLowerCase();
+  const msg=document.getElementById('recoveryMsg');
+  if(!email){msg.textContent='E-posta adresi gerekli.';return}
+  if(!recoveryTurnstileToken){msg.textContent='Lütfen güvenlik doğrulamasını tamamlayın.';return}
+  recoveryInFlight=true;
+  const btn=document.querySelector('#recoveryPage button[onclick="sendRecovery()"]');
+  if(btn){btn.disabled=true;btn.textContent='Gönderiliyor...'}
+  const token=recoveryTurnstileToken; recoveryTurnstileToken='';
+  const redirectTo='https://deniz-mocha.vercel.app/';
+  const {error}=await sb.auth.resetPasswordForEmail(email,{
+    redirectTo:redirectTo.toString(),
+    captchaToken:token
+  });
+  if(error){
+    console.error('Password reset error:', error);
+    msg.textContent='Sıfırlama bağlantısı gönderilemedi: '+(error.message||error.name||'Bilinmeyen hata');
+    try{if(window.turnstile&&recoveryTurnstileWidgetId!==null){recoveryTurnstileToken='';window.turnstile.reset(recoveryTurnstileWidgetId)}}catch(e){}
+  }else{
+    msg.textContent='Şifre sıfırlama bağlantısı e-posta adresinize gönderildi. E-postadaki bağlantıyı açın.';
+  }
+  recoveryInFlight=false;
+  if(btn){btn.disabled=false;btn.textContent='Sıfırlama bağlantısı gönder'}
+}
+
+async function updatePassword(){
+  const p=document.getElementById('newPassword').value;
+  const p2=document.getElementById('newPassword2').value;
+  const msg=document.getElementById('resetMsg');
+  if(p.length<8){msg.textContent='Şifre en az 8 karakter olmalıdır.';return}
+  if(p!==p2){msg.textContent='Şifreler eşleşmiyor.';return}
+
+  const {error}=await sb.auth.updateUser({password:p});
+  if(error){msg.textContent='Şifre güncellenemedi: '+error.message;return}
+
+  msg.textContent='Şifreniz başarıyla güncellendi. Giriş ekranına yönlendiriliyorsunuz...';
+
+  setTimeout(async ()=>{
+    document.getElementById('app').classList.add('hidden');
+    document.getElementById('resetPage').classList.add('hidden');
+    window.history.replaceState({},document.title,window.location.pathname);
+    await sb.auth.signOut();
+ clearLoginFormFields();
+ clearLoginFormFields();
+    recoveryMode=false;
+    showLogin();
+    const loginMsg=document.getElementById('loginMsg');
+    if(loginMsg) loginMsg.textContent='Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz.';
+  },1200);
+}
+
+function setRegistrationBirthDateLimit(){
+ const el=document.getElementById('regBirthDate');
+ if(!el)return;
+ const d=new Date();
+ const max=new Date(d.getFullYear()-18,d.getMonth(),d.getDate());
+ el.max=max.toISOString().slice(0,10);
+}
+function updateRegistrationOptions(){
+ const profession=v('regProfession');
+ const education=document.getElementById('regEducation');
+ const title=document.getElementById('regTitle');
+ if(!education||!title)return;
+ const nurseEducation=['Sağlık Meslek Lisesi','Ön lisans','Lisans','Yüksek lisans','Doktora'];
+ const nurseTitles=['Hemşire'];
+ const doctorEducation=['Tıp Fakültesi','Tıpta Uzmanlık','Yan Dal Uzmanlığı'];
+ const doctorTitles=['Pratisyen hekim','Asistan hekim','Uzman hekim','Dr. Öğr. Üyesi','Doçent','Profesör'];
+ const e=profession==='Hemşire'?nurseEducation:profession==='Hekim'?doctorEducation:[];
+ const t=profession==='Hemşire'?nurseTitles:profession==='Hekim'?doctorTitles:[];
+ education.innerHTML='<option value="">Seçiniz</option>'+e.map(x=>`<option value="${x}">${x}</option>`).join('');
+ title.innerHTML='<option value="">Seçiniz</option>'+t.map(x=>`<option value="${x}">${x}</option>`).join('');
+}
+async function registerUser(){
+ const name=v('regName').trim(),email=v('regEmail').trim().toLowerCase(),password=document.getElementById('regPassword').value;
+ const birth=v('regBirthDate'),gender=v('regGender'),profession=v('regProfession'),education=v('regEducation'),title=v('regTitle');
+ if(!name||!email||!password||!birth||!gender||!profession||!education||!title||!hospital||!department){
+   document.getElementById('regMsg').textContent='Tüm kayıt bilgilerini doldurun.';return
+ }
+ const emailPattern=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+ if(!emailPattern.test(email)){
+   document.getElementById('regMsg').textContent='Geçersiz e-posta adresi. Lütfen geçerli bir e-posta girin.';
+   return;
+ }
+ const birthDate=new Date(birth+'T00:00:00');
+ const today=new Date();
+ let age=today.getFullYear()-birthDate.getFullYear();
+ const monthDiff=today.getMonth()-birthDate.getMonth();
+ if(monthDiff<0 || (monthDiff===0 && today.getDate()<birthDate.getDate())) age--;
+ if(Number.isNaN(age) || age<18){
+   document.getElementById('regMsg').textContent='Kayıt yalnızca 18 yaş ve üzerindeki kullanıcılar için kabul edilir.';
+   return;
+ }
+ if(birthDate>today){
+   document.getElementById('regMsg').textContent='Doğum tarihi gelecekte olamaz.';
+   return;
+ }
+ const role=profession==='Hekim'?'doktor':'hemsire';
+ if(!registerTurnstileToken){
+   document.getElementById('regMsg').textContent='Lütfen güvenlik doğrulamasını tamamlayın.';
+   return;
+ }
+ const {error}=await sb.auth.signUp({
+   email,password,
+   options:{captchaToken:registerTurnstileToken,data:{
+     full_name:name,
+     birth_date:birth,
+     gender:gender,
+     profession:profession,
+     education_status:education,
+     professional_education:education,
+     professional_title:title,
+     hospital_name:hospital,
+     department_name:department,
+     role:role
+   }}
+ });
+ document.getElementById('regMsg').textContent=error
+  ? (error.message && /database error saving new user/i.test(error.message)
+      ? 'Kayıt başarısız: Kullanıcı profili veritabanına kaydedilemedi. Lütfen tekrar deneyin.'
+      : 'Kayıt başarısız: '+error.message)
+  : 'Kayıt oluşturuldu. Lütfen e-postanızdaki doğrulama bağlantısını tamamlayın.';
+ if(!error)showLogin()
+}
+async function logout(){
+  await forceSessionLogout('Oturum kapatıldı. Yeniden giriş yapmanız gerekiyor.');
+}
+async function updatePatient(){
+ const id=window.editingPatientId;
+ if(!id){toast('Düzenlenecek hasta seçilmedi.');return}
+
+ const patientCode=v('newPid').trim();
+ const identifier=v('newPatientIdentifier').trim();
+ const patientName=v('newPatientName').trim();
+ const birth=v('newBirthDate')||null;
+ const gender=v('newGender')||null;
+ const height=v('newHeight')!==''?Number(v('newHeight')):null;
+ const weight=v('newWeight')!==''?Number(v('newWeight')):null;
+ const pod=v('newPod')!==''?Number(v('newPod')):null;
+
+ if(!patientCode||!identifier||!patientName||!birth||!gender){
+   toast('Hasta kodu, Hastahane Adı/T.C. Kimlik No, Ad Soyad, Doğum Tarihi ve Cinsiyet zorunludur');
+   return;
+ }
+ if(height===null||weight===null||pod===null){
+   toast('Boy, kilo ve postoperatif gün alanlarını doldurun');
+   return;
+ }
+
+ const {data,error}=await sb.rpc('update_patient_record',{
+   target_id:id,
+   p_patient_code:patientCode,
+   p_identifier:identifier,
+   p_patient_name:patientName,
+   p_birth_date:birth,
+   p_gender:gender,
+   p_height:height,
+   p_weight:weight,
+   p_postop_day:pod
+ });
+
+ if(error){console.error(error);toast('Hasta güncellenemedi: '+error.message);return}
+ if(data!==true){toast('Hasta kaydı bulunamadı veya güncellenemedi.');return}
+
+ window.editingPatientId=null;
+ const btn=document.getElementById('patientSaveBtn');
+ if(btn){btn.textContent='Hasta Kaydet';btn.dataset.mode='add';btn.setAttribute('onclick','addPatient()')}
+ ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newWeight','newPod'].forEach(x=>{
+   const el=document.getElementById(x);if(el)el.value='';
+ });
+ const g=document.getElementById('newGender');if(g)g.value='';
+ toast('Hasta bilgileri başarıyla güncellendi');
+ await refresh();
+}
+function calculateBMIValue(){
+ const h=Number(v('newHeight')), w=Number(v('newWeight'));
+ return h>0 && w>0 ? (w/Math.pow(h/100,2)).toFixed(2) : '';
+}
+function updatePatientBMI(){
+ const el=document.getElementById('newBMI');
+ if(el) el.value=calculateBMIValue();
+}
+
+function setPatientSaveState(loading){
+  const b=document.getElementById('patientSaveBtn');
+  if(!b)return;
+  b.disabled=loading;
+  b.textContent=loading?'Kaydediliyor...':(window.editingPatientId?'Hasta Güncelle':'Hasta Kaydet');
+}
+function setAssessmentSaveState(loading){
+  const b=document.querySelector('#assessment button[onclick="evaluateAndSave()"]');
+  if(!b)return;
+  b.disabled=loading;
+  b.textContent=loading?'Kaydediliyor...':'Değerlendir ve Kaydet';
+}
+async function addPatient(){
+ if(window.patientSaveInFlight)return;
+ window.patientSaveInFlight=true;
+ setPatientSaveState(true);
+
+ try{
+   if(window.editingPatientId){
+     await updatePatient();
+     toast('Hasta güncellendi');
+     return;
+   }
+
+   const code=v('newPid').trim(), identifier=v('newPatientIdentifier').trim(), name=v('newPatientName').trim();
+   const birth=v('newBirthDate'), gender=v('newGender');
+   const height=v('newHeight'), weight=v('newWeight'), pod=v('newPod');
+
+   if(!code){toast('Hasta kodu gerekli');return}
+   if(!identifier){toast('Hasta T.C. Kimlik No / Dosya No girin');return}
+   if(!name){toast('Hasta adı soyadı gerekli');return}
+   if(!birth){toast('Doğum tarihi gerekli');return}
+   if(!gender){toast('Cinsiyet seçin');return}
+   if(!height||!weight||pod===''){toast('Boy, kilo ve postoperatif gün alanlarını doldurun');return}
+
+   const {data:{user},error:authError}=await sb.auth.getUser();
+   if(authError||!user)throw new Error('Oturum doğrulanamadı. Lütfen çıkış yapıp yeniden giriş yapın.');
+
+   const birthDate=new Date(birth+'T00:00:00');
+   const today=new Date();
+   let age=today.getFullYear()-birthDate.getFullYear();
+   const md=today.getMonth()-birthDate.getMonth();
+   if(md<0 || (md===0 && today.getDate()<birthDate.getDate())) age--;
+
+   const payload={
+     patient_code:code,
+     patient_name:name,
+     birth_date:birth,
+     age:Math.max(0,age),
+     height_cm:Number(height),
+     weight_kg:Number(weight),
+     postoperative_day:Number(pod),
+     gender:gender,
+     medical_record_no:identifier,
+     national_id:null,
+     created_by:user.id
+   };
+
+   if(!navigator.onLine)throw new Error('İnternet bağlantısı yok.');
+
+   const result=await sb.from('patients').insert(payload).select('id').single();
+   if(result.error)throw new Error(result.error.message);
+
+   ['newPid','newPatientIdentifier','newPatientName','newBirthDate','newHeight','newWeight','newBMI','newPod'].forEach(id=>{
+     const el=document.getElementById(id);if(el)el.value='';
+   });
+   const g=document.getElementById('newGender');if(g)g.value='';
+
+   toast('Hasta kaydedildi');
+   refresh().catch(e=>console.error('Liste yenileme:',e));
+ }catch(e){
+   console.error('Hasta kaydetme:',e);
+   toast('Hasta kaydedilemedi: '+(e?.message||'Beklenmeyen hata'));
+ }finally{
+   window.patientSaveInFlight=false;
+   setPatientSaveState(false);
+ }
+}
+
+async function deletePatient(id){
+ if(!currentProfile||currentProfile.role!=='admin'){
+   toast('Sadece yönetici hasta silebilir.');return
+ }
+ if(!confirm('Bu hastayı ve bağlı değerlendirmelerini silmek istediğinize emin misiniz?'))return;
+
+ // Assessments are deleted first because they reference the patient.
+ const {error:aerr}=await sb.from('assessments').delete().eq('patient_id',id);
+ if(aerr){
+   console.error(aerr);
+   toast('Değerlendirmeler silinemedi: '+aerr.message);return
+ }
+
+ const {data, error:perr}=await sb.from('patients').delete().eq('id',id).select('id');
+ if(perr){
+   console.error(perr);
+   toast('Hasta silinemedi: '+perr.message);return
+ }
+ if(!data || data.length===0){
+   toast('Hasta silinemedi. Yönetici yetkisi veya kayıt bulunamadı.');return
+ }
+
+ toast('Hasta silindi');
+ await refresh();
+}
+
+async function evaluateAndSave(){
+ if(window.assessmentSaveInFlight)return;
+ window.assessmentSaveInFlight=true;
+ setAssessmentSaveState(true);
+ try{
+
+ const patientId=v('pid');
+ if(!patientId){toast('Önce Hastalar bölümünden bir hasta seçin.');return}
+
+ const t=n('temp'), hr=n('hr'), sbp=n('sbp'), rr=n('rr'), sp=n('spo2'), painScore=n('painScore'), concern=n('concern'), consciousness=n('con');
+ const news2Score=news2();
+
+ // S-CDIAPS surgical-specific points
+ let scdiapsExtra=0, reasons=[];
+ if(painScore>=8){scdiapsExtra=Math.max(scdiapsExtra,3);reasons.push('Şiddetli ağrı (8–10/10)')}
+ else if(painScore>=5){scdiapsExtra=Math.max(scdiapsExtra,2);reasons.push('Orta-yüksek ağrı (5–7/10)')}
+ else if(painScore>=1){reasons.push('Hafif ağrı (1–4/10)')}
+
+ if(ck('redness')){scdiapsExtra=Math.max(scdiapsExtra,1);reasons.push('Yeni/artan yara kızarıklığı')}
+ if(ck('drain')){scdiapsExtra=Math.max(scdiapsExtra,1);reasons.push('Beklenmeyen dren değişikliği')}
+ if(ck('pus')){scdiapsExtra=Math.max(scdiapsExtra,2);reasons.push('Pürülan akıntı')}
+ if(ck('dehiscence')){scdiapsExtra=Math.max(scdiapsExtra,3);reasons.push('Yara ayrışması')}
+ if(ck('dist')){scdiapsExtra=Math.max(scdiapsExtra,2);reasons.push('Abdominal distansiyon')}
+ if(ck('vomit')){scdiapsExtra=Math.max(scdiapsExtra,2);reasons.push('Tekrarlayan kusma')}
+ if(ck('nogas')){scdiapsExtra=Math.max(scdiapsExtra,2);reasons.push('Gaz çıkaramama')}
+ if(ck('oliguria')){scdiapsExtra=Math.max(scdiapsExtra,2);reasons.push('İdrar çıkışında belirgin azalma')}
+ if(concern===1){scdiapsExtra=Math.max(scdiapsExtra,1);reasons.push('Hemşire klinik endişesi')}
+ if(concern===2){scdiapsExtra=Math.max(scdiapsExtra,2);reasons.push('Belirgin hemşire klinik endişesi')}
+
+ // Primary risk is determined by NEWS2 and critical S-CDIAPS surgical flags.
+ let risk='DÜŞÜK';
+ if(news2Score>=7 || [3,4].includes(consciousness) || painScore>=8 || ck('dehiscence')) risk='YÜKSEK';
+ else if(news2Score>=5 || painScore>=5 || scdiapsExtra>=2 || concern>=1) risk='ORTA';
+
+ if(news2Score>=7) reasons.unshift('NEWS2 ≥7');
+ else if(news2Score>=5) reasons.unshift('NEWS2 5–6');
+ if([3,4].includes(consciousness)) reasons.unshift('ACVPU: P / U');
+ if(consciousness===1) reasons.unshift('ACVPU: C — Yeni konfüzyon');
+ if(consciousness===2) reasons.unshift('ACVPU: V — Sese yanıt');
+
+ const action = risk==='YÜKSEK'
+   ? 'Acil klinik değerlendirme; vital bulguları doğrulayın ve kurum protokolüne göre sorumlu klinik ekibe derhal bildirin.'
+   : risk==='ORTA'
+   ? 'Klinik yeniden değerlendirme yapın ve kurum protokolüne göre izlem sıklığını artırın.'
+   : 'Rutin klinik izleme devam edin.';
+
+ const payload={
+   patient_id:patientId,
+   assessed_by:currentUser.id,
+   temperature:t,
+   heart_rate:hr,
+   systolic_bp:sbp,
+   diastolic_bp:n('dbp'),
+   respiratory_rate:rr,
+   spo2:sp,
+   oxygen_l_min:n('o2'),
+   consciousness_change:consciousness!==0,
+   nurse_concern:concern,
+   wound_redness:ck('redness'),
+   drain_change:ck('drain'),
+   purulent_discharge:ck('pus'),
+   wound_dehiscence:ck('dehiscence'),
+   abdominal_distension:ck('dist'),
+   vomiting:ck('vomit'),
+   no_gas:ck('nogas'),
+   increased_pain:painScore>=1,
+   pain_score:painScore,
+   oliguria:ck('oliguria'),
+   news2_score:news2Score,
+   scdiaps_risk:risk,
+   risk_reasons:reasons.join('; '),
+   recommended_action:action
+ };
+
+ if(!navigator.onLine)throw new Error('İnternet bağlantısı yok.');
+ const {data:{user},error:authError}=await sb.auth.getUser();
+ if(authError||!user)throw new Error('Oturum doğrulanamadı. Lütfen çıkış yapıp yeniden giriş yapın.');
+ payload.assessed_by=user.id;
+ const result=await sb.from('assessments').insert(payload).select('id').single();
+ if(result.error)throw new Error(result.error.message);
+ const assessedAt=new Date().toISOString();
+ try{await createClinicalOutcomeForAssessment(result.data.id,patientId,assessedAt);}catch(outcomeError){console.warn('24 saatlik sonuç takibi oluşturulamadı:',outcomeError);}
+ const cls=risk==='YÜKSEK'?'r':risk==='ORTA'?'y':'g';
+ document.getElementById('result').innerHTML=`<div class="result-panel ${cls}">
+   <h3>${risk} RİSK</h3>
+   <p><b>NEWS2:</b> ${news2Score}</p>
+   <p><b>S-CDIAPS cerrahi katkı düzeyi:</b>
+   <span title="Bu, sistemde cerrahi/GİS bulgularının risk değerlendirmesine katkısını gösteren iç göstergedir; bağımsız bir klinik skor değildir.">
+   ${scdiapsExtra===3?'Yüksek (3)':scdiapsExtra===2?'Orta (2)':scdiapsExtra===1?'Düşük (1)':'Belirgin katkı yok (0)'}
+   </span>
+</p>
+   <p class="small" style="margin-top:4px">Cerrahi katkı düzeyi, S-CDIAPS içindeki cerrahi/GİS bulgularının risk değerlendirmesine katkısını gösteren yardımcı bir göstergedir; tek başına tanı veya tedavi kararı değildir.</p>
+    <p><b>Saptanan bulgular:</b></p>
+   <ul>${(reasons.length?reasons:['Belirgin risk göstergesi saptanmadı']).map(x=>`<li>${x}</li>`).join('')}</ul>
+   <p><b>Önerilen eylem:</b> ${action}</p>
+ </div>`;
+ toast('Değerlendirme kaydedildi');
+ document.getElementById('result').insertAdjacentHTML('beforeend',`<div style="margin-top:14px"><button class="btn btn-primary" onclick="openOutcomeModal('${result.data.id}')">24 Saatlik Sonucu Gör / Kaydet</button></div>`);
+ refresh();
+ }catch(e){
+   console.error('Değerlendirme kaydetme:',e);
+   toast('Değerlendirme kaydedilemedi: '+(e?.message||'Beklenmeyen hata'));
+ }finally{
+   window.assessmentSaveInFlight=false;
+   setAssessmentSaveState(false);
+ }
+
+}
+function clearAssessment(){document.querySelectorAll('#assessment input').forEach(e=>{if(e.type==='checkbox')e.checked=false});document.getElementById('result').innerHTML=''}
+
+
+let currentOutcomeAssessmentId=null;
+async function createClinicalOutcomeForAssessment(assessmentId,patientId,assessedAt){
+ const due=new Date(new Date(assessedAt).getTime()+24*60*60*1000).toISOString();
+ const {data,error}=await sb.from('clinical_outcomes').insert({assessment_id:assessmentId,patient_id:patientId,assessed_at:assessedAt,outcome_due_at:due,outcome_status:'PENDING'}).select('id').single();
+ if(error)throw error; return data;
+}
+async function openOutcomeModal(assessmentId){
+ try{
+  currentOutcomeAssessmentId=assessmentId;
+  let {data:existing,error}=await sb.from('clinical_outcomes').select('*').eq('assessment_id',assessmentId).maybeSingle();
+  if(error)throw error;
+  if(!existing){
+   const {data:a,error:ae}=await sb.from('assessments').select('id,patient_id,assessed_at').eq('id',assessmentId).single();
+   if(ae)throw ae;
+   existing=await createClinicalOutcomeForAssessment(a.id,a.patient_id,a.assessed_at);
+  }
+  document.getElementById('outcomeModalInfo').textContent=`Değerlendirme: ${new Date(existing.assessed_at).toLocaleString('tr-TR')} — 24 saatlik takip`;
+  document.querySelectorAll('input[name="outcomeDeterioration"]').forEach(x=>x.checked=existing.deterioration===true?x.value==='true':existing.deterioration===false?x.value==='false':false);
+  document.getElementById('outcomeType').value=existing.deterioration_type||'';
+  document.getElementById('outcomeDetails').value=existing.deterioration_details||'';
+  document.getElementById('outcomeModal').classList.remove('hidden');
+ }catch(e){console.error(e);toast('Sonuç kaydı açılamadı: '+(e?.message||'Beklenmeyen hata'));}
+}
+function closeOutcomeModal(){document.getElementById('outcomeModal').classList.add('hidden');currentOutcomeAssessmentId=null;}
+async function saveClinicalOutcome(){
+ try{
+  if(!currentOutcomeAssessmentId)throw new Error('Sonuç kaydı seçilmedi.');
+  const choice=document.querySelector('input[name="outcomeDeterioration"]:checked');
+  if(!choice){toast('Lütfen 24 saatlik klinik sonucu seçin.');return;}
+  const deterioration=choice.value==='true', type=document.getElementById('outcomeType').value||null, details=document.getElementById('outcomeDetails').value.trim()||null;
+  if(!deterioration&&type){toast('Kötüleşme yok seçildiğinde türü boş bırakın.');return;}
+  const {data:{user},error:ae}=await sb.auth.getUser(); if(ae||!user)throw new Error('Oturum doğrulanamadı.');
+  const {error}=await sb.from('clinical_outcomes').update({outcome_status:'COMPLETED',deterioration,deterioration_type:deterioration?type:null,deterioration_details:details,recorded_at:new Date().toISOString(),recorded_by:user.id,updated_at:new Date().toISOString()}).eq('assessment_id',currentOutcomeAssessmentId);
+  if(error)throw error; toast('24 saatlik klinik sonuç kaydedildi.'); closeOutcomeModal(); loadClinicalOutcomes();
+ }catch(e){console.error(e);toast('Klinik sonuç kaydedilemedi: '+(e?.message||'Beklenmeyen hata'));}
+}
+async function deleteClinicalOutcome(id){
+ if(!currentProfile||currentProfile.role!=='admin'){toast('Sadece yönetici 24 saatlik sonuç kaydı silebilir.');return}
+ if(!confirm('Bu 24 saatlik klinik sonuç kaydını silmek istediğinize emin misiniz?'))return;
+ const {data,error}=await sb.from('clinical_outcomes').delete().eq('id',id).select('id');
+ if(error){console.error(error);toast('Sonuç kaydı silinemedi: '+error.message);return}
+ if(!data||data.length===0){toast('Sonuç kaydı silinemedi veya bulunamadı.');return}
+ toast('24 saatlik klinik sonuç kaydı silindi.');
+ await loadClinicalOutcomes();
+}
+async function loadClinicalOutcomes(){
+ const body=document.getElementById('outcomesTable'); if(!body)return; body.innerHTML='<tr><td colspan="6">Yükleniyor...</td></tr>';
+ try{
+  const {data,error}=await sb.from('clinical_outcomes').select('id,assessment_id,patient_id,assessed_at,outcome_due_at,outcome_status,deterioration,deterioration_type').order('assessed_at',{ascending:false}).limit(200);
+  if(error)throw error;
+  if(!data?.length){body.innerHTML='<tr><td colspan="6">Henüz sonuç takibi kaydı yok.</td></tr>';return;}
+  const ids=[...new Set(data.map(x=>x.patient_id).filter(Boolean))], aids=[...new Set(data.map(x=>x.assessment_id).filter(Boolean))];
+  const pr=ids.length?await sb.from('patients').select('id,patient_name,patient_code,medical_record_no').in('id',ids):{data:[]};
+  const ar=aids.length?await sb.from('assessments').select('id,scdiaps_risk,news2_score').in('id',aids):{data:[]};
+  const pm=new Map((pr.data||[]).map(p=>[p.id,p])), am=new Map((ar.data||[]).map(a=>[a.id,a]));
+  body.innerHTML=data.map(x=>{const p=pm.get(x.patient_id)||{},a=am.get(x.assessment_id)||{},name=p.patient_name||p.patient_code||p.medical_record_no||'Hasta';const status=x.outcome_status==='COMPLETED'?`<span class="outcome-done">${x.deterioration?'Kötüleşme var':'Kötüleşme yok'}</span>`:`<span class="outcome-pending">Bekliyor</span>`;return `<tr><td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td><td>${name}</td><td>${a.scdiaps_risk||'—'}</td><td>${a.news2_score??'—'}</td><td>${status}</td><td>
+<button class="btn ${x.outcome_status==='COMPLETED'?'':'btn-primary'}" onclick="openOutcomeModal('${x.assessment_id}')">${x.outcome_status==='COMPLETED'?'Görüntüle / Düzenle':'Sonucu Kaydet'}</button>
+${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deleteClinicalOutcome('${x.id}')">Sil</button>`:''}
+</td></tr>`;}).join('');
+ }catch(e){console.error(e);body.innerHTML=`<tr><td colspan="6">Yüklenemedi: ${e?.message||'Beklenmeyen hata'}</td></tr>`;}
+}
+
+function exportStatisticsExcel(){
+  if(typeof XLSX==='undefined'){
+    toast('Excel aktarımı için gerekli bileşen yüklenemedi. İnternet bağlantısını kontrol edin.');
+    return;
+  }
+  const rows=(window.__statisticsRecords||[]);
+  const patients=(window.__statisticsPatients||[]);
+
+  const patientRows=patients.map(p=>({
+    'Hasta Kodu':p.patient_code||'',
+    'T.C. / Dosya No':p.medical_record_no||p.national_id||'',
+    'Hasta Adı Soyadı':p.patient_name||'',
+    'Doğum Tarihi':p.birth_date||'',
+    'Cinsiyet':p.gender||'',
+    'Boy (cm)':p.height_cm??'',
+    'Kilo (kg)':p.weight_kg??'',
+    'Postoperatif Gün':p.postoperative_day??''
+  }));
+
+  const assessmentRows=rows.map(x=>({
+    'Zaman':x.assessed_at ? new Date(x.assessed_at).toLocaleString('tr-TR') : '',
+    'TC / Dosya No':x.patient_identifier||'',
+    'Hasta Adı Soyadı':x.patient_name||'',
+    'Değerlendiren':x.evaluator_name||'',
+    'Risk':x.risk||'',
+    'NEWS2':x.news2??'',
+    'Neden':x.reasons||''
+  }));
+
+  const low=rows.filter(x=>x.risk==='DÜŞÜK').length;
+  const mid=rows.filter(x=>x.risk==='ORTA').length;
+  const high=rows.filter(x=>x.risk==='YÜKSEK').length;
+  const news=rows.map(x=>Number(x.news2)).filter(Number.isFinite);
+  const avg=news.length?news.reduce((a,b)=>a+b,0)/news.length:0;
+  const summaryRows=[
+    {'Gösterge':'Toplam hasta','Değer':patients.length},
+    {'Gösterge':'Değerlendirilen hasta','Değer':new Set(rows.map(x=>x.patient_id).filter(Boolean)).size},
+    {'Gösterge':'Toplam değerlendirme','Değer':rows.length},
+    {'Gösterge':'Ortalama NEWS2','Değer':Number(avg.toFixed(1))},
+    {'Gösterge':'Düşük risk','Değer':low},
+    {'Gösterge':'Orta risk','Değer':mid},
+    {'Gösterge':'Yüksek risk','Değer':high},
+  ];
+
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(summaryRows),'İstatistik Özeti');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(patientRows),'Hastalar');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(assessmentRows),'Değerlendirmeler');
+
+  const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  XLSX.writeFile(wb,`S-CDIAPS_istatistik_${stamp}.xlsx`);
+  toast('Excel dosyası oluşturuldu.');
+}
+
+async 
+async function runClinicalAdvisor(){
+  const box=document.getElementById('aiAdvisorContent');
+  if(!box)return;
+  box.innerHTML='<div class="ai-empty">Klinik veriler analiz ediliyor…</div>';
+  try{
+    if(!window.__statisticsRecords){
+      await refresh();
+    }
+    const records=Array.isArray(window.__statisticsRecords)?window.__statisticsRecords:[];
+    if(!records.length){
+      box.innerHTML='<div class="ai-empty">Henüz değerlendirme kaydı yok. Önce bir hasta değerlendirmesi kaydedin.</div>';
+      return;
+    }
+
+    const byPatient={};
+    records.forEach(r=>{
+      const k=r.patient_id||r.patient_identifier||r.patient_name||'unknown';
+      if(!byPatient[k])byPatient[k]=[];
+      byPatient[k].push(r);
+    });
+    Object.values(byPatient).forEach(a=>a.sort((x,y)=>new Date(x.assessed_at)-new Date(y.assessed_at)));
+
+    const latest=Object.values(byPatient).map(a=>a[a.length-1]);
+    const high=latest.filter(x=>(x.risk||x.scdiaps_risk)==='YÜKSEK');
+    const mid=latest.filter(x=>(x.risk||x.scdiaps_risk)==='ORTA');
+    const maxNews=latest.reduce((m,x)=>Math.max(m,Number(x.news2)||0),0);
+
+    let priority='Düşük';
+    let priorityClass='ai-risk-low';
+    if(high.length||maxNews>=7){priority='Yüksek';priorityClass='ai-risk-high'}
+    else if(mid.length||maxNews>=5){priority='Orta';priorityClass='ai-risk-mid'}
+
+    const trendFlags=[];
+    Object.values(byPatient).forEach(a=>{
+      if(a.length<2)return;
+      const prev=Number(a[a.length-2].news2);
+      const cur=Number(a[a.length-1].news2);
+      if(Number.isFinite(prev)&&Number.isFinite(cur)&&cur>prev)trendFlags.push(`${a[a.length-1].patient_name||a[a.length-1].patient_identifier||'Hasta'}: NEWS2 ${prev} → ${cur}`);
+    });
+
+    const path=[];
+    if(priority==='Yüksek'){
+      path.push('Öncelikli klinik değerlendirme ve sorumlu ekibin haberdar edilmesi');
+      path.push('Vital bulguları ve klinik durumu daha sık yeniden değerlendirme');
+      path.push('Kötüleşme bulguları varsa yerel acil/rapid response protokolünü uygulama');
+      path.push('Yanıtı ve sonraki bakım planını kaydetme');
+    }else if(priority==='Orta'){
+      path.push('Hemşire değerlendirmesi ve yakın izlem');
+      path.push('Anormal fizyolojik parametreleri yeniden kontrol etme');
+      path.push('Klinik ekibe zamanında haber verme ve yeniden değerlendirme planı oluşturma');
+    }else{
+      path.push('Rutin izlem ve planlanan vital bulgu takibine devam etme');
+      path.push('Yeni klinik kaygı veya anormal fizyoloji gelişirse risk değerlendirmesini tekrarlama');
+    }
+
+    const sourceHtml=`
+      <div class="ai-source">
+        <b>Kanıt/kaynaklar</b><br>
+        <a href="https://www.nice.org.uk/guidance/CG50/chapter/recommendations" target="_blank" rel="noopener">NICE CG50 – akut hastada kötüleşmenin tanınması ve yanıt</a><br>
+        <a href="https://www.sccm.org/clinical-resources/guidelines/guidelines/guidelines-on-recognizing-and-responding-to-clinical-deterioration-outside-the-icu" target="_blank" rel="noopener">SCCM 2024 – klinik kötüleşmeyi tanıma ve yanıt</a><br>
+        <a href="https://www.ahrq.gov/ncepcr/reports/primary-care-research/results.html" target="_blank" rel="noopener">AHRQ – Clinical Decision Support Five Rights</a>
+      </div>`;
+
+    const chips=[];
+    if(high.length)chips.push(`🔴 ${high.length} yüksek risk`);
+    if(mid.length)chips.push(`🟡 ${mid.length} orta risk`);
+    chips.push(`NEWS2 maksimum: ${maxNews}`);
+    if(trendFlags.length)chips.push(`📈 ${trendFlags.length} artan NEWS2 trendi`);
+
+    box.innerHTML=`
+      <div class="ai-grid">
+        <div class="ai-panel">
+          <h4>Öngörüsel risk özeti</h4>
+          <div class="ai-risk-score ${priorityClass}">${priority}</div>
+          <div style="margin-top:10px">${chips.map(x=>`<span class="ai-chip">${x}</span>`).join('')}</div>
+          ${trendFlags.length?`<div style="margin-top:10px"><b>Dikkat çeken trendler</b><ul>${trendFlags.slice(0,5).map(x=>`<li>${x}</li>`).join('')}</ul></div>`:''}
+        </div>
+        <div class="ai-panel">
+          <h4>Danışman önerdiği yol</h4>
+          <div class="ai-path">${path.map((x,i)=>`<div class="ai-step"><b>${i+1}</b><span>${x}</span></div>`).join('')}</div>
+        </div>
+      </div>
+      ${sourceHtml}
+      <div class="ai-disclaimer"><b>Önemli:</b> Bu ekran klinik karar desteğidir; otomatik tanı veya tedavi kararı vermez. Risk tahminleri mevcut kayıtlardaki verilerden üretilen öngörüdür ve klinik değerlendirme ile doğrulanmalıdır.</div>`;
+  }catch(e){
+    console.error('Klinik danışman:',e);
+    box.innerHTML=`<div class="ai-empty">Analiz oluşturulamadı: ${e?.message||'Beklenmeyen hata'}</div>`;
+  }
+}
+
+async function refresh(){
+ if(!currentUser)return;
+ const [pr,hr]=await Promise.all([sb.from('patients').select('*').order('created_at',{ascending:false}),sb.rpc('assessment_history_context')]);
+ const patients=pr.data||[],records=hr.data||[]; patientCache=patients; window.__statisticsPatients=patients; window.__statisticsRecords=records;
+ if(hr.error){console.error(hr.error); toast('Değerlendirme geçmişi okunamadı: '+hr.error.message);return}
+ document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
+ document.getElementById('rLow').textContent=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
+ document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code} — ${p.patient_name||'Ad Soyad yok'} — ${p.medical_record_no||'TC/Dosya No yok'}</option>`).join('');
+ document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.medical_record_no??'-'}</td><td>${p.patient_name??'-'}</td><td>${p.birth_date?new Date(p.birth_date+'T00:00:00').toLocaleDateString('tr-TR'):'-'}</td><td>${p.gender??'-'}</td><td>${p.height_cm??'-'} cm</td><td>${p.weight_kg??'-'} kg</td><td>${p.postoperative_day??'-'}</td><td><button class="btn btn-primary" onclick="editPatient('${p.id}')">Düzenle</button><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="8">Hasta bulunmuyor.</td></tr>';
+ const latestByPatient={};
+ const grouped={};
+ records.forEach(x=>{
+   const key=x.patient_id;
+   if(!grouped[key]) grouped[key]=[];
+   grouped[key].push(x);
+ });
+ Object.keys(grouped).forEach(pid=>{
+   grouped[pid].sort((a,b)=>new Date(b.assessed_at)-new Date(a.assessed_at));
+   latestByPatient[pid]=grouped[pid][0];
+ });
+
+ const riskClass=r=>r==='YÜKSEK'?'r':r==='ORTA'?'y':'g';
+ const groupedRows=Object.entries(grouped).map(([pid,items])=>{
+   const latest=items[0];
+   const detailId='history-details-'+pid.replace(/[^a-zA-Z0-9_-]/g,'');
+   const details=items.map((x,i)=>`<div class="history-detail" style="display:grid;grid-template-columns:150px 1fr 140px 90px 1fr;gap:10px;padding:10px 12px;border-top:1px solid #e5e7eb;background:#fafafa">
+     <div><b>${new Date(x.assessed_at).toLocaleString('tr-TR')}</b></div>
+     <div><b>${x.evaluator_name||'—'}</b></div>
+     <div><span class="badge ${riskClass(x.risk)}">${x.risk||'—'}</span></div>
+     <div>${x.news2??'—'}</div>
+     <div>${x.reasons||'—'}</div>
+   </div>`).join('');
+   return `<tr class="history-patient-row" style="cursor:pointer" onclick="toggleHistoryPatient('${detailId}')">
+     <td><button class="btn btn-light" style="padding:6px 9px" onclick="event.stopPropagation();toggleHistoryPatient('${detailId}')">＋</button></td>
+     <td>${new Date(latest.assessed_at).toLocaleString('tr-TR')}</td>
+     <td>${latest.hospital_name||'—'}</td>
+     <td>${latest.patient_identifier||'—'}</td>
+     <td><b>${latest.patient_name||'—'}</b></td>
+     <td>${latest.evaluator_name||'—'}</td>
+     <td><span class="badge ${riskClass(latest.risk)}">${latest.risk||'—'}</span></td>
+     <td>${latest.news2??'—'}</td>
+     <td>${latest.reasons||'—'}</td>
+     <td><span class="badge b">${items.length} değerlendirme</span></td>
+   </tr>
+   <tr id="${detailId}" class="history-details-row hidden">
+     <td colspan="10" style="padding:0">
+       <div style="padding:10px 0 0;background:#f8fafc">
+         <div style="display:grid;grid-template-columns:150px 1fr 140px 90px 1fr;gap:10px;padding:10px 12px;font-size:12px;font-weight:800;color:#64748b">
+           <div>Zaman</div><div>Değerlendiren</div><div>Risk</div><div>NEWS2</div><div>Neden</div>
+         </div>
+         ${details}
+       </div>
+     </td>
+   </tr>`;
+ }).join('') || '<tr><td colspan="10">Henüz değerlendirme yok.</td></tr>';
+
+ const dashboardRows=records.slice(0,15).map(x=>`<tr>
+   <td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td>
+   <td>${x.patient_identifier||'—'}</td>
+   <td>${x.patient_name||'—'}</td>
+   <td>${x.evaluator_name||'—'}</td>
+   <td><span class="badge ${riskClass(x.risk)}">${x.risk||'—'}</span></td>
+   <td>${x.news2??'—'}</td>
+   <td>${x.reasons||'—'}</td>
+ </tr>`).join('') || '<tr><td colspan="7">Kayıt yok.</td></tr>';
+
+ document.getElementById('dashTable').innerHTML=dashboardRows;
+ try{runClinicalAdvisor();}catch(e){console.warn('AI danışman otomatik güncelleme:',e)}
+ document.getElementById('historyTable').innerHTML=groupedRows;
+
+ // Statistics
+ const totalAssessments=records.length;
+ const evaluatedPatients=new Set(records.map(x=>x.patient_id).filter(Boolean)).size;
+ const lowCount=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;
+ const midCount=records.filter(x=>x.scdiaps_risk==='ORTA').length;
+ const highCount=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
+ const newsValues=records.map(x=>Number(x.news2)).filter(Number.isFinite);
+ const avgNews2=newsValues.length ? newsValues.reduce((a,b)=>a+b,0)/newsValues.length : 0;
+ const maxNews2=newsValues.length ? Math.max(...newsValues) : 0;
+ const now=Date.now();
+ const sevenDays=now-7*24*60*60*1000;
+ const thirtyDays=now-30*24*60*60*1000;
+ const last7=records.filter(x=>{const t=Date.parse(x.assessed_at);return Number.isFinite(t)&&t>=sevenDays}).length;
+ const last30=records.filter(x=>{const t=Date.parse(x.assessed_at);return Number.isFinite(t)&&t>=thirtyDays}).length;
+ const pct=n=>totalAssessments?Math.round(n/totalAssessments*100):0;
+
+ const statMap={
+   stTotalPatients:patients.length,
+   stEvaluatedPatients:evaluatedPatients,
+   stTotalAssessments:totalAssessments,
+   stAvgNews2:avgNews2.toFixed(1),
+   stLow:lowCount,
+   stMid:midCount,
+   stHigh:highCount,
+   stLowPct:'%'+pct(lowCount),
+   stMidPct:'%'+pct(midCount),
+   stHighPct:'%'+pct(highCount),
+   st7d:last7,
+   st30d:last30,
+   stMaxNews2:maxNews2,
+   stHighPctCard:'%'+pct(highCount)
+ };
+ Object.entries(statMap).forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.textContent=val});
+
+ const statsTable=document.getElementById('statsTable');
+ if(statsTable){
+   statsTable.innerHTML=[
+     ['Toplam hasta',patients.length,'Sistemde kayıtlı hasta sayısı'],
+     ['Değerlendirilen hasta',evaluatedPatients,'En az bir klinik değerlendirmesi bulunan benzersiz hasta'],
+     ['Toplam değerlendirme',totalAssessments,'Sistemdeki tüm klinik değerlendirmeler'],
+     ['Ortalama NEWS2',avgNews2.toFixed(1),'Kayıtlı değerlendirmelerde ortalama NEWS2 skoru'],
+     ['Düşük risk',lowCount+' (%'+pct(lowCount)+')','Risk dağılımındaki pay'],
+     ['Orta risk',midCount+' (%'+pct(midCount)+')','Risk dağılımındaki pay'],
+     ['Yüksek risk',highCount+' (%'+pct(highCount)+')','Risk dağılımındaki pay'],
+     ['Son 7 gün değerlendirme',last7,'Son 7 gündeki değerlendirme sayısı'],
+     ['Son 30 gün değerlendirme',last30,'Son 30 gündeki değerlendirme sayısı']
+   ].map(r=>`<tr><td>${r[0]}</td><td><b>${r[1]}</b></td><td>${r[2]}</td></tr>`).join('');
+ }
+
+ // Keep dashboard headers compatible with the data.
+ const dashHead=document.querySelector('#dashboard table thead tr');
+ if(dashHead){
+   dashHead.innerHTML='<th>Zaman</th><th>TC / Dosya No</th><th>Hasta Adı Soyadı</th><th>Değerlendiren</th><th>Risk</th><th>NEWS2</th><th>Neden</th>';
+ }
+ if(currentProfile&&currentProfile.role==='admin')renderAdmin()
+}
+async function selectPatient(id){
+ const patient=patientCache.find(p=>p.id===id);
+ if(!patient){toast('Hasta kaydı bulunamadı. Listeyi yenileyin.');return}
+ const pid=document.getElementById('pid'); if(pid) pid.value=id;
+ const identifier=document.getElementById('assessmentPatientIdentifier');
+ const name=document.getElementById('assessmentPatientName');
+ const pod=document.getElementById('pod');
+ if(identifier) identifier.value=patient.medical_record_no||patient.national_id||'';
+ if(name) name.value=patient.patient_name||'';
+ if(pod && patient.postoperative_day!==null && patient.postoperative_day!==undefined) pod.value=patient.postoperative_day;
+ go('assessment');
+}
+function toggleHistoryPatient(id){
+ const row=document.getElementById(id);
+ if(!row)return;
+ const hidden=row.classList.toggle('hidden');
+ const btn=row.previousElementSibling?.querySelector('button');
+ if(btn)btn.textContent=hidden?'＋':'−';
+}
+
+function populateAdminProfileOptions(profession, educationValue, titleValue){
+  const education=document.getElementById('adminProfileEducation');
+  const title=document.getElementById('adminProfileTitle');
+  if(!education||!title)return;
+  const nurseEducation=['Sağlık Meslek Lisesi','Ön lisans','Lisans','Yüksek lisans','Doktora'];
+  const nurseTitles=['Hemşire'];
+  const doctorEducation=['Tıp Fakültesi','Tıpta Uzmanlık','Yan Dal Uzmanlığı'];
+  const doctorTitles=['Pratisyen hekim','Asistan hekim','Uzman hekim','Dr. Öğr. Üyesi','Doçent','Profesör'];
+  const e=profession==='Hemşire'?nurseEducation:doctorEducation;
+  const t=profession==='Hemşire'?nurseTitles:doctorTitles;
+  education.innerHTML='<option value="">Seçiniz</option>'+e.map(x=>`<option value="${x}">${x}</option>`).join('');
+  title.innerHTML='<option value="">Seçiniz</option>'+t.map(x=>`<option value="${x}">${x}</option>`).join('');
+  if(educationValue)education.value=educationValue;
+  if(titleValue)title.value=titleValue;
+}
+
+async function loadAdminProfileForm(){
+  if(!currentUser)return;
+  const {data,error}=await sb.from('profiles').select('full_name,birth_date,gender,profession,education_status,professional_title').eq('id',currentUser.id).maybeSingle();
+  if(error){
+    const msg=document.getElementById('adminProfileMsg');
+    if(msg)msg.textContent='Profil bilgileri okunamadı: '+error.message;
+    return;
+  }
+  const p=data||{};
+  document.getElementById('adminProfileName').value=p.full_name||'İsmail Deniz';
+  document.getElementById('adminProfileBirth').value=p.birth_date||'';
+  document.getElementById('adminProfileGender').value=p.gender||'';
+  document.getElementById('adminProfileProfession').value=p.profession||'Hekim';
+  populateAdminProfileOptions(p.profession||'Hekim',p.education_status||'',p.professional_title||'');
+}
+
+async function saveAdminProfile(){
+  if(!currentUser||!currentProfile||currentProfile.role!=='admin'){
+    toast('Yalnızca yönetici kendi kişisel bilgilerini düzenleyebilir.');
+    return;
+  }
+  const payload={
+    full_name:document.getElementById('adminProfileName').value.trim(),
+    birth_date:document.getElementById('adminProfileBirth').value||null,
+    gender:document.getElementById('adminProfileGender').value||null,
+    profession:document.getElementById('adminProfileProfession').value||null,
+    education_status:document.getElementById('adminProfileEducation').value||null,
+    professional_title:document.getElementById('adminProfileTitle').value||null
+  };
+  if(!payload.full_name){
+    document.getElementById('adminProfileMsg').textContent='Ad Soyad boş bırakılamaz.';
+    return;
+  }
+  const {error}=await sb.from('profiles').update(payload).eq('id',currentUser.id);
+  if(error){
+    document.getElementById('adminProfileMsg').textContent='Güncelleme başarısız: '+error.message;
+    return;
+  }
+  currentProfile={...currentProfile,...payload};
+  document.getElementById('userText').textContent=''+(payload.full_name||'İsmail Deniz')+' • admin';
+  document.getElementById('avatar').textContent=(payload.full_name||'İD').split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('adminProfileMsg').textContent='Kişisel bilgileriniz güncellendi.';
+  toast('Kişisel bilgiler güncellendi');
+  renderAdmin();
+}
+
+
+window.adminUsersCache=[];
+function escDetail(value){
+  return String(value??'-').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function fmtDetail(value){
+  if(value===null||value===undefined||value==='')return '-';
+  return escDetail(value);
+}
+function openUserDetail(id){
+  if(!currentProfile||currentProfile.role!=='admin'){toast('Yönetici yetkisi gerekir');return}
+  const u=(window.adminUsersCache||[]).find(x=>x.id===id);
+  if(!u){toast('Kullanıcı bilgileri bulunamadı.');return}
+  const rows=[
+    ['Ad Soyad',u.full_name],
+    ['E-posta',u.email],
+    ['Doğum Tarihi',u.birth_date],
+    ['Cinsiyet',u.gender],
+    ['Meslek',u.profession],
+    ['Eğitim Durumu',u.education_status],
+    ['Mesleki Eğitim',u.professional_education],
+    ['Unvan',u.professional_title],
+    ['Çalıştığı Hastane / Kurum',u.hospital_name],
+    ['Çalıştığı Bölüm / Birim',u.department_name],
+    ['Rol',u.role],
+    ['Hesap Durumu',u.approval_status],
+    ['Kayıt Tarihi',u.created_at?new Date(u.created_at).toLocaleString('tr-TR'):'-'],
+    ['Onay Tarihi',u.approved_at?new Date(u.approved_at).toLocaleString('tr-TR'):'-'],
+    ['Kullanıcı ID',u.id]
+  ];
+  document.getElementById('userDetailSubtitle').textContent=u.email||u.full_name||'';
+  document.getElementById('userDetailGrid').innerHTML=rows.map(([k,v])=>`<div class="user-detail-item"><small>${escDetail(k)}</small><strong>${fmtDetail(v)}</strong></div>`).join('');
+  document.getElementById('userDetailModal').classList.remove('hidden');
+}
+function closeUserDetail(){document.getElementById('userDetailModal').classList.add('hidden')}
+async function renderAdmin(){
+ const {data,error}=await sb.rpc('admin_list_profiles');
+ if(error){document.getElementById('adminMsg').textContent='Kullanıcı listesi okunamadı: '+error.message;return}
+ window.adminUsersCache=Array.isArray(data)?data:[];
+document.getElementById('userTable').innerHTML=window.adminUsersCache.map(u=>`<tr>
+<td><button class="btn btn-light" style="font-weight:700" onclick="openUserDetail('${u.id}')">${u.full_name||'-'}</button></td>
+<td>${u.role||'-'}</td>
+<td><span class="badge ${u.approval_status==='approved'?'g':u.approval_status==='pending'?'y':'r'}">${u.approval_status||'-'}</span></td>
+<td>
+<button class="btn btn-light" onclick="openUserDetail('${u.id}')">Bilgileri Gör</button>
+${u.approval_status==='pending'?`<button class="btn btn-success" onclick="approveUser('${u.id}')">Onayla</button><button class="btn btn-danger" onclick="rejectUser('${u.id}')">Reddet</button>`:''}
+${u.role!=='admin'?`<button class="btn btn-danger" onclick="deleteUser('${u.id}')">Kullanıcıyı Sil</button>`:''}
+</td></tr>`).join('')||'<tr><td colspan="4">Kullanıcı yok.</td></tr>';
+ await loadAdminProfileForm();
+}
+async function approveUser(id){
+ const {error}=await sb.rpc('admin_set_user_status',{target_id:id,new_status:'approved'});
+ if(error)toast('Onay başarısız: '+error.message);else{toast('Kullanıcı onaylandı');renderAdmin()}
+}
+async function rejectUser(id){
+ const {error}=await sb.rpc('admin_set_user_status',{target_id:id,new_status:'rejected'});
+ if(error)toast('Reddetme başarısız: '+error.message);else{toast('Kullanıcı reddedildi');renderAdmin()}
+}
+async function deleteUser(id){
+ if(!currentProfile||currentProfile.role!=='admin'){toast('Yetki yok');return}
+ if(!confirm('Bu kullanıcıyı kalıcı olarak silmek istediğinize emin misiniz?'))return;
+ const {error}=await sb.rpc('admin_delete_user',{target_id:id});
+ if(error){toast('Kullanıcı silinemedi: '+error.message);return}
+ toast('Kullanıcı silindi');renderAdmin()
+}
+
+
+
+sb.auth.onAuthStateChange((event)=>{
+  if(event==='PASSWORD_RECOVERY'){
+    recoveryMode=true;
+    document.getElementById('app').classList.add('hidden');
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('registerPage').classList.add('hidden');
+    document.getElementById('recoveryPage').classList.add('hidden');
+    document.getElementById('resetPage').classList.remove('hidden');
+    return;
+  }
+});
+(async()=>{
+  const isRecoveryUrl = /(?:^|[?#&])(?:type=)?recovery(?:[&#]|$)/i.test(window.location.hash+window.location.search);
+  if(isRecoveryUrl) recoveryMode=true;
+
+  const {data}=await sb.auth.getSession();
+  let activeMarker=false;
+  try{activeMarker=sessionStorage.getItem(SESSION_MARKER)==='1'}catch(e){}
+  if(data.session && !recoveryMode && activeMarker){
+    const u=data.session.user;
+    const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',u.id).maybeSingle();
+    if((u.email||'').toLowerCase()===ADMIN_EMAIL){
+      currentUser=u;
+      currentProfile={id:u.id,full_name:(p&&p.full_name)||'Sistem Yöneticisi',role:'admin',approval_status:'approved'};
+      document.getElementById('loginPage').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      document.getElementById('userText').textContent='Sistem Yöneticisi • admin';
+      document.getElementById('avatar').textContent='S';
+      document.getElementById('adminNav').classList.remove('hidden');
+      refresh();
+    }
+  }
+  else if(data.session && !recoveryMode && !activeMarker){
+    try{await sb.auth.signOut({scope:'local'})}catch(e){}
+  }
+
+})();
+</script>
+
+<script>
+/* Mobile/PWA cache reset: prevents an older cached index.html from running on iOS/Android. */
+window.addEventListener('load', async ()=>{
+  try{
+    const FLAG='scdiaps_cache_reset_4527';
+    if(sessionStorage.getItem(FLAG)!=='1' && 'serviceWorker' in navigator){
+      sessionStorage.setItem(FLAG,'1');
+      const regs=await navigator.serviceWorker.getRegistrations();
+      for(const r of regs){try{await r.unregister()}catch(e){}}
+      if(window.caches){
+        const keys=await caches.keys();
+        await Promise.all(keys.map(k=>caches.delete(k)));
+      }
+      window.location.reload();
+      return;
+    }
+  }catch(e){
+    console.warn('Cache reset:',e);
+  }
+});
+</script>
+
+
+<script>
+let loginTurnstileWidgetId=null, registerTurnstileWidgetId=null, recoveryTurnstileWidgetId=null;
+
+function onLoginTurnstile(token){
+  loginTurnstileToken=token||'';
+  const s=document.getElementById('turnstileStatus');
+  if(s)s.textContent=token?'Güvenlik doğrulaması tamamlandı.':'Güvenlik doğrulaması yükleniyor…';
+}
+function onRegisterTurnstile(token){ registerTurnstileToken=token||''; }
+
+function turnstileError(which, code){
+  console.error('Turnstile error', which, code);
+  const msgId = which==='login' ? 'loginMsg' : which==='recovery' ? 'recoveryMsg' : 'regMsg';
+  const el=document.getElementById(msgId);
+  const detail=code ? ` (Kod: ${code})` : '';
+  if(el) el.textContent='Güvenlik doğrulaması yüklenemedi. Giriş/kayıt güvenlik amacıyla engellendi.'+(detail||'')+' Cloudflare Site Key ve alan adını kontrol edin.';
+}
+
+function renderTurnstileWidgets(){
+  if(!TURNSTILE_SITEKEY || TURNSTILE_SITEKEY.startsWith('BURAYA_')) return false;
+  if(!window.turnstile || typeof window.turnstile.render!=='function') return false;
+
+  const loginEl=document.getElementById('loginTurnstile');
+  const regEl=document.getElementById('registerTurnstile');
+  const recoveryEl=document.getElementById('recoveryTurnstile');
+
+  if(loginEl && loginTurnstileWidgetId===null){
+    try{
+      loginTurnstileWidgetId=window.turnstile.render(loginEl,{
+        sitekey:TURNSTILE_SITEKEY,
+        size:'flexible',
+        retry:'auto',
+        'retry-interval':8000,
+        callback:onLoginTurnstile,
+        'error-callback':(code)=>turnstileError('login',code),
+        'expired-callback':()=>{loginTurnstileToken='';}
+      });
+    }catch(e){turnstileError('login',e);}
+  }
+
+  if(regEl && registerTurnstileWidgetId===null){
+    try{
+      registerTurnstileWidgetId=window.turnstile.render(regEl,{
+        sitekey:TURNSTILE_SITEKEY,
+        size:'flexible',
+        retry:'auto',
+        'retry-interval':8000,
+        callback:onRegisterTurnstile,
+        'error-callback':(code)=>turnstileError('register',code),
+        'expired-callback':()=>{registerTurnstileToken='';}
+      });
+    }catch(e){turnstileError('register',e);}
+  }
+  if(recoveryEl && recoveryTurnstileWidgetId===null){
+    try{
+      recoveryTurnstileWidgetId=window.turnstile.render(recoveryEl,{
+        sitekey:TURNSTILE_SITEKEY,
+        size:'flexible',
+        retry:'auto',
+        'retry-interval':8000,
+        callback:onRecoveryTurnstile,
+        'error-callback':(code)=>turnstileError('recovery',code),
+        'expired-callback':()=>{recoveryTurnstileToken='';}
+      });
+    }catch(e){turnstileError('recovery',e);}
+  }
+  return true;
+}
+
+function retryTurnstile(){
+  try{
+    if(window.turnstile){
+      if(loginTurnstileWidgetId!==null){window.turnstile.reset(loginTurnstileWidgetId);loginTurnstileToken='';}
+      if(registerTurnstileWidgetId!==null){window.turnstile.reset(registerTurnstileWidgetId);registerTurnstileToken='';}
+      renderTurnstileWidgets();
+    }
+  }catch(e){console.error(e);}
+}
+
+window.addEventListener('load',()=>{
+  loadRememberedEmail();
+  let tries=0;
+  const wait=setInterval(()=>{
+    tries++;
+    if(renderTurnstileWidgets() || tries>=120) clearInterval(wait);
+  },250);
+});
+</script>
+<div id="outcomeModal" class="outcome-modal hidden" aria-hidden="true"><div class="outcome-modal-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><h3 style="margin:0">24 Saatlik Klinik Sonuç</h3><button class="btn" onclick="closeOutcomeModal()">Kapat</button></div><p id="outcomeModalInfo" class="muted"></p><div class="field"><label>24 saat içinde klinik kötüleşme oldu mu?</label><div class="outcome-options"><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="false"><span><b>Hayır</b><br><small>Klinik kötüleşme gözlenmedi.</small></span></label><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="true"><span><b>Evet</b><br><small>Klinik kötüleşme gözlendi.</small></span></label></div></div><div class="field"><label>Kötüleşme türü (varsa)</label><select id="outcomeType"><option value="">Seçiniz</option><option value="NEWS2_ARTISI">NEWS2 belirgin artışı</option><option value="ACIL_MUDAHALE">Acil müdahale gereksinimi</option><option value="UST_DUZEY_BAKIM">Üst düzey bakım / yoğun bakım gereksinimi</option><option value="HEKIM_KLINIK_KOTULESME">Hekim tarafından klinik kötüleşme değerlendirmesi</option><option value="DIGER">Diğer</option></select></div><div class="field"><label>Açıklama</label><textarea id="outcomeDetails" rows="4" placeholder="Gerekirse klinik sonucu kısaca açıklayın."></textarea></div><div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px"><button class="btn" onclick="closeOutcomeModal()">İptal</button><button class="btn btn-primary" onclick="saveClinicalOutcome()">Sonucu Kaydet</button></div></div></div></body>
+</html>

@@ -320,7 +320,23 @@ button,input,select{touch-action:manipulation}
     <div class="field"><label>Boy (cm)</label><input id="newHeight" type="number" min="30" max="250" step="0.1" placeholder="cm" oninput="updatePatientBMI()"></div>
     <div class="field"><label>Kilo (kg)</label><input id="newWeight" type="number" min="1" max="400" step="0.1" placeholder="kg" oninput="updatePatientBMI()"></div>
     <div class="field"><label>VKİ</label><input id="newBMI" type="text" readonly placeholder="Otomatik hesaplanır"></div>
-    <div class="field"><label>Cerrahi Klinik / Servis</label><input id="newSurgicalClinic" placeholder="Örn. Genel Cerrahi"></div>
+    <div class="field">
+      <label>Cerrahi Klinikler Bölümü</label>
+      <select id="newSurgicalClinic">
+        <option value="">Cerrahi kliniği seçiniz</option>
+        <option value="Genel Cerrahi">Genel Cerrahi</option>
+        <option value="Ortopedi ve Travmatoloji">Ortopedi ve Travmatoloji</option>
+        <option value="Beyin ve Sinir Cerrahisi">Beyin ve Sinir Cerrahisi</option>
+        <option value="Kalp ve Damar Cerrahisi">Kalp ve Damar Cerrahisi</option>
+        <option value="Göğüs Cerrahisi">Göğüs Cerrahisi</option>
+        <option value="Üroloji">Üroloji</option>
+        <option value="Kadın Hastalıkları ve Doğum">Kadın Hastalıkları ve Doğum</option>
+        <option value="Plastik, Rekonstrüktif ve Estetik Cerrahi">Plastik, Rekonstrüktif ve Estetik Cerrahi</option>
+        <option value="Kulak Burun Boğaz">Kulak Burun Boğaz</option>
+        <option value="Çocuk Cerrahisi">Çocuk Cerrahisi</option>
+        <option value="Diğer">Diğer</option>
+      </select>
+    </div>
     <div class="field"><label>Yatak No</label><input id="newBedNumber" placeholder="Örn. 12-A"></div>
     <div class="field"><label>Postoperatif gün</label><input id="newPod" type="number" min="0" placeholder="Gün"></div>
   </div>

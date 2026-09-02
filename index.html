@@ -1351,9 +1351,30 @@ async function evaluateAndSave(){
    `S-CDIAPS Risk Düzeyi: ${risk}`,
    ...reasons
  ].join('; ');
+ const {data:{user},error:authError}=await sb.auth.getUser();
+ if(authError||!user)throw new Error('Oturum doğrulanamadı. Lütfen çıkış yapıp yeniden giriş yapın.');
  const payload={
    patient_id:patientId,
-   assessed_at:new Date().toISOString(),
+   assessed_by:user.id,
+   temperature:t,
+   heart_rate:hr,
+   systolic_bp:sbp,
+   diastolic_bp:n('dbp'),
+   respiratory_rate:rr,
+   spo2:sp,
+   oxygen_l_min:n('o2'),
+   consciousness_change:consciousness!==0,
+   nurse_concern:concern,
+   wound_redness:ck('redness'),
+   drain_change:ck('drain'),
+   purulent_discharge:ck('pus'),
+   wound_dehiscence:ck('dehiscence'),
+   abdominal_distension:ck('dist'),
+   vomiting:ck('vomit'),
+   no_gas:ck('nogas'),
+   increased_pain:painScore>=1,
+   pain_score:painScore,
+   oliguria:ck('oliguria'),
    news2_score:news2Score,
    scdiaps_risk:risk,
    risk_reasons:evaluationReasons,
@@ -1361,10 +1382,7 @@ async function evaluateAndSave(){
  };
 
  if(!navigator.onLine)throw new Error('İnternet bağlantısı yok.');
- const {data:{user},error:authError}=await sb.auth.getUser();
- if(authError||!user)throw new Error('Oturum doğrulanamadı. Lütfen çıkış yapıp yeniden giriş yapın.');
-if(payload.evaluator_name==='—') payload.evaluator_name=user.email||'—';
- const result=await sb.from('assessments').insert(payload).select('id').single();
+  const result=await sb.from('assessments').insert(payload).select('id').single();
  if(result.error)throw new Error(result.error.message);
  const assessedAt=new Date().toISOString();
  try{await createClinicalOutcomeForAssessment(result.data.id,patientId,assessedAt);}catch(outcomeError){console.warn('24 saatlik sonuç takibi oluşturulamadı:',outcomeError);}

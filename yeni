@@ -1353,11 +1353,7 @@ async function evaluateAndSave(){
  ].join('; ');
  const payload={
    patient_id:patientId,
-   patient_code:selectedPatient.patient_code || '',
-   patient_identifier:patientIdentifier,
-   patient_name:selectedPatient.patient_name || '',
    assessed_at:new Date().toISOString(),
-   news2:news2Score,
    risk:risk,
    reasons:evaluationReasons,
    recommended_action:action
@@ -1366,7 +1362,6 @@ async function evaluateAndSave(){
  if(!navigator.onLine)throw new Error('İnternet bağlantısı yok.');
  const {data:{user},error:authError}=await sb.auth.getUser();
  if(authError||!user)throw new Error('Oturum doğrulanamadı. Lütfen çıkış yapıp yeniden giriş yapın.');
-if(payload.evaluator_name==='—') payload.evaluator_name=user.email||'—';
  const result=await sb.from('assessments').insert(payload).select('id').single();
  if(result.error)throw new Error(result.error.message);
  const assessedAt=new Date().toISOString();

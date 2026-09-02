@@ -157,7 +157,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="klinik-degerlendirme-hasta-bilgileri-otomatik">
+<body data-build="kapsam-ozeti-ekrandan-kaldirildi-excel-turkce">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -290,17 +290,6 @@ button,input,select{touch-action:manipulation}
     <div class="stat-card"><div class="stat-label">Toplam değerlendirme</div><div class="stat-value" id="sAssess">0</div><div class="stat-foot">Son kayıtlar</div></div>
     <div class="stat-card"><div class="stat-label">Orta risk</div><div class="stat-value yellow" id="sMid">0</div><div class="stat-foot">Yeniden değerlendirme</div></div>
     <div class="stat-card"><div class="stat-label">Yüksek risk</div><div class="stat-value red" id="sHigh">0</div><div class="stat-foot">Öncelikli klinik değerlendirme</div></div>
-<div class="card" id="clinicalPatientInfoCard">
-  <h3>Hasta Bilgileri</h3>
-  <div class="grid2">
-    <div class="field"><label>Hasta Dosya No / T.C. Kimlik No</label><input type="text" id="clinicalPatientIdentifier" readonly></div>
-    <div class="field"><label>Hasta Adı Soyadı</label><input type="text" id="clinicalPatientName" readonly></div>
-    <div class="field"><label>Cerrahi Klinik / Servis</label><input type="text" id="clinicalPatientClinic" readonly></div>
-    <div class="field"><label>Yatak No</label><input type="text" id="clinicalPatientBed" readonly></div>
-    <div class="field"><label>Postoperatif gün</label><input type="text" id="clinicalPatientPostopDay" readonly></div>
-  </div>
-</div>
-
   </div>
   <div class="card"><h3>Risk dağılımı</h3><div class="risk-row">
     <div class="risk g"><span>🟢 Düşük</span><b id="rLow">0</b><span>Rutin izlem</span></div>
@@ -369,7 +358,7 @@ button,input,select{touch-action:manipulation}
       <div class="stat-card"><div class="stat-label">Ortalama yaş</div><div class="stat-value" id="stAvgAge">—</div><div class="stat-foot">Doğum tarihi olan hastalar</div></div>
       <div class="stat-card"><div class="stat-label">Ortalama boy</div><div class="stat-value" id="stAvgHeight">—</div><div class="stat-foot">cm</div></div>
       <div class="stat-card"><div class="stat-label">Ortalama kilo</div><div class="stat-value" id="stAvgWeight">—</div><div class="stat-foot">kg</div></div>
-      <div class="stat-card"><div class="stat-label">Ortalama VKİ</div><div class="stat-value" id="stAvgBMI">—</div><div class="stat-foot">Boy ve kilodan otomatik hesaplanır</div></div>
+      <div class="stat-card"><div class="stat-label">Ortalama VKİ</div><div class="stat-value" id="stAvgBMI">—</div><div class="stat-foot">Kayıtlı hastalar</div></div>
     </div>
   </div>
 
@@ -1520,7 +1509,7 @@ function exportStatisticsExcel(){
     'Cinsiyet':p.gender??'',
     'Boy (cm)':p.height_cm??'',
     'Kilo (kg)':p.weight_kg??'',
-    'VKİ':(() => { const saved=Number(p.bmi); if(Number.isFinite(saved)&&saved>0)return saved.toFixed(2); const h=Number(p.height_cm),w=Number(p.weight_kg); return Number.isFinite(h)&&Number.isFinite(w)&&h>0&&w>0?(w/((h/100)*(h/100))).toFixed(2):''; })(),
+    'VKİ':p.bmi??'',
     'Hastane / Kurum Adı':p.hospital_name??'',
     'Cerrahi Klinikler Bölümü':p.surgical_clinic??'',
     'Yatak No':p.bed_number??'',
@@ -1541,7 +1530,7 @@ function exportStatisticsExcel(){
       'Cinsiyet':firstValue(r,['gender']) || p.gender || '',
       'Boy (cm)':firstValue(r,['height_cm']) || p.height_cm || '',
       'Kilo (kg)':firstValue(r,['weight_kg']) || p.weight_kg || '',
-      'VKİ':firstValue(r,['bmi']) || p.bmi || (() => { const h=Number(p.height_cm),w=Number(p.weight_kg); return Number.isFinite(h)&&Number.isFinite(w)&&h>0&&w>0?(w/((h/100)*(h/100))).toFixed(2):''; })(),
+      'VKİ':firstValue(r,['bmi']) || p.bmi || '',
       'Hastane / Kurum Adı':firstValue(r,['hospital_name']) || p.hospital_name || '',
       'Cerrahi Klinikler Bölümü':firstValue(r,['surgical_clinic']) || p.surgical_clinic || '',
       'Yatak No':firstValue(r,['bed_number']) || p.bed_number || '',
@@ -1855,19 +1844,7 @@ ${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" 
  const avgAge=ageVals.length?ageVals.reduce((a,b)=>a+b,0)/ageVals.length:null;
  const avgHeight=numAvg(patients,'height_cm');
  const avgWeight=numAvg(patients,'weight_kg');
- // VKİ veritabanında boş olsa bile boy ve kilo üzerinden otomatik hesapla.
- const bmiOf=p=>{
-   const saved=Number(p?.bmi);
-   if(Number.isFinite(saved) && saved>0) return saved;
-   const h=Number(p?.height_cm);
-   const w=Number(p?.weight_kg);
-   if(!Number.isFinite(h)||!Number.isFinite(w)||h<=0||w<=0) return null;
-   const meters=h/100;
-   const bmi=w/(meters*meters);
-   return Number.isFinite(bmi)?bmi:null;
- };
- const bmiVals=patients.map(bmiOf).filter(Number.isFinite);
- const avgBMI=bmiVals.length?bmiVals.reduce((a,b)=>a+b,0)/bmiVals.length:null;
+ const avgBMI=numAvg(patients,'bmi');
  const patientStatMap={
    stAvgAge:avgAge==null?'—':avgAge.toFixed(1),
    stAvgHeight:avgHeight==null?'—':avgHeight.toFixed(1),
@@ -2332,34 +2309,6 @@ window.addEventListener('load',()=>{
     tries++;
     if(renderTurnstileWidgets() || tries>=120) clearInterval(wait);
   },250);
-});
-
-function fillClinicalPatientInfo(patient){
-  if(!patient) return;
-  const identifier=patient.medical_record_no || patient.national_id || patient.patient_identifier || '';
-  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val??'';};
-  set('clinicalPatientIdentifier',identifier);
-  set('clinicalPatientName',patient.patient_name || patient.name || '');
-  set('clinicalPatientClinic',patient.surgical_clinic || patient.clinic || '');
-  set('clinicalPatientBed',patient.bed_number || patient.bed || '');
-  set('clinicalPatientPostopDay',
-    patient.postoperative_day!==null && patient.postoperative_day!==undefined && patient.postoperative_day!=='' ? patient.postoperative_day : '');
-}
-function refreshClinicalPatientInfo(){
-  const selectorIds=['clinicalPatientSelect','assessmentPatientSelect','patientSelect','selectedPatient'];
-  let patientId='';
-  for(const id of selectorIds){const el=document.getElementById(id);if(el&&el.value){patientId=el.value;break;}}
-  if(!patientId)return;
-  const list=window.currentPatients||window.__statisticsPatients||window.patients||[];
-  const patient=list.find(p=>String(p.id)===String(patientId));
-  if(patient)fillClinicalPatientInfo(patient);
-}
-document.addEventListener('change',function(e){
-  if(['clinicalPatientSelect','assessmentPatientSelect','patientSelect','selectedPatient'].includes(e.target?.id)){
-    const list=window.currentPatients||window.__statisticsPatients||window.patients||[];
-    const p=list.find(x=>String(x.id)===String(e.target.value));
-    if(p)fillClinicalPatientInfo(p);
-  }
 });
 </script>
 <div id="outcomeModal" class="outcome-modal hidden" aria-hidden="true"><div class="outcome-modal-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><h3 style="margin:0">24 Saatlik Klinik Sonuç</h3><button class="btn" onclick="closeOutcomeModal()">Kapat</button></div><p id="outcomeModalInfo" class="muted"></p><div class="field"><label>24 saat içinde klinik kötüleşme oldu mu?</label><div class="outcome-options"><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="false"><span><b>Hayır</b><br><small>Klinik kötüleşme gözlenmedi.</small></span></label><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="true"><span><b>Evet</b><br><small>Klinik kötüleşme gözlendi.</small></span></label></div></div><div class="field"><label>Kötüleşme türü (varsa)</label><select id="outcomeType"><option value="">Seçiniz</option><option value="NEWS2_ARTISI">NEWS2 belirgin artışı</option><option value="ACIL_MUDAHALE">Acil müdahale gereksinimi</option><option value="UST_DUZEY_BAKIM">Üst düzey bakım / yoğun bakım gereksinimi</option><option value="HEKIM_KLINIK_KOTULESME">Hekim tarafından klinik kötüleşme değerlendirmesi</option><option value="DIGER">Diğer</option></select></div><div class="field"><label>Açıklama</label><textarea id="outcomeDetails" rows="4" placeholder="Gerekirse klinik sonucu kısaca açıklayın."></textarea></div><div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px"><button class="btn" onclick="closeOutcomeModal()">İptal</button><button class="btn btn-primary" onclick="saveClinicalOutcome()">Sonucu Kaydet</button></div></div></div></body>

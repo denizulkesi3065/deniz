@@ -4,7 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>S-CDIAPS v2.8</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+document.addEventListener('DOMContentLoaded',()=>{
+ const pw=document.getElementById('loginPassword');
+ if(pw) pw.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();login();}});
+});
+</script>
 <style>
 :root{
   --nav:#102a43;--nav2:#173f5f;--bg:#f5f7fa;--card:#fff;--border:#e5e7eb;
@@ -612,7 +617,7 @@ async function forceSessionLogout(message='Oturumunuz güvenlik nedeniyle sonlan
   try{localStorage.removeItem(REMEMBER_EMAIL_KEY)}catch(e){}
 
   try{
-    await sb.auth.signOut({scope:'local'});
+    /* Oturum sayfa yenilemede korunur; burada otomatik çıkış yapılmaz. */
   }catch(e){
     console.warn('Oturum kapatma:',e);
   }
@@ -764,7 +769,11 @@ function retryTurnstile(){
   renderTurnstileWidgets();
  }catch(e){console.error('Turnstile yeniden başlatılamadı:',e)}
 }
+let loginInProgress=false;
 async function login(){
+  if(loginInProgress) return;
+  loginInProgress=true;
+
  const email=v('loginEmail').trim().toLowerCase(), hospital=v('loginHospital').trim(), department=v('loginDepartment').trim(), password=document.getElementById('loginPassword').value;
  const msg=document.getElementById('loginMsg');
  if(loginInFlight)return;
@@ -810,13 +819,13 @@ async function login(){
 
      if(profileError) throw new Error('Kullanıcı profili okunamadı: '+profileError.message);
      if(!p){
-       await sb.auth.signOut({scope:'local'});
+       /* Oturum sayfa yenilemede korunur; burada otomatik çıkış yapılmaz. */
        clearLoginFormFields();
        msg.textContent='Kullanıcı profili bulunamadı. Lütfen yöneticiye başvurun.';
        return;
      }
      if(p.approval_status!=='approved'){
-       await sb.auth.signOut({scope:'local'});
+       /* Oturum sayfa yenilemede korunur; burada otomatik çıkış yapılmaz. */
        clearLoginFormFields();
        msg.textContent=p.approval_status==='pending'
          ? 'Kaydınız başarıyla oluşturulmuştur. Sisteme giriş yapabilmeniz için yönetici onayının tamamlanması gerekmektedir. Yönetici onayından sonra sisteme giriş yapabilirsiniz.'
@@ -827,13 +836,13 @@ async function login(){
      const registeredHospital=p.hospital_name||'';
      const registeredDepartment=p.department_name||'';
      if(!registeredHospital||!registeredDepartment){
-       await sb.auth.signOut({scope:'local'});
+       /* Oturum sayfa yenilemede korunur; burada otomatik çıkış yapılmaz. */
        clearLoginFormFields();
        msg.textContent='Kayıtlı hastane veya klinik bilginiz bulunamadı. Lütfen yöneticiye başvurun.';
        return;
      }
      if(!sameScope(hospital,registeredHospital)||!sameScope(department,registeredDepartment)){
-       await sb.auth.signOut({scope:'local'});
+       /* Oturum sayfa yenilemede korunur; burada otomatik çıkış yapılmaz. */
        clearLoginFormFields();
        msg.textContent='Giriş reddedildi: Hastane adı ve cerrahi klinik bilgisi kayıt olurken bildirdiğiniz bilgilerle aynı olmalıdır. Farklı hastane veya klinik ile giriş yapılamaz.';
        return;
@@ -1951,7 +1960,7 @@ sb.auth.onAuthStateChange((event)=>{
 
       // Onaysız/reddedilmiş hesaplar eski bir oturumla sayfa yenileyerek sisteme dönemez.
       if(!p || p.approval_status!=='approved'){
-        await sb.auth.signOut({scope:'local'});
+        /* Oturum sayfa yenilemede korunur; burada otomatik çıkış yapılmaz. */
         try{localStorage.removeItem(SESSION_MARKER)}catch(e){}
         currentUser=null; currentProfile=null;
         return;
@@ -1975,7 +1984,7 @@ sb.auth.onAuthStateChange((event)=>{
     console.warn('Oturum geri yüklenemedi:',e);
     currentUser=null; currentProfile=null;
     // Hata durumunda eski/bozuk yerel oturumu temizle.
-    try{await sb.auth.signOut({scope:'local'})}catch(x){}
+    try{/* Oturum sayfa yenilemede korunur; burada otomatik çıkış yapılmaz. */}catch(x){}
     try{localStorage.removeItem(SESSION_MARKER)}catch(x){}
   }
 })();;

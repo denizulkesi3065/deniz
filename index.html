@@ -152,7 +152,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="v4.5.57-hastane-klinik-yetkilendirme">
+<body data-build="v4.5.58-klinik-bazli-hasta-erisim-duzeltildi">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -1115,7 +1115,6 @@ async function addPatient(){
      surgical_clinic:surgicalClinic,
      bed_number:bedNumber,
      hospital_name:(currentProfile?.hospital_name||currentProfile?.hospital||''),
-     surgical_clinic:surgicalClinic,
      created_by:user.id
    };
 
@@ -1486,18 +1485,27 @@ async function runClinicalAdvisor(){
 
 function normalizeScope(v){return String(v||'').trim().toLocaleLowerCase('tr-TR');}
 function isAdminUser(){return currentProfile&&currentProfile.role==='admin';}
-function sameScope(a,b){return normalizeScope(a)===normalizeScope(b);}
+function sameScope(a,b){const x=normalizeScope(a),y=normalizeScope(b);return !!x&&!!y&&x===y;}
+function userRegisteredClinic(){
+  if(!currentProfile) return '';
+  return currentProfile.surgical_clinic||currentProfile.clinic||currentProfile.department||'';
+}
 function canAccessPatient(p){
   if(isAdminUser()) return true;
-  if(!currentProfile) return false;
-  return sameScope(p.hospital_name||p.hospital, currentProfile.hospital_name||currentProfile.hospital)
-      && sameScope(p.surgical_clinic||p.clinic||p.department, currentProfile.department||currentProfile.surgical_clinic||currentProfile.clinic);
+  // Kullanıcı yalnızca kayıt olurken seçtiği cerrahi kliniğin hastalarını görür.
+  return sameScope(p.surgical_clinic, userRegisteredClinic());
 }
 
 async function refresh(){
  if(!currentUser)return;
  const [pr,hr]=await Promise.all([sb.from('patients').select('*').order('created_at',{ascending:false}),sb.rpc('assessment_history_context')]);
- const patients=pr.data||[],records=hr.data||[]; patientCache=patients; window.__statisticsPatients=patients; window.__statisticsRecords=records;
+ if(pr.error){console.error(pr.error);toast('Hasta kayıtları okunamadı: '+pr.error.message);return}
+ const allPatients=pr.data||[];
+ const patients=allPatients.filter(canAccessPatient);
+ const allowedPatientIds=new Set(patients.map(p=>String(p.id)));
+ const allRecords=hr.data||[];
+ const records=isAdminUser()?allRecords:allRecords.filter(r=>allowedPatientIds.has(String(r.patient_id)));
+ patientCache=patients; window.__statisticsPatients=patients; window.__statisticsRecords=records;
  if(hr.error){console.error(hr.error); toast('Değerlendirme geçmişi okunamadı: '+hr.error.message);return}
  document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('rLow').textContent=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
@@ -1621,6 +1629,10 @@ async function refresh(){
  if(currentProfile&&currentProfile.role==='admin')renderAdmin()
 }
 async function selectPatient(id){
+ if(!isAdminUser()){
+   const scopePatient=(patientCache||[]).find(x=>String(x.id)===String(id));
+   if(!scopePatient||!canAccessPatient(scopePatient)){toast('Bu hastaya erişim yetkiniz yok.');return;}
+ }
  const patient=patientCache.find(p=>p.id===id);
  if(!patient){toast('Hasta kaydı bulunamadı. Listeyi yenileyin.');return}
  const pid=document.getElementById('pid'); if(pid) pid.value=id;

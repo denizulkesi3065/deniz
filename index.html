@@ -152,7 +152,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="v4.5.65-yenilemede-kesin-oturum-koruma">
+<body data-build="v4.5.64-oturum-koruma-klinik-hasta-gorunurlugu">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -595,7 +595,7 @@ function news2(){
   return score;
 }
 
-const SESSION_TIMEOUT_MS = 0; // Oturum yalnızca kullanıcı Çıkış Yap'a bastığında kapatılır.
+const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
 const SESSION_MARKER = 'scdiaps_session_active';
 
 function clearSessionTimeout(){
@@ -650,8 +650,13 @@ async function forceSessionLogout(message='Oturumunuz güvenlik nedeniyle sonlan
   },100);
 }
 
-function scheduleSessionTimeout(){ clearSessionTimeout(); }
-
+function scheduleSessionTimeout(){
+  clearSessionTimeout();
+  lastActivityAt=Date.now();
+  sessionTimeoutTimer=setTimeout(()=>{
+    forceSessionLogout('5 dakika boyunca işlem yapılmadığı için oturumunuz sonlandırıldı. Lütfen yeniden giriş yapın.');
+  }, SESSION_TIMEOUT_MS);
+}
 
 function markActivity(){
   if(!currentUser || recoveryMode || sessionEnding) return;
@@ -1910,14 +1915,7 @@ setInterval(()=>{
   }
 });
 
-sb.auth.onAuthStateChange((event,session)=>{
-  if((event==='SIGNED_OUT')){
-    // Yalnızca gerçek Supabase çıkışı gerçekleştiğinde giriş ekranına dön.
-    currentUser=null; currentProfile=null;
-    document.getElementById('app')?.classList.add('hidden');
-    document.getElementById('loginPage')?.classList.remove('hidden');
-    return;
-  }
+sb.auth.onAuthStateChange((event)=>{
   if(event==='PASSWORD_RECOVERY'){
     recoveryMode=true;
     document.getElementById('app').classList.add('hidden');
@@ -1974,18 +1972,36 @@ sb.auth.onAuthStateChange((event,session)=>{
     scheduleSessionTimeout();
     refresh();
   }catch(e){
-    console.warn('Oturum geri yüklenirken geçici hata oluştu:',e);
-    // ÖNEMLİ: Sayfa yenileme sırasında geçici ağ/profil hatasında kullanıcıyı ASLA çıkışa zorlama.
-    // Supabase oturumu korunur; sonraki yenilemede veya bağlantı düzeldiğinde tekrar geri yüklenir.
-    currentUser=null;
-    currentProfile=null;
-    const msg=document.getElementById('loginMsg');
-    if(msg) msg.textContent='Oturum doğrulanıyor. Bağlantı geçici olarak yanıt vermedi; oturumunuz kapatılmadı.';
+    console.warn('Oturum geri yüklenemedi:',e);
+    currentUser=null; currentProfile=null;
+    // Hata durumunda eski/bozuk yerel oturumu temizle.
+    try{await sb.auth.signOut({scope:'local'})}catch(x){}
+    try{localStorage.removeItem(SESSION_MARKER)}catch(x){}
   }
 })();;
 </script>
 
-<script>/* Cache reset disabled: it was forcing a reload and could interrupt session restoration. */</script>
+<script>
+/* Mobile/PWA cache reset: prevents an older cached index.html from running on iOS/Android. */
+window.addEventListener('load', async ()=>{
+  try{
+    const FLAG='scdiaps_cache_reset_4563';
+    if(sessionStorage.getItem(FLAG)!=='1' && 'serviceWorker' in navigator){
+      sessionStorage.setItem(FLAG,'1');
+      const regs=await navigator.serviceWorker.getRegistrations();
+      for(const r of regs){try{await r.unregister()}catch(e){}}
+      if(window.caches){
+        const keys=await caches.keys();
+        await Promise.all(keys.map(k=>caches.delete(k)));
+      }
+      window.location.reload();
+      return;
+    }
+  }catch(e){
+    console.warn('Cache reset:',e);
+  }
+});
+</script>
 
 
 <script>
@@ -2076,21 +2092,5 @@ window.addEventListener('load',()=>{
   },250);
 });
 </script>
-<div id="outcomeModal" class="outcome-modal hidden" aria-hidden="true"><div class="outcome-modal-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><h3 style="margin:0">24 Saatlik Klinik Sonuç</h3><button class="btn" onclick="closeOutcomeModal()">Kapat</button></div><p id="outcomeModalInfo" class="muted"></p><div class="field"><label>24 saat içinde klinik kötüleşme oldu mu?</label><div class="outcome-options"><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="false"><span><b>Hayır</b><br><small>Klinik kötüleşme gözlenmedi.</small></span></label><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="true"><span><b>Evet</b><br><small>Klinik kötüleşme gözlendi.</small></span></label></div></div><div class="field"><label>Kötüleşme türü (varsa)</label><select id="outcomeType"><option value="">Seçiniz</option><option value="NEWS2_ARTISI">NEWS2 belirgin artışı</option><option value="ACIL_MUDAHALE">Acil müdahale gereksinimi</option><option value="UST_DUZEY_BAKIM">Üst düzey bakım / yoğun bakım gereksinimi</option><option value="HEKIM_KLINIK_KOTULESME">Hekim tarafından klinik kötüleşme değerlendirmesi</option><option value="DIGER">Diğer</option></select></div><div class="field"><label>Açıklama</label><textarea id="outcomeDetails" rows="4" placeholder="Gerekirse klinik sonucu kısaca açıklayın."></textarea></div><div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px"><button class="btn" onclick="closeOutcomeModal()">İptal</button><button class="btn btn-primary" onclick="saveClinicalOutcome()">Sonucu Kaydet</button></div></div></div>
-<script>
-/* v4.5.65: Yenileme sonrası Supabase oturumunu ikinci kez güvenli biçimde doğrula. */
-window.addEventListener('load',()=>{
-  setTimeout(async()=>{
-    try{
-      if(currentUser) return;
-      const {data}=await sb.auth.getSession();
-      if(data && data.session && !recoveryMode){
-        window.location.reload();
-      }
-    }catch(e){ console.warn('Oturum yedek kontrolü:',e); }
-  },700);
-});
-</script>
-
-</body>
+<div id="outcomeModal" class="outcome-modal hidden" aria-hidden="true"><div class="outcome-modal-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><h3 style="margin:0">24 Saatlik Klinik Sonuç</h3><button class="btn" onclick="closeOutcomeModal()">Kapat</button></div><p id="outcomeModalInfo" class="muted"></p><div class="field"><label>24 saat içinde klinik kötüleşme oldu mu?</label><div class="outcome-options"><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="false"><span><b>Hayır</b><br><small>Klinik kötüleşme gözlenmedi.</small></span></label><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="true"><span><b>Evet</b><br><small>Klinik kötüleşme gözlendi.</small></span></label></div></div><div class="field"><label>Kötüleşme türü (varsa)</label><select id="outcomeType"><option value="">Seçiniz</option><option value="NEWS2_ARTISI">NEWS2 belirgin artışı</option><option value="ACIL_MUDAHALE">Acil müdahale gereksinimi</option><option value="UST_DUZEY_BAKIM">Üst düzey bakım / yoğun bakım gereksinimi</option><option value="HEKIM_KLINIK_KOTULESME">Hekim tarafından klinik kötüleşme değerlendirmesi</option><option value="DIGER">Diğer</option></select></div><div class="field"><label>Açıklama</label><textarea id="outcomeDetails" rows="4" placeholder="Gerekirse klinik sonucu kısaca açıklayın."></textarea></div><div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px"><button class="btn" onclick="closeOutcomeModal()">İptal</button><button class="btn btn-primary" onclick="saveClinicalOutcome()">Sonucu Kaydet</button></div></div></div></body>
 </html>

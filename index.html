@@ -80,6 +80,15 @@ button:disabled,.btn:disabled{opacity:.65;cursor:not-allowed;}
 .user-detail-item small{display:block;color:#64748b;font-size:11px;margin-bottom:3px}
 .user-detail-item strong{font-size:13px;color:#0f172a;word-break:break-word}
 @media(max-width:650px){.user-detail-grid{grid-template-columns:1fr}}
+
+/* Giriş ve yeni kayıt alanlarının düzenli görünümü */
+.login .auth-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:10px}
+.login .auth-full{grid-column:1 / -1}
+.login .field{min-width:0}
+.login .field input,.login .field select{min-height:46px}
+.login .auth-section{margin-top:12px;padding:14px;border:1px solid #dbe5ee;border-radius:12px;background:#f8fafc}
+.login .auth-section-title{font-size:12px;font-weight:800;color:#173f5f;margin:0 0 10px}
+@media(max-width:700px){.login .auth-grid{grid-template-columns:1fr;gap:10px}.login .auth-full{grid-column:auto}}
 </style>
 
 <meta name="theme-color" content="#102a43">
@@ -143,18 +152,36 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="v4.5.55-giris-ve-yeni-kayit-hastane-klinik">
+<body data-build="v4.5.56-giris-yeni-kayit-duzenli-cerrahi-klinik-secimli">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
   <p style="margin-top:0;color:#64748b">Cerrahi Klinik Kötüleşme ve Alarm Önceliklendirme Sistemi</p>
-  <div class="field"><label>E-posta</label><input id="loginEmail" type="email" value=""></div>
-  <div class="formgrid" style="margin-top:10px">
-    <div class="field"><label>Hastane Adı <span style="color:#b42318">*</span></label><input id="loginHospital" type="text" placeholder="Çalıştığınız hastane / kurum"></div>
-    <div class="field"><label>Çalıştığı Klinik / Bölüm <span style="color:#b42318">*</span></label><input id="loginDepartment" type="text" placeholder="Örn. Genel Cerrahi"></div>
+  <div class="auth-grid">
+    <div class="field auth-full"><label>E-posta</label><input id="loginEmail" type="email" value="" placeholder="E-posta adresinizi giriniz"></div>
   </div>
-  <div class="notice" style="margin-top:10px">Yönetici hesabı bu alanları boş bırakabilir. Diğer kullanıcılar için hastane ve klinik / bölüm bilgisi zorunludur.</div>
-  <div class="field" style="margin-top:10px"><label>Şifre</label><input id="loginPassword" type="password"></div>
+  <div class="auth-section">
+    <div class="auth-section-title">Kurum ve Klinik Bilgileri</div>
+    <div class="auth-grid" style="margin-top:0">
+      <div class="field"><label>Hastane Adı <span style="color:#b42318">*</span></label><input id="loginHospital" type="text" placeholder="Çalıştığınız hastane / kurum"></div>
+      <div class="field"><label>Çalıştığı Cerrahi Klinik <span style="color:#b42318">*</span></label><select id="loginDepartment"><option value="">Cerrahi kliniği seçiniz</option>
+<option value="Genel Cerrahi">Genel Cerrahi</option>
+<option value="Ortopedi ve Travmatoloji">Ortopedi ve Travmatoloji</option>
+<option value="Beyin ve Sinir Cerrahisi">Beyin ve Sinir Cerrahisi</option>
+<option value="Kalp ve Damar Cerrahisi">Kalp ve Damar Cerrahisi</option>
+<option value="Göğüs Cerrahisi">Göğüs Cerrahisi</option>
+<option value="Plastik, Rekonstrüktif ve Estetik Cerrahi">Plastik, Rekonstrüktif ve Estetik Cerrahi</option>
+<option value="Üroloji">Üroloji</option>
+<option value="Kadın Hastalıkları ve Doğum">Kadın Hastalıkları ve Doğum</option>
+<option value="Kulak Burun Boğaz">Kulak Burun Boğaz</option>
+<option value="Göz Hastalıkları">Göz Hastalıkları</option>
+<option value="Çocuk Cerrahisi">Çocuk Cerrahisi</option>
+<option value="Ağız, Diş ve Çene Cerrahisi">Ağız, Diş ve Çene Cerrahisi</option>
+<option value="Diğer Cerrahi Klinik / Bölüm">Diğer Cerrahi Klinik / Bölüm</option></select></div>
+    </div>
+  </div>
+  <div class="notice" style="margin-top:10px">Yönetici hesabı hastane ve cerrahi klinik alanlarını boş bırakabilir. Diğer kullanıcılar için bu bilgiler zorunludur.</div>
+  <div class="field" style="margin-top:10px"><label>Şifre</label><input id="loginPassword" type="password" placeholder="Şifrenizi giriniz"></div>
   <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#475569">
     <input id="rememberLogin" type="checkbox" style="width:auto;min-height:auto">
     <span>Beni hatırla</span>
@@ -195,21 +222,37 @@ button,input,select{touch-action:manipulation}
 
 <div id="registerPage" class="login card hidden">
   <div class="logo">Yeni Kullanıcı Kaydı</div>
-  <div class="field"><label>Ad Soyad</label><input id="regName"></div>
-  <div class="field" style="margin-top:10px"><label>E-posta</label><input id="regEmail" type="email"></div>
-  <div class="formgrid" style="margin-top:10px">
+  <div class="auth-grid">
+    <div class="field"><label>Ad Soyad</label><input id="regName" placeholder="Adınızı ve soyadınızı giriniz"></div>
+    <div class="field"><label>E-posta</label><input id="regEmail" type="email" placeholder="E-posta adresinizi giriniz"></div>
     <div class="field"><label>Doğum Tarihi</label><input id="regBirthDate" type="date"></div>
     <div class="field"><label>Cinsiyet</label><select id="regGender"><option value="">Seçiniz</option><option value="Kadın">Kadın</option><option value="Erkek">Erkek</option><option value="Belirtmek istemiyor">Belirtmek istemiyor</option></select></div>
+    <div class="field"><label>Meslek</label><select id="regProfession" onchange="updateRegistrationOptions()"><option value="">Seçiniz</option><option value="Hemşire">Hemşire</option><option value="Hekim">Hekim</option></select></div>
+    <div class="field"><label>Eğitim Durumu</label><select id="regEducation"><option value="">Önce meslek seçiniz</option></select></div>
+    <div class="field auth-full"><label>Mesleki / Akademik Unvan</label><select id="regTitle"><option value="">Önce meslek seçiniz</option></select></div>
   </div>
-  <div class="field" style="margin-top:10px"><label>Meslek</label><select id="regProfession" onchange="updateRegistrationOptions()"><option value="">Seçiniz</option><option value="Hemşire">Hemşire</option><option value="Hekim">Hekim</option></select></div>
-  <div class="field" style="margin-top:10px"><label>Eğitim Durumu</label><select id="regEducation"><option value="">Önce meslek seçiniz</option></select></div>
-  <div class="field" style="margin-top:10px"><label>Mesleki / Akademik Unvan</label><select id="regTitle"><option value="">Önce meslek seçiniz</option></select></div>
-  <div class="formgrid" style="margin-top:10px">
-    <div class="field"><label>Hastane Adı <span style="color:#b42318">*</span></label><input id="regHospital" type="text" placeholder="Örn. Ankara Şehir Hastanesi" required></div>
-    <div class="field"><label>Çalıştığı Klinik / Bölüm <span style="color:#b42318">*</span></label><input id="regDepartment" type="text" placeholder="Örn. Genel Cerrahi" required></div>
+  <div class="auth-section">
+    <div class="auth-section-title">Çalışma Yeri Bilgileri</div>
+    <div class="auth-grid" style="margin-top:0">
+      <div class="field"><label>Hastane Adı <span style="color:#b42318">*</span></label><input id="regHospital" type="text" placeholder="Örn. Ankara Şehir Hastanesi" required></div>
+      <div class="field"><label>Çalıştığı Cerrahi Klinik <span style="color:#b42318">*</span></label><select id="regDepartment" required><option value="">Cerrahi kliniği seçiniz</option>
+<option value="Genel Cerrahi">Genel Cerrahi</option>
+<option value="Ortopedi ve Travmatoloji">Ortopedi ve Travmatoloji</option>
+<option value="Beyin ve Sinir Cerrahisi">Beyin ve Sinir Cerrahisi</option>
+<option value="Kalp ve Damar Cerrahisi">Kalp ve Damar Cerrahisi</option>
+<option value="Göğüs Cerrahisi">Göğüs Cerrahisi</option>
+<option value="Plastik, Rekonstrüktif ve Estetik Cerrahi">Plastik, Rekonstrüktif ve Estetik Cerrahi</option>
+<option value="Üroloji">Üroloji</option>
+<option value="Kadın Hastalıkları ve Doğum">Kadın Hastalıkları ve Doğum</option>
+<option value="Kulak Burun Boğaz">Kulak Burun Boğaz</option>
+<option value="Göz Hastalıkları">Göz Hastalıkları</option>
+<option value="Çocuk Cerrahisi">Çocuk Cerrahisi</option>
+<option value="Ağız, Diş ve Çene Cerrahisi">Ağız, Diş ve Çene Cerrahisi</option>
+<option value="Diğer Cerrahi Klinik / Bölüm">Diğer Cerrahi Klinik / Bölüm</option></select></div>
+    </div>
   </div>
-  <div class="notice" style="margin-top:10px">Yeni kullanıcı kaydında hastane adı ve çalıştığı klinik / bölüm bilgisi zorunludur.</div>
-  <div class="field" style="margin-top:10px"><label>Şifre</label><input id="regPassword" type="password"></div>
+  <div class="notice" style="margin-top:10px">Yeni kullanıcı kaydında hastane adı ve çalıştığı cerrahi klinik seçimi zorunludur.</div>
+  <div class="field" style="margin-top:10px"><label>Şifre</label><input id="regPassword" type="password" placeholder="En az 6 karakter şifre oluşturunuz"></div>
   <div id="registerTurnstile" class="turnstile-box"></div>
   <div class="field" style="margin-top:10px"><label>Rol</label><select id="regRole"><option value="hemsire">Hemşire</option><option value="doktor">Hekim</option></select></div>
   <div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="registerUser()">Kayıt Talebi</button><button class="btn btn-light" onclick="showLogin()">Geri</button></div>

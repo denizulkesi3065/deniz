@@ -152,7 +152,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="v4.5.58-klinik-bazli-hasta-erisim-duzeltildi">
+<body data-build="v4.5.61-hastane-klinik-zorunlu-eslesme">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -180,7 +180,7 @@ button,input,select{touch-action:manipulation}
 <option value="Diğer Cerrahi Klinik / Bölüm">Diğer Cerrahi Klinik / Bölüm</option></select></div>
     </div>
   </div>
-  <div class="notice" style="margin-top:10px">Yönetici hesabı hastane ve cerrahi klinik alanlarını boş bırakabilir. Diğer kullanıcılar için bu bilgiler zorunludur.</div>
+  <div class="notice" style="margin-top:10px">Yönetici hesabı hastane ve cerrahi klinik alanlarını boş bırakabilir. Diğer kullanıcılar için bu bilgiler zorunludur ve kayıt olurken bildirilen hastane adı ile cerrahi klinik bilgisiyle aynı olmalıdır.</div>
   <div class="field" style="margin-top:10px"><label>Şifre</label><input id="loginPassword" type="password" placeholder="Şifrenizi giriniz"></div>
   <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#475569">
     <input id="rememberLogin" type="checkbox" style="width:auto;min-height:auto">
@@ -808,7 +808,7 @@ async function login(){
      currentProfile={id:currentUser.id,full_name:'İsmail Deniz',role:'admin',approval_status:'approved'};
    }else{
      const {data:p,error:profileError}=await sb.from('profiles')
-       .select('id,full_name,role,approval_status')
+       .select('id,full_name,role,approval_status,hospital_name,department_name')
        .eq('id',currentUser.id)
        .maybeSingle();
 
@@ -825,6 +825,21 @@ async function login(){
        msg.textContent=p.approval_status==='pending'
          ? 'Kaydınız başarıyla oluşturulmuştur. Sisteme giriş yapabilmeniz için yönetici onayının tamamlanması gerekmektedir. Yönetici onayından sonra sisteme giriş yapabilirsiniz.'
          : 'Hesabınız henüz onaylanmadı. Lütfen yönetici onayından sonra tekrar giriş yapın.';
+       return;
+     }
+     // Yeni kullanıcılar yalnızca kayıt sırasında kaydedilen hastane ve cerrahi klinik bilgileriyle giriş yapabilir.
+     const registeredHospital=p.hospital_name||'';
+     const registeredDepartment=p.department_name||'';
+     if(!registeredHospital||!registeredDepartment){
+       await sb.auth.signOut({scope:'local'});
+       clearLoginFormFields();
+       msg.textContent='Kayıtlı hastane veya klinik bilginiz bulunamadı. Lütfen yöneticiye başvurun.';
+       return;
+     }
+     if(!sameScope(hospital,registeredHospital)||!sameScope(department,registeredDepartment)){
+       await sb.auth.signOut({scope:'local'});
+       clearLoginFormFields();
+       msg.textContent='Giriş reddedildi: Hastane adı ve cerrahi klinik bilgisi kayıt olurken bildirdiğiniz bilgilerle aynı olmalıdır. Farklı hastane veya klinik ile giriş yapılamaz.';
        return;
      }
      currentProfile=p;
@@ -1056,6 +1071,7 @@ async function updatePatient(){
    return;
  }
  if(!surgicalClinic||!bedNumber){toast('Cerrahi klinik/servis ve yatak no alanlarını doldurun');return;}
+ if(!isAdminUser()&&!sameScope(surgicalClinic,userRegisteredClinic())){toast('Hasta kaydının cerrahi kliniği, kayıt olurken seçtiğiniz klinikten farklı olamaz.');return;}
  if(height===null||weight===null||pod===null){
    toast('Boy, kilo ve postoperatif gün alanlarını doldurun');
    return;
@@ -1154,6 +1170,7 @@ async function addPatient(){
    if(!birth){toast('Doğum tarihi gerekli');return}
    if(!gender){toast('Cinsiyet seçin');return}
    if(!surgicalClinic||!bedNumber){toast('Cerrahi Klinikler Bölümü ve Yatak No alanlarını doldurun');return}
+   if(!isAdminUser()&&!sameScope(surgicalClinic,userRegisteredClinic())){toast('Yalnızca kayıt olurken seçtiğiniz cerrahi kliniğe hasta kaydı yapabilirsiniz.');return}
    if(!height||!weight||pod===''){toast('Boy, kilo ve postoperatif gün alanlarını doldurun');return}
 
    const {data:{user},error:authError}=await sb.auth.getUser();
@@ -1550,14 +1567,18 @@ async function runClinicalAdvisor(){
 function normalizeScope(v){return String(v||'').trim().toLocaleLowerCase('tr-TR');}
 function isAdminUser(){return currentProfile&&currentProfile.role==='admin';}
 function sameScope(a,b){const x=normalizeScope(a),y=normalizeScope(b);return !!x&&!!y&&x===y;}
+function userRegisteredHospital(){
+  if(!currentProfile) return '';
+  return currentProfile.hospital_name||currentProfile.hospital||'';
+}
 function userRegisteredClinic(){
   if(!currentProfile) return '';
-  return currentProfile.surgical_clinic||currentProfile.clinic||currentProfile.department||'';
+  return currentProfile.department_name||currentProfile.surgical_clinic||currentProfile.clinic||currentProfile.department||'';
 }
 function canAccessPatient(p){
   if(isAdminUser()) return true;
-  // Kullanıcı yalnızca kayıt olurken seçtiği cerrahi kliniğin hastalarını görür.
-  return sameScope(p.surgical_clinic, userRegisteredClinic());
+  // Kullanıcı yalnızca kayıt olurken bildirdiği aynı hastane ve aynı cerrahi kliniğe ait hastaları görür.
+  return sameScope(p.hospital_name,userRegisteredHospital()) && sameScope(p.surgical_clinic,userRegisteredClinic());
 }
 
 async function refresh(){

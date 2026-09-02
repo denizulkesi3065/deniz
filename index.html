@@ -273,7 +273,7 @@ button,input,select{touch-action:manipulation}
 <div class="layout">
 <aside class="sidebar">
   <div class="menu-title">MENÜ</div>
-  <button class="navbtn active" onclick="go('dashboard',this)"><span class="navicon">⌂</span><span class="label">Dashboard</span></button>
+  <button class="navbtn active" onclick="go('dashboard',this)"><span class="navicon">⌂</span><span class="label">Klinik İzlem ve Değerlendirme</span></button>
   <button class="navbtn" onclick="go('patients',this)"><span class="navicon">👤</span><span class="label">Hastalar</span></button>
   <button class="navbtn" onclick="go('assessment',this)"><span class="navicon">＋</span><span class="label">Değerlendirme</span></button>
   <button class="navbtn" onclick="go('history',this)"><span class="navicon">◷</span><span class="label">Geçmiş</span></button>
@@ -284,7 +284,7 @@ button,input,select{touch-action:manipulation}
 
 <main class="main">
 <section id="dashboard" class="page">
-  <div class="toolbar"><div class="page-title"><h2>Dashboard</h2><p>Servisteki klinik durumun genel görünümü</p></div><div class="actions"><button class="btn btn-primary" onclick="go('assessment')">+ Yeni değerlendirme</button></div></div>
+  <div class="toolbar"><div class="page-title"><h2>Klinik İzlem ve Değerlendirme</h2><p>Servisteki klinik durumun genel görünümü</p></div><div class="actions"><button class="btn btn-primary" onclick="go('assessment')">+ Yeni değerlendirme</button></div></div>
   <div class="grid4">
     <div class="stat-card"><div class="stat-label">Aktif hasta</div><div class="stat-value" id="sPatients">0</div><div class="stat-foot">Sistemde kayıtlı</div></div>
     <div class="stat-card"><div class="stat-label">Toplam değerlendirme</div><div class="stat-value" id="sAssess">0</div><div class="stat-foot">Son kayıtlar</div></div>
@@ -1351,38 +1351,23 @@ async function evaluateAndSave(){
    `S-CDIAPS Risk Düzeyi: ${risk}`,
    ...reasons
  ].join('; ');
- const {data:{user},error:authError}=await sb.auth.getUser();
- if(authError||!user)throw new Error('Oturum doğrulanamadı. Lütfen çıkış yapıp yeniden giriş yapın.');
  const payload={
    patient_id:patientId,
-   assessed_by:user.id,
-   temperature:t,
-   heart_rate:hr,
-   systolic_bp:sbp,
-   diastolic_bp:n('dbp'),
-   respiratory_rate:rr,
-   spo2:sp,
-   oxygen_l_min:n('o2'),
-   consciousness_change:consciousness!==0,
-   nurse_concern:concern,
-   wound_redness:ck('redness'),
-   drain_change:ck('drain'),
-   purulent_discharge:ck('pus'),
-   wound_dehiscence:ck('dehiscence'),
-   abdominal_distension:ck('dist'),
-   vomiting:ck('vomit'),
-   no_gas:ck('nogas'),
-   increased_pain:painScore>=1,
-   pain_score:painScore,
-   oliguria:ck('oliguria'),
-   news2_score:news2Score,
-   scdiaps_risk:risk,
-   risk_reasons:evaluationReasons,
+   patient_code:selectedPatient.patient_code || '',
+   patient_identifier:patientIdentifier,
+   patient_name:selectedPatient.patient_name || '',
+   assessed_at:new Date().toISOString(),
+   news2:news2Score,
+   risk:risk,
+   reasons:evaluationReasons,
    recommended_action:action
  };
 
  if(!navigator.onLine)throw new Error('İnternet bağlantısı yok.');
-  const result=await sb.from('assessments').insert(payload).select('id').single();
+ const {data:{user},error:authError}=await sb.auth.getUser();
+ if(authError||!user)throw new Error('Oturum doğrulanamadı. Lütfen çıkış yapıp yeniden giriş yapın.');
+if(payload.evaluator_name==='—') payload.evaluator_name=user.email||'—';
+ const result=await sb.from('assessments').insert(payload).select('id').single();
  if(result.error)throw new Error(result.error.message);
  const assessedAt=new Date().toISOString();
  try{await createClinicalOutcomeForAssessment(result.data.id,patientId,assessedAt);}catch(outcomeError){console.warn('24 saatlik sonuç takibi oluşturulamadı:',outcomeError);}

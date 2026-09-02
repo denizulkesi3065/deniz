@@ -522,7 +522,7 @@ button,input,select{touch-action:manipulation}
           <tr>
             <th style="width:44px"></th>
             <th>Zaman</th>
-            
+            <th>Hastane</th>
             <th>TC / Dosya No</th>
             <th>Hasta Adı Soyadı</th>
             <th>Değerlendiren</th>
@@ -1757,9 +1757,9 @@ ${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" 
    const details=items.map((x,i)=>`<div class="history-detail" style="display:grid;grid-template-columns:150px 1fr 140px 90px 1fr;gap:10px;padding:10px 12px;border-top:1px solid #e5e7eb;background:#fafafa">
      <div><b>${new Date(x.assessed_at).toLocaleString('tr-TR')}</b></div>
      <div><b>${x.evaluator_name||'—'}</b></div>
-     <div><span class="badge ${riskClass(x.risk)}">${x.risk||'—'}</span></div>
-     <div>${x.news2??'—'}</div>
-     <div>${x.reasons||'—'}</div>
+     <div><span class="badge ${riskClass(x.risk)}">${x.scdiaps_risk||x.risk||'—'}</span></div>
+     <div>${x.news2_score??x.news2??'—'}</div>
+     <div>${x.risk_reasons||x.reasons||'—'}</div>
    </div>`).join('');
    return `<tr class="history-patient-row" style="cursor:pointer" onclick="toggleHistoryPatient('${detailId}')">
      <td><button class="btn btn-light" style="padding:6px 9px" onclick="event.stopPropagation();toggleHistoryPatient('${detailId}')">＋</button></td>
@@ -1768,9 +1768,9 @@ ${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" 
      <td>${latest.patient_identifier||'—'}</td>
      <td><b>${latest.patient_name||'—'}</b></td>
      <td>${latest.evaluator_name||'—'}</td>
-     <td><span class="badge ${riskClass(latest.risk)}">${latest.risk||'—'}</span></td>
-     <td>${latest.news2??'—'}</td>
-     <td>${latest.reasons||'—'}</td>
+     <td><span class="badge ${riskClass(latest.risk)}">${latest.scdiaps_risk||latest.risk||'—'}</span></td>
+     <td>${latest.news2_score??latest.news2??'—'}</td>
+     <td>${latest.risk_reasons||latest.reasons||'—'}</td>
      <td><span class="badge b">${items.length} değerlendirme</span></td>
    </tr>
    <tr id="${detailId}" class="history-details-row hidden">

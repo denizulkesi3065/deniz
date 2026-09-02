@@ -157,7 +157,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="istatistik-tum-hasta-ve-degerlendirme-verileri">
+<body data-build="istatistik-turkce-sistem-basliklari">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -1478,28 +1478,80 @@ function exportStatisticsExcel(){
     toast('Excel aktarımı için gerekli bileşen yüklenemedi. İnternet bağlantısını kontrol edin.');
     return;
   }
+
   const rows=(window.__statisticsRecords||[]);
   const patients=(window.__statisticsPatients||[]);
-  const cloneAll=arr=>arr.map(x=>Object.fromEntries(Object.entries(x||{}).map(([k,v])=>[k,v??''])));
 
-  const patientRows=cloneAll(patients);
-  const assessmentRows=cloneAll(rows);
+  // Veritabanındaki teknik alan adlarını kullanıcı arayüzündeki Türkçe başlıklara dönüştür.
+  const patientColumns=[
+    ['patient_code','Hasta Kodu'],
+    ['medical_record_no','Hasta T.C. Kimlik No / Dosya No'],
+    ['national_id','T.C. Kimlik No'],
+    ['patient_name','Hasta Adı Soyadı'],
+    ['birth_date','Doğum Tarihi'],
+    ['age','Yaş'],
+    ['gender','Cinsiyet'],
+    ['height_cm','Boy (cm)'],
+    ['weight_kg','Kilo (kg)'],
+    ['bmi','VKİ'],
+    ['hospital_name','Hastane / Kurum Adı'],
+    ['surgical_clinic','Cerrahi Klinikler Bölümü'],
+    ['bed_number','Yatak No'],
+    ['postoperative_day','Postoperatif Gün'],
+    ['created_at','Kayıt Tarihi']
+  ];
+
+  const assessmentColumns=[
+    ['assessed_at','Değerlendirme Tarihi'],
+    ['patient_code','Hasta Kodu'],
+    ['patient_name','Hasta Adı Soyadı'],
+    ['medical_record_no','Hasta T.C. Kimlik No / Dosya No'],
+    ['assessed_by','Değerlendiren'],
+    ['news2','NEWS2'],
+    ['scdiaps_score','S-CDIAPS Skoru'],
+    ['scdiaps_risk','S-CDIAPS Risk Düzeyi']
+  ];
+
+  const formatDate=v=>{
+    if(!v)return '';
+    const d=new Date(v);
+    return Number.isNaN(d.getTime())?v:d.toLocaleString('tr-TR');
+  };
+
+  const mapColumns=(data,columns)=>{
+    return data.map(row=>{
+      const obj={};
+      columns.forEach(([key,label])=>{
+        let value=row?.[key];
+        if(key==='birth_date' && value){
+          const d=new Date(value+'T00:00:00');
+          value=Number.isNaN(d.getTime())?value:d.toLocaleDateString('tr-TR');
+        }
+        if(key==='created_at'||key==='assessed_at') value=formatDate(value);
+        obj[label]=value??'';
+      });
+      return obj;
+    });
+  };
+
+  const patientRows=mapColumns(patients,patientColumns);
+  const assessmentRows=mapColumns(rows,assessmentColumns);
 
   const summaryRows=[
-    {'Gösterge':'Toplam hasta','Değer':patients.length},
-    {'Gösterge':'Değerlendirilen hasta','Değer':new Set(rows.map(x=>x.patient_id).filter(Boolean)).size},
-    {'Gösterge':'Toplam değerlendirme','Değer':rows.length},
-    {'Gösterge':'Not','Değer':'Hasta ve değerlendirme kayıtlarında mevcut tüm alanlar ayrı sayfalarda eksiksiz aktarılmıştır.'}
+    {'Gösterge':'Toplam Hasta','Değer':patients.length},
+    {'Gösterge':'Değerlendirilen Hasta','Değer':new Set(rows.map(x=>x.patient_id).filter(Boolean)).size},
+    {'Gösterge':'Toplam Değerlendirme','Değer':rows.length},
+    {'Gösterge':'Açıklama','Değer':'Başlıklar sistemde kullanılan Türkçe adlarla gösterilmiştir.'}
   ];
 
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(summaryRows),'İstatistik Özeti');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(patientRows),'Tüm Hasta Verileri');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(assessmentRows),'Tüm Değerlendirme Verileri');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(patientRows),'Hasta Verileri');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(assessmentRows),'Değerlendirme Verileri');
 
   const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
-  XLSX.writeFile(wb,`S-CDIAPS_tum_veriler_istatistik_${stamp}.xlsx`);
-  toast('Tüm hasta ve değerlendirme verilerini içeren Excel dosyası oluşturuldu.');
+  XLSX.writeFile(wb,`S-CDIAPS_istatistik_${stamp}.xlsx`);
+  toast('İstatistikler sistemdeki Türkçe başlıklarla Excel dosyasına aktarıldı.');
 }
 async 
 async function runClinicalAdvisor(){

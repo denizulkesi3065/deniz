@@ -1853,7 +1853,20 @@ ${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" 
  const avgAge=ageVals.length?ageVals.reduce((a,b)=>a+b,0)/ageVals.length:null;
  const avgHeight=numAvg(patients,'height_cm');
  const avgWeight=numAvg(patients,'weight_kg');
- const avgBMI=numAvg(patients,'bmi');
+ const bmiValues=patients.map(p=>{
+   const stored=Number(p.bmi);
+   if(Number.isFinite(stored) && stored>0)return stored;
+   const heightCm=Number(p.height_cm);
+   const weightKg=Number(p.weight_kg);
+   if(Number.isFinite(heightCm) && heightCm>0 && Number.isFinite(weightKg) && weightKg>0){
+     const heightM=heightCm/100;
+     return weightKg/(heightM*heightM);
+   }
+   return null;
+ }).filter(v=>Number.isFinite(v) && v>0);
+ const avgBMI=bmiValues.length
+   ?bmiValues.reduce((sum,value)=>sum+value,0)/bmiValues.length
+   :null;
  const patientStatMap={
    stAvgAge:avgAge==null?'—':avgAge.toFixed(1),
    stAvgHeight:avgHeight==null?'—':avgHeight.toFixed(1),

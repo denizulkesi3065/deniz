@@ -152,7 +152,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="v4.5.61-hastane-klinik-zorunlu-eslesme">
+<body data-build="v4.5.62-oturum-yenileme-korundu-tek-tiklama-giris">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -188,7 +188,7 @@ button,input,select{touch-action:manipulation}
   </label>
   <div id="loginTurnstile" class="turnstile-box"></div><div id="turnstileStatus" class="notice" style="margin-top:8px">Güvenlik doğrulaması yükleniyor…</div>
   <div class="actions" style="margin-top:14px">
-    <button class="btn btn-primary" onclick="login()">Giriş Yap</button>
+    <button type="button" id="loginButton" class="btn btn-primary" onclick="login()">Giriş Yap</button>
     <button class="btn btn-light" onclick="showRegister()">Yeni Kayıt</button>
   </div>
   <div id="loginMsg" class="notice" style="margin-top:14px">Hesabınızla giriş yapın.</div>
@@ -524,7 +524,8 @@ button,input,select{touch-action:manipulation}
 const TURNSTILE_SITEKEY='0x4AAAAAAEb9_9_AajNi7Dlp';
 const SUPABASE_URL='https://nndtcprefcrevdulxzhy.supabase.co';
 const SUPABASE_KEY='sb_publishable_7IeSV5cMQoAPAbfzE7KVpw_rnfXwZ2e';
-const TAB_SESSION_KEY='scdiaps_'+(crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2));
+// Sabit anahtar: sayfa yenilendiğinde aynı sekmedeki oturum korunur. sessionStorage sekme kapandığında temizlenir.
+const TAB_SESSION_KEY='scdiaps_auth_session';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
   auth:{
     storage:window.sessionStorage,
@@ -666,15 +667,9 @@ function markActivity(){
   document.addEventListener(evt,markActivity,{passive:true});
 });
 
-window.addEventListener('pagehide',()=>{
-  try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
-  // The browser may not finish an async signOut during page close; the session marker
-  // is therefore also cleared so the next page load forces a fresh login.
-});
-
-window.addEventListener('beforeunload',()=>{
-  try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
-});
+// Sayfa yenileme / gezinme sırasında oturumu kapatma.
+// Kullanıcı yalnızca açıkça "Çıkış" düğmesine bastığında oturum sonlandırılır.
+// SESSION_MARKER sayfa yenilendiğinde korunur ve başlangıçta mevcut Supabase oturumu geri yüklenir.
 
 
 const REMEMBER_EMAIL_KEY='scdiaps_remember_email';
@@ -784,7 +779,7 @@ async function login(){
  }
 
  loginInFlight=true;
- const btn=document.querySelector('#loginPage button[onclick="login()"]');
+ const btn=document.getElementById('loginButton')||document.querySelector('#loginPage button[onclick="login()"]');
  if(btn){btn.disabled=true;btn.textContent='Giriş yapılıyor...';}
 
  const token=loginTurnstileToken;
@@ -1869,6 +1864,16 @@ async function deleteUser(id){
 
 
 
+// Bilgiler doğruysa Giriş Yap düğmesine tek tıklamayla giriş yapılır; Enter da aynı işlemi başlatır.
+['loginEmail','loginHospital','loginDepartment','loginPassword'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el){
+    el.addEventListener('keydown',ev=>{
+      if(ev.key==='Enter'){ev.preventDefault();login();}
+    });
+  }
+});
+
 sb.auth.onAuthStateChange((event)=>{
   if(event==='PASSWORD_RECOVERY'){
     recoveryMode=true;
@@ -1884,28 +1889,54 @@ sb.auth.onAuthStateChange((event)=>{
   const isRecoveryUrl = /(?:^|[?#&])(?:type=)?recovery(?:[&#]|$)/i.test(window.location.hash+window.location.search);
   if(isRecoveryUrl) recoveryMode=true;
 
-  const {data}=await sb.auth.getSession();
-  let activeMarker=false;
-  try{activeMarker=sessionStorage.getItem(SESSION_MARKER)==='1'}catch(e){}
-  if(data.session && !recoveryMode && activeMarker){
-    const u=data.session.user;
-    const {data:p}=await sb.from('profiles').select('id,full_name,role,approval_status').eq('id',u.id).maybeSingle();
-    if((u.email||'').toLowerCase()===ADMIN_EMAIL){
-      currentUser=u;
-      currentProfile={id:u.id,full_name:(p&&p.full_name)||'Sistem Yöneticisi',role:'admin',approval_status:'approved'};
-      document.getElementById('loginPage').classList.add('hidden');
-      document.getElementById('app').classList.remove('hidden');
-      document.getElementById('userText').textContent='Sistem Yöneticisi • admin';
-      document.getElementById('avatar').textContent='S';
-      document.getElementById('adminNav').classList.remove('hidden');
-      refresh();
-    }
-  }
-  else if(data.session && !recoveryMode && !activeMarker){
-    try{await sb.auth.signOut({scope:'local'})}catch(e){}
-  }
+  // Sayfa yenilendiğinde mevcut oturumu otomatik geri yükle.
+  // Yeniden e-posta, şifre, hastane veya klinik bilgisi isteme.
+  const {data,error:sessionError}=await sb.auth.getSession();
+  if(sessionError){console.warn('Oturum okunamadı:',sessionError);return}
+  if(!data.session || recoveryMode) return;
 
-})();
+  try{
+    const u=data.session.user;
+    const email=(u.email||'').toLowerCase();
+    currentUser=u;
+
+    if(email===ADMIN_EMAIL){
+      currentProfile={id:u.id,full_name:'İsmail Deniz',role:'admin',approval_status:'approved'};
+    }else{
+      const {data:p,error:profileError}=await sb.from('profiles')
+        .select('id,full_name,role,approval_status,hospital_name,department_name')
+        .eq('id',u.id).maybeSingle();
+      if(profileError) throw profileError;
+
+      // Onaysız/reddedilmiş hesaplar eski bir oturumla sayfa yenileyerek sisteme dönemez.
+      if(!p || p.approval_status!=='approved'){
+        await sb.auth.signOut({scope:'local'});
+        try{sessionStorage.removeItem(SESSION_MARKER)}catch(e){}
+        currentUser=null; currentProfile=null;
+        return;
+      }
+      currentProfile=p;
+    }
+
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('registerPage').classList.add('hidden');
+    document.getElementById('recoveryPage').classList.add('hidden');
+    document.getElementById('resetPage').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    document.getElementById('userText').textContent=((currentProfile.role==='admin'?'İsmail Deniz':(currentProfile.full_name||email))+' • '+currentProfile.role);
+    document.getElementById('avatar').textContent=((currentProfile.role==='admin'?'İD':(currentProfile.full_name||'A').slice(0,1).toUpperCase()));
+    document.getElementById('adminNav').classList.toggle('hidden',currentProfile.role!=='admin');
+    try{sessionStorage.setItem(SESSION_MARKER,'1')}catch(e){}
+    scheduleSessionTimeout();
+    refresh();
+  }catch(e){
+    console.warn('Oturum geri yüklenemedi:',e);
+    currentUser=null; currentProfile=null;
+    // Hata durumunda eski/bozuk yerel oturumu temizle.
+    try{await sb.auth.signOut({scope:'local'})}catch(x){}
+    try{sessionStorage.removeItem(SESSION_MARKER)}catch(x){}
+  }
+})();;
 </script>
 
 <script>

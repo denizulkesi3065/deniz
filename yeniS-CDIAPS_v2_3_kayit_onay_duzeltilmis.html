@@ -157,7 +157,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="scdiaps-skoru-kaydetme-ve-istatistik-duzeltildi">
+<body data-build="kapsam-ozeti-ekrandan-kaldirildi-excel-turkce">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -382,10 +382,6 @@ button,input,select{touch-action:manipulation}
     <div class="table-wrap"><table><thead><tr><th>Postoperatif Gün</th><th>Hasta Sayısı</th><th>Oran</th></tr></thead><tbody id="statsPodTable"></tbody></table></div>
   </div>
 
-  <div class="card">
-    <h3>Tüm kayıtlı veri alanlarının kapsam özeti</h3>
-    <div class="table-wrap"><table><thead><tr><th>Veri Alanı</th><th>Dolu Kayıt</th><th>Toplam Kayıt</th><th>Tamlık</th></tr></thead><tbody id="statsCompletenessTable"></tbody></table></div>
-  </div>
 
   <div class="card">
     <h3>İstatistiksel özet</h3>
@@ -1482,10 +1478,9 @@ function exportStatisticsExcel(){
 
   const rows=(window.__statisticsRecords||[]);
   const patients=(window.__statisticsPatients||[]);
+  const completenessRows=(window.__statisticsCompletenessRows||[]);
 
-  // Hasta bilgilerini değerlendirme kayıtlarıyla patient_id üzerinden birleştir.
   const patientById=new Map(patients.map(p=>[String(p.id),p]));
-
   const firstValue=(obj,keys)=>{
     for(const key of keys){
       const v=obj?.[key];
@@ -1493,13 +1488,11 @@ function exportStatisticsExcel(){
     }
     return '';
   };
-
   const formatDate=v=>{
     if(!v)return '';
     const d=new Date(v);
     return Number.isNaN(d.getTime())?v:d.toLocaleString('tr-TR');
   };
-
   const formatBirthDate=v=>{
     if(!v)return '';
     const d=new Date(v+'T00:00:00');
@@ -1524,10 +1517,8 @@ function exportStatisticsExcel(){
     'Kayıt Tarihi':formatDate(p.created_at)
   }));
 
-  // Değerlendirme kaydı kendi içinde hasta bilgilerini taşımaz; ilgili hastadan tamamla.
   const assessmentRows=rows.map(r=>{
     const p=patientById.get(String(r.patient_id))||{};
-
     return {
       'Değerlendirme Tarihi':formatDate(firstValue(r,['assessed_at','created_at','assessment_date'])),
       'Hasta Kodu':firstValue(r,['patient_code']) || p.patient_code || '',
@@ -1545,9 +1536,9 @@ function exportStatisticsExcel(){
       'Yatak No':firstValue(r,['bed_number']) || p.bed_number || '',
       'Postoperatif Gün':firstValue(r,['postoperative_day']) || p.postoperative_day || '',
       'Değerlendiren':firstValue(r,['assessed_by','evaluator_name','created_by_name']) || '',
-      'NEWS2':firstValue(r,['news2','news2_score','news_score']) || '',
+      'NEWS2':firstValue(r,['news2','news2_score','news_score']) ?? '',
       'S-CDIAPS Skoru':firstValue(r,['scdiaps_score','s_cdiaps_score','surgical_contribution_score','score']) ?? '',
-      'S-CDIAPS Risk Düzeyi':firstValue(r,['scdiaps_risk','s_cdiaps_risk','risk_level','risk']) || ''
+      'S-CDIAPS Risk Düzeyi':firstValue(r,['scdiaps_risk','s_cdiaps_risk','risk_level','risk']) ?? ''
     };
   });
 
@@ -1555,17 +1546,18 @@ function exportStatisticsExcel(){
     {'Gösterge':'Toplam Hasta','Değer':patients.length},
     {'Gösterge':'Değerlendirilen Hasta','Değer':new Set(rows.map(x=>x.patient_id).filter(Boolean)).size},
     {'Gösterge':'Toplam Değerlendirme','Değer':rows.length},
-    {'Gösterge':'Açıklama','Değer':'Değerlendirme kayıtları, ilgili hastanın bilgileriyle patient_id üzerinden birleştirilmiştir.'}
+    {'Gösterge':'Açıklama','Değer':'Kapsam/tamlık ayrıntıları ayrı Excel sayfasında Türkçe başlıklarla sunulmuştur.'}
   ];
 
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(summaryRows),'İstatistik Özeti');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(patientRows),'Hasta Verileri');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(assessmentRows),'Değerlendirme Verileri');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(completenessRows),'Veri Kapsam Özeti');
 
   const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
   XLSX.writeFile(wb,`S-CDIAPS_istatistik_${stamp}.xlsx`);
-  toast('Hasta ve değerlendirme verileri birleştirilerek Excel dosyasına aktarıldı.');
+  toast('İstatistikler ve veri kapsam özeti Türkçe başlıklarla Excel dosyasına aktarıldı.');
 }
 async 
 async function runClinicalAdvisor(){
@@ -1881,29 +1873,66 @@ ${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" 
  fillDistribution('statsClinicTable',patients,'surgical_clinic');
  fillDistribution('statsPodTable',patients,'postoperative_day',x=>x==='Belirtilmemiş'?x:`Gün ${x}`);
 
- // Hasta ve değerlendirme kayıtlarındaki tüm alanların doluluk/tamlık durumu
- const completenessBody=document.getElementById('statsCompletenessTable');
- if(completenessBody){
-   const sources=[
+ // Tüm alanların kapsam/tamlık verisini yalnızca Excel aktarımı için hazırla.
+ const completenessLabels={
+   patient_code:'Hasta Kodu',
+   age:'Yaş',
+   postoperative_day:'Postoperatif Gün',
+   gender:'Cinsiyet',
+   medical_record_no:'Hasta T.C. Kimlik No / Dosya No',
+   national_id:'T.C. Kimlik No',
+   patient_name:'Hasta Adı Soyadı',
+   birth_date:'Doğum Tarihi',
+   height_cm:'Boy (cm)',
+   weight_kg:'Kilo (kg)',
+   hospital_name:'Hastane / Kurum Adı',
+   bmi:'VKİ',
+   bed_number:'Yatak No',
+   surgical_clinic:'Cerrahi Klinikler Bölümü',
+   created_at:'Kayıt Tarihi',
+   created_by:'Kaydı Oluşturan',
+   assessed_at:'Değerlendirme Tarihi',
+   evaluator_id:'Değerlendiren ID',
+   evaluator_name:'Değerlendiren',
+   news2:'NEWS2',
+   news2_score:'NEWS2 Skoru',
+   scdiaps_score:'S-CDIAPS Skoru',
+   scdiaps_risk:'S-CDIAPS Risk Düzeyi',
+   risk:'Risk Düzeyi',
+   patient_id:'Hasta ID',
+   patient_identifier:'Hasta Tanımlayıcı',
+   reasons:'Risk Nedenleri',
+   recommended_action:'Önerilen İşlem'
+ };
+ const makeCompletenessRows=()=>{
+   const result=[];
+   [
      {title:'Hasta',rows:patients},
      {title:'Değerlendirme',rows:records}
-   ];
-   const fieldCounts=[];
-   sources.forEach(src=>{
+   ].forEach(src=>{
      const keys=new Set();
      src.rows.forEach(r=>Object.keys(r||{}).forEach(k=>keys.add(k)));
      [...keys].sort().forEach(key=>{
+       // Teknik sistem anahtarları ekranda değil, Excel kapsam raporunda da mümkün olduğunca kullanıcı adıyla görünür.
+       if(key==='id') return;
        const total=src.rows.length;
        const filled=src.rows.filter(r=>{
          const v=r?.[key];
          return !(v===null||v===undefined||v==='');
        }).length;
-       fieldCounts.push([`${src.title}: ${key}`,filled,total,total?Math.round(filled/total*100):0]);
+       result.push({
+         'Veri Grubu':src.title,
+         'Veri Alanı':completenessLabels[key]||key,
+         'Dolu Kayıt':filled,
+         'Toplam Kayıt':total,
+         'Tamlık (%)':total?Math.round(filled/total*100):0
+       });
      });
    });
-   completenessBody.innerHTML=fieldCounts.length?fieldCounts.map(r=>`<tr><td>${esc(r[0])}</td><td><b>${r[1]}</b></td><td>${r[2]}</td><td>%${r[3]}</td></tr>`).join('')
-     :'<tr><td colspan="4">Veri bulunmuyor.</td></tr>';
- }
+   return result;
+ };
+ window.__statisticsCompletenessRows=makeCompletenessRows();
+
  const statsTable=document.getElementById('statsTable');
  if(statsTable){
    statsTable.innerHTML=[

@@ -4,12 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>S-CDIAPS v2.8</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-document.addEventListener('DOMContentLoaded',()=>{
- const pw=document.getElementById('loginPassword');
- if(pw) pw.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();login();}});
-});
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --nav:#102a43;--nav2:#173f5f;--bg:#f5f7fa;--card:#fff;--border:#e5e7eb;
@@ -157,7 +152,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="evaluator-id-schema-hatasi-duzeltildi">
+<body data-build="assessments-news2-schema-duzeltildi">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -353,37 +348,6 @@ button,input,select{touch-action:manipulation}
   </div>
 
   <div class="card">
-    <h3>Hasta demografik ve klinik istatistikleri</h3>
-    <div class="grid4">
-      <div class="stat-card"><div class="stat-label">Ortalama yaş</div><div class="stat-value" id="stAvgAge">—</div><div class="stat-foot">Doğum tarihi olan hastalar</div></div>
-      <div class="stat-card"><div class="stat-label">Ortalama boy</div><div class="stat-value" id="stAvgHeight">—</div><div class="stat-foot">cm</div></div>
-      <div class="stat-card"><div class="stat-label">Ortalama kilo</div><div class="stat-value" id="stAvgWeight">—</div><div class="stat-foot">kg</div></div>
-      <div class="stat-card"><div class="stat-label">Ortalama VKİ</div><div class="stat-value" id="stAvgBMI">—</div><div class="stat-foot">Kayıtlı hastalar</div></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>Cinsiyet dağılımı</h3>
-    <div class="table-wrap"><table><thead><tr><th>Cinsiyet</th><th>Hasta Sayısı</th><th>Oran</th></tr></thead><tbody id="statsGenderTable"></tbody></table></div>
-  </div>
-
-  <div class="card">
-    <h3>Hastane / kurum dağılımı</h3>
-    <div class="table-wrap"><table><thead><tr><th>Hastane / Kurum</th><th>Hasta Sayısı</th><th>Oran</th></tr></thead><tbody id="statsHospitalTable"></tbody></table></div>
-  </div>
-
-  <div class="card">
-    <h3>Cerrahi klinik dağılımı</h3>
-    <div class="table-wrap"><table><thead><tr><th>Cerrahi Klinik</th><th>Hasta Sayısı</th><th>Oran</th></tr></thead><tbody id="statsClinicTable"></tbody></table></div>
-  </div>
-
-  <div class="card">
-    <h3>Postoperatif gün dağılımı</h3>
-    <div class="table-wrap"><table><thead><tr><th>Postoperatif Gün</th><th>Hasta Sayısı</th><th>Oran</th></tr></thead><tbody id="statsPodTable"></tbody></table></div>
-  </div>
-
-
-  <div class="card">
     <h3>İstatistiksel özet</h3>
     <div class="table-wrap">
       <table>
@@ -430,31 +394,17 @@ button,input,select{touch-action:manipulation}
   </div>
   <div class="notice" style="margin-top:12px">Hasta T.C. Kimlik No / Dosya No bilgisi, kurumunuzun yetkilendirme ve veri koruma kurallarına uygun şekilde kullanılmalıdır.</div>
   <div class="actions" style="margin-top:14px"><button id="patientSaveBtn" class="btn btn-primary" onclick="addPatient()">Hasta Kaydet</button></div></div>
-  <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr>
-<th>Hasta kodu</th>
-<th>Hasta T.C. Kimlik No / Dosya No</th>
-<th>Hasta Adı Soyadı</th>
-<th>Doğum Tarihi</th>
-<th>Cinsiyet</th>
-<th>Boy (cm)</th>
-<th>Kilo (kg)</th>
-<th>Hastane / Kurum Adı</th>
-<th>Cerrahi Klinikler Bölümü</th>
-<th>Yatak No</th>
-<th>Postoperatif gün</th>
-<th>İşlem</th>
-</tr></thead><tbody id="patientTable"></tbody></table></div></div>
+  <div class="card"><h3>Hasta listesi</h3><div class="table-wrap"><table><thead><tr><th>Hasta kodu</th><th>Hasta T.C. Kimlik No / Dosya No</th><th>Hasta Adı Soyadı</th><th>Doğum Tarihi</th><th>Cinsiyet</th><th>Boy (cm)</th><th>Kilo (kg)</th><th>Cerrahi Klinik / Servis</th><th>Yatak No</th><th>Cerrahi Klinikler Bölümü</th><th>Yatak No</th><th>Postoperatif gün</th><th>İşlem</th></tr></thead><tbody id="patientTable"></tbody></table></div></div>
 </section>
 
 <section id="assessment" class="page hidden">
   <div class="toolbar"><div class="page-title"><h2>Klinik Değerlendirme</h2><p>Vardiya değerlendirmesi ve otomatik risk analizi</p></div></div>
-
   <div class="card">
     <div class="formgrid">
-      <div class="field"><label>Hasta Dosya No / T.C. Kimlik No</label><select id="assessmentPatientIdentifier"><option value="">Hasta seçiniz...</option></select></div>
-      <div class="field"><label>Hasta Adı Soyadı</label><select id="assessmentPatientName"><option value="">Hasta seçiniz...</option></select></div>
-      <div class="field"><label>Cerrahi Klinik / Servis</label><select id="assessmentSurgicalClinic"><option value="">Hasta seçiniz...</option></select></div>
-      <div class="field"><label>Yatak No</label><select id="assessmentBedNumber"><option value="">Hasta seçiniz...</option></select></div>
+      <div class="field"><label>Hasta Dosya No / T.C. Kimlik No</label><input id="assessmentPatientIdentifier" type="text" readonly placeholder="Hasta seçiniz"></div>
+      <div class="field"><label>Hasta Adı Soyadı</label><input id="assessmentPatientName" type="text" readonly placeholder="Hasta seçiniz"></div>
+      <div class="field"><label>Cerrahi Klinik / Servis</label><input id="assessmentSurgicalClinic" type="text" readonly placeholder="Hasta seçiniz"></div>
+      <div class="field"><label>Yatak No</label><input id="assessmentBedNumber" type="text" readonly placeholder="Hasta seçiniz"></div>
       
       <div class="field"><label>Postoperatif gün</label><input id="pod" type="number" value="2"></div>
       <div class="field"><label>Değerlendirme zamanı</label><input id="evalTime" type="datetime-local"></div>
@@ -662,7 +612,7 @@ async function forceSessionLogout(message='Oturumunuz güvenlik nedeniyle sonlan
   try{localStorage.removeItem(REMEMBER_EMAIL_KEY)}catch(e){}
 
   try{
-    /* Oturum sayfa yenilemede korunur; burada otomatik çıkış yapılmaz. */
+    await sb.auth.signOut({scope:'local'});
   }catch(e){
     console.warn('Oturum kapatma:',e);
   }
@@ -814,11 +764,7 @@ function retryTurnstile(){
   renderTurnstileWidgets();
  }catch(e){console.error('Turnstile yeniden başlatılamadı:',e)}
 }
-let loginInProgress=false;
 async function login(){
-  if(loginInProgress) return;
-  loginInProgress=true;
-
  const email=v('loginEmail').trim().toLowerCase(), hospital=v('loginHospital').trim(), department=v('loginDepartment').trim(), password=document.getElementById('loginPassword').value;
  const msg=document.getElementById('loginMsg');
  if(loginInFlight)return;
@@ -864,13 +810,13 @@ async function login(){
 
      if(profileError) throw new Error('Kullanıcı profili okunamadı: '+profileError.message);
      if(!p){
-       /* Oturum sayfa yenilemede korunur; burada otomatik çıkış yapılmaz. */
+       await sb.auth.signOut({scope:'local'});
        clearLoginFormFields();
        msg.textContent='Kullanıcı profili bulunamadı. Lütfen yöneticiye başvurun.';
        return;
      }
      if(p.approval_status!=='approved'){
-       /* Oturum sayfa yenilemede korunur; burada otomatik çıkış yapılmaz. */
+       await sb.auth.signOut({scope:'local'});
        clearLoginFormFields();
        msg.textContent=p.approval_status==='pending'
          ? 'Kaydınız başarıyla oluşturulmuştur. Sisteme giriş yapabilmeniz için yönetici onayının tamamlanması gerekmektedir. Yönetici onayından sonra sisteme giriş yapabilirsiniz.'
@@ -881,13 +827,13 @@ async function login(){
      const registeredHospital=p.hospital_name||'';
      const registeredDepartment=p.department_name||'';
      if(!registeredHospital||!registeredDepartment){
-       /* Oturum sayfa yenilemede korunur; burada otomatik çıkış yapılmaz. */
+       await sb.auth.signOut({scope:'local'});
        clearLoginFormFields();
        msg.textContent='Kayıtlı hastane veya klinik bilginiz bulunamadı. Lütfen yöneticiye başvurun.';
        return;
      }
      if(!sameScope(hospital,registeredHospital)||!sameScope(department,registeredDepartment)){
-       /* Oturum sayfa yenilemede korunur; burada otomatik çıkış yapılmaz. */
+       await sb.auth.signOut({scope:'local'});
        clearLoginFormFields();
        msg.textContent='Giriş reddedildi: Hastane adı ve cerrahi klinik bilgisi kayıt olurken bildirdiğiniz bilgilerle aynı olmalıdır. Farklı hastane veya klinik ile giriş yapılamaz.';
        return;
@@ -1045,6 +991,7 @@ async function registerUser(){
      education_status:education,
      professional_education:education,
      professional_title:title,
+     hospital_name:hospital,
      department_name:department,
      role:role
    }}
@@ -1151,6 +1098,7 @@ async function updatePatient(){
    height_cm:height,
    weight_kg:weight,
    postoperative_day:pod,
+   hospital_name:hospitalName,
    surgical_clinic:surgicalClinic,
    bed_number:bedNumber
  };
@@ -1247,6 +1195,7 @@ async function addPatient(){
      national_id:null,
      surgical_clinic:surgicalClinic,
      bed_number:bedNumber,
+     hospital_name:hospitalName,
      created_by:user.id
    };
 
@@ -1340,33 +1289,38 @@ async function evaluateAndSave(){
    ? 'Klinik yeniden değerlendirme yapın ve kurum protokolüne göre izlem sıklığını artırın.'
    : 'Rutin klinik izleme devam edin.';
 
- // Değerlendirme tablosundaki mevcut alan adlarıyla uyumlu kayıt.
- // Supabase şemasında bulunmayan scdiaps_score / scdiaps_risk gibi alanlar
- // doğrudan gönderilmez; böylece değerlendirme kaydı şema hatası nedeniyle engellenmez.
- const selectedPatient=(typeof getClinicalPatients==='function' ? getClinicalPatients() : []).find(p=>String(p.id)===String(patientId)) || {};
- const patientIdentifier=selectedPatient.medical_record_no || selectedPatient.national_id || selectedPatient.patient_code || '';
- const evaluatorName=currentProfile?.full_name || currentProfile?.name || currentProfile?.email || '—';
- const evaluationReasons=[
-   `S-CDIAPS Skoru: ${scdiapsExtra}`,
-   `S-CDIAPS Risk Düzeyi: ${risk}`,
-   ...reasons
- ].join('; ');
  const payload={
    patient_id:patientId,
-   patient_code:selectedPatient.patient_code || '',
-   patient_identifier:patientIdentifier,
-   patient_name:selectedPatient.patient_name || '',
-   assessed_at:new Date().toISOString(),
-   news2:news2Score,
-   risk:risk,
-   reasons:evaluationReasons,
+   assessed_by:currentUser.id,
+   temperature:t,
+   heart_rate:hr,
+   systolic_bp:sbp,
+   diastolic_bp:n('dbp'),
+   respiratory_rate:rr,
+   spo2:sp,
+   oxygen_l_min:n('o2'),
+   consciousness_change:consciousness!==0,
+   nurse_concern:concern,
+   wound_redness:ck('redness'),
+   drain_change:ck('drain'),
+   purulent_discharge:ck('pus'),
+   wound_dehiscence:ck('dehiscence'),
+   abdominal_distension:ck('dist'),
+   vomiting:ck('vomit'),
+   no_gas:ck('nogas'),
+   increased_pain:painScore>=1,
+   pain_score:painScore,
+   oliguria:ck('oliguria'),
+   news2_score:news2Score,
+   scdiaps_risk:risk,
+   risk_reasons:reasons.join('; '),
    recommended_action:action
  };
 
  if(!navigator.onLine)throw new Error('İnternet bağlantısı yok.');
  const {data:{user},error:authError}=await sb.auth.getUser();
  if(authError||!user)throw new Error('Oturum doğrulanamadı. Lütfen çıkış yapıp yeniden giriş yapın.');
-if(payload.evaluator_name==='—') payload.evaluator_name=user.email||'—';
+ payload.assessed_by=user.id;
  const result=await sb.from('assessments').insert(payload).select('id').single();
  if(result.error)throw new Error(result.error.message);
  const assessedAt=new Date().toISOString();
@@ -1453,9 +1407,9 @@ async function loadClinicalOutcomes(){
   if(!data?.length){body.innerHTML='<tr><td colspan="6">Henüz sonuç takibi kaydı yok.</td></tr>';return;}
   const ids=[...new Set(data.map(x=>x.patient_id).filter(Boolean))], aids=[...new Set(data.map(x=>x.assessment_id).filter(Boolean))];
   const pr=ids.length?await sb.from('patients').select('id,patient_name,patient_code,medical_record_no').in('id',ids):{data:[]};
-  const ar=aids.length?await sb.from('assessments').select('id,risk,news2,reasons').in('id',aids):{data:[]};
+  const ar=aids.length?await sb.from('assessments').select('id,scdiaps_risk,news2_score').in('id',aids):{data:[]};
   const pm=new Map((pr.data||[]).map(p=>[p.id,p])), am=new Map((ar.data||[]).map(a=>[a.id,a]));
-  body.innerHTML=data.map(x=>{const p=pm.get(x.patient_id)||{},a=am.get(x.assessment_id)||{},name=p.patient_name||p.patient_code||p.medical_record_no||'Hasta';const status=x.outcome_status==='COMPLETED'?`<span class="outcome-done">${x.deterioration?'Kötüleşme var':'Kötüleşme yok'}</span>`:`<span class="outcome-pending">Bekliyor</span>`;return `<tr><td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td><td>${name}</td><td>${a.risk||'—'}</td><td>${a.news2??'—'}</td><td>${status}</td><td>
+  body.innerHTML=data.map(x=>{const p=pm.get(x.patient_id)||{},a=am.get(x.assessment_id)||{},name=p.patient_name||p.patient_code||p.medical_record_no||'Hasta';const status=x.outcome_status==='COMPLETED'?`<span class="outcome-done">${x.deterioration?'Kötüleşme var':'Kötüleşme yok'}</span>`:`<span class="outcome-pending">Bekliyor</span>`;return `<tr><td>${new Date(x.assessed_at).toLocaleString('tr-TR')}</td><td>${name}</td><td>${a.scdiaps_risk||'—'}</td><td>${a.news2_score??'—'}</td><td>${status}</td><td>
 <button class="btn ${x.outcome_status==='COMPLETED'?'':'btn-primary'}" onclick="openOutcomeModal('${x.assessment_id}')">${x.outcome_status==='COMPLETED'?'Görüntüle / Düzenle':'Sonucu Kaydet'}</button>
 ${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deleteClinicalOutcome('${x.id}')">Sil</button>`:''}
 </td></tr>`;}).join('');
@@ -1467,90 +1421,55 @@ function exportStatisticsExcel(){
     toast('Excel aktarımı için gerekli bileşen yüklenemedi. İnternet bağlantısını kontrol edin.');
     return;
   }
-
   const rows=(window.__statisticsRecords||[]);
   const patients=(window.__statisticsPatients||[]);
-  const completenessRows=(window.__statisticsCompletenessRows||[]);
-
-  const patientById=new Map(patients.map(p=>[String(p.id),p]));
-  const firstValue=(obj,keys)=>{
-    for(const key of keys){
-      const v=obj?.[key];
-      if(v!==null && v!==undefined && v!=='') return v;
-    }
-    return '';
-  };
-  const formatDate=v=>{
-    if(!v)return '';
-    const d=new Date(v);
-    return Number.isNaN(d.getTime())?v:d.toLocaleString('tr-TR');
-  };
-  const formatBirthDate=v=>{
-    if(!v)return '';
-    const d=new Date(v+'T00:00:00');
-    return Number.isNaN(d.getTime())?v:d.toLocaleDateString('tr-TR');
-  };
 
   const patientRows=patients.map(p=>({
-    'Hasta Kodu':p.patient_code??'',
-    'Hasta T.C. Kimlik No / Dosya No':p.medical_record_no??'',
-    'T.C. Kimlik No':p.national_id??'',
-    'Hasta Adı Soyadı':p.patient_name??'',
-    'Doğum Tarihi':formatBirthDate(p.birth_date),
-    'Yaş':p.age??'',
-    'Cinsiyet':p.gender??'',
+    'Hasta Kodu':p.patient_code||'',
+    'T.C. / Dosya No':p.medical_record_no||p.national_id||'',
+    'Hasta Adı Soyadı':p.patient_name||'',
+    'Doğum Tarihi':p.birth_date||'',
+    'Cinsiyet':p.gender||'',
     'Boy (cm)':p.height_cm??'',
     'Kilo (kg)':p.weight_kg??'',
-    'VKİ':p.bmi??'',
-    'Hastane / Kurum Adı':p.hospital_name??'',
-    'Cerrahi Klinikler Bölümü':p.surgical_clinic??'',
-    'Yatak No':p.bed_number??'',
-    'Postoperatif Gün':p.postoperative_day??'',
-    'Kayıt Tarihi':formatDate(p.created_at)
+    'Postoperatif Gün':p.postoperative_day??''
   }));
 
-  const assessmentRows=rows.map(r=>{
-    const p=patientById.get(String(r.patient_id))||{};
-    return {
-      'Değerlendirme Tarihi':formatDate(firstValue(r,['assessed_at','created_at','assessment_date'])),
-      'Hasta Kodu':firstValue(r,['patient_code']) || p.patient_code || '',
-      'Hasta Adı Soyadı':firstValue(r,['patient_name']) || p.patient_name || '',
-      'Hasta T.C. Kimlik No / Dosya No':firstValue(r,['medical_record_no']) || p.medical_record_no || '',
-      'T.C. Kimlik No':firstValue(r,['national_id']) || p.national_id || '',
-      'Doğum Tarihi':formatBirthDate(firstValue(r,['birth_date']) || p.birth_date || ''),
-      'Yaş':firstValue(r,['age']) || p.age || '',
-      'Cinsiyet':firstValue(r,['gender']) || p.gender || '',
-      'Boy (cm)':firstValue(r,['height_cm']) || p.height_cm || '',
-      'Kilo (kg)':firstValue(r,['weight_kg']) || p.weight_kg || '',
-      'VKİ':firstValue(r,['bmi']) || p.bmi || '',
-      'Hastane / Kurum Adı':firstValue(r,['hospital_name']) || p.hospital_name || '',
-      'Cerrahi Klinikler Bölümü':firstValue(r,['surgical_clinic']) || p.surgical_clinic || '',
-      'Yatak No':firstValue(r,['bed_number']) || p.bed_number || '',
-      'Postoperatif Gün':firstValue(r,['postoperative_day']) || p.postoperative_day || '',
-      'Değerlendiren':firstValue(r,['assessed_by','evaluator_name','created_by_name']) || '',
-      'NEWS2':firstValue(r,['news2','news2_score','news_score']) ?? '',
-      'S-CDIAPS Skoru':firstValue(r,['scdiaps_score','s_cdiaps_score','surgical_contribution_score','score']) ?? '',
-      'S-CDIAPS Risk Düzeyi':firstValue(r,['scdiaps_risk','s_cdiaps_risk','risk_level','risk']) ?? ''
-    };
-  });
+  const assessmentRows=rows.map(x=>({
+    'Zaman':x.assessed_at ? new Date(x.assessed_at).toLocaleString('tr-TR') : '',
+    'TC / Dosya No':x.patient_identifier||'',
+    'Hasta Adı Soyadı':x.patient_name||'',
+    'Değerlendiren':x.evaluator_name||'',
+    'Risk':x.risk||'',
+    'NEWS2':x.news2??'',
+    'Neden':x.reasons||''
+  }));
 
+  const low=rows.filter(x=>x.risk==='DÜŞÜK').length;
+  const mid=rows.filter(x=>x.risk==='ORTA').length;
+  const high=rows.filter(x=>x.risk==='YÜKSEK').length;
+  const news=rows.map(x=>Number(x.news2)).filter(Number.isFinite);
+  const avg=news.length?news.reduce((a,b)=>a+b,0)/news.length:0;
   const summaryRows=[
-    {'Gösterge':'Toplam Hasta','Değer':patients.length},
-    {'Gösterge':'Değerlendirilen Hasta','Değer':new Set(rows.map(x=>x.patient_id).filter(Boolean)).size},
-    {'Gösterge':'Toplam Değerlendirme','Değer':rows.length},
-    {'Gösterge':'Açıklama','Değer':'Kapsam/tamlık ayrıntıları ayrı Excel sayfasında Türkçe başlıklarla sunulmuştur.'}
+    {'Gösterge':'Toplam hasta','Değer':patients.length},
+    {'Gösterge':'Değerlendirilen hasta','Değer':new Set(rows.map(x=>x.patient_id).filter(Boolean)).size},
+    {'Gösterge':'Toplam değerlendirme','Değer':rows.length},
+    {'Gösterge':'Ortalama NEWS2','Değer':Number(avg.toFixed(1))},
+    {'Gösterge':'Düşük risk','Değer':low},
+    {'Gösterge':'Orta risk','Değer':mid},
+    {'Gösterge':'Yüksek risk','Değer':high},
   ];
 
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(summaryRows),'İstatistik Özeti');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(patientRows),'Hasta Verileri');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(assessmentRows),'Değerlendirme Verileri');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(completenessRows),'Veri Kapsam Özeti');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(patientRows),'Hastalar');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(assessmentRows),'Değerlendirmeler');
 
   const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
   XLSX.writeFile(wb,`S-CDIAPS_istatistik_${stamp}.xlsx`);
-  toast('İstatistikler ve veri kapsam özeti Türkçe başlıklarla Excel dosyasına aktarıldı.');
+  toast('Excel dosyası oluşturuldu.');
 }
+
 async 
 async function runClinicalAdvisor(){
   const box=document.getElementById('aiAdvisorContent');
@@ -1699,30 +1618,11 @@ async function refresh(){
  const allRecords=hr.data||[];
  const records=isAdminUser()?allRecords:allRecords.filter(r=>allowedPatientIds.has(String(r.patient_id)));
  patientCache=patients; window.__statisticsPatients=patients; window.__statisticsRecords=records;
- // Klinik değerlendirme hasta seçim kutularını hasta verisi gelir gelmez doldur.
- if(typeof fillAssessmentPatientSelects==='function') fillAssessmentPatientSelects();
  if(hr.error){console.error(hr.error); toast('Değerlendirme geçmişi okunamadı: '+hr.error.message);return}
- document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>(x.scdiaps_risk||x.risk)==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>(x.scdiaps_risk||x.risk)==='YÜKSEK').length;
- document.getElementById('rLow').textContent=records.filter(x=>(x.scdiaps_risk||x.risk)==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>(x.scdiaps_risk||x.risk)==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>(x.scdiaps_risk||x.risk)==='YÜKSEK').length;
+ document.getElementById('sPatients').textContent=patients.length;document.getElementById('sAssess').textContent=records.length;document.getElementById('sMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('sHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
+ document.getElementById('rLow').textContent=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;document.getElementById('rMid').textContent=records.filter(x=>x.scdiaps_risk==='ORTA').length;document.getElementById('rHigh').textContent=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  document.getElementById('pid').innerHTML=patients.map(p=>`<option value="${p.id}">${p.patient_code} — ${p.patient_name||'Ad Soyad yok'} — ${p.medical_record_no||'TC/Dosya No yok'}</option>`).join('');
- document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr>
-<td><b>${p.patient_code??'-'}</b></td>
-<td>${p.medical_record_no??p.national_id??'-'}</td>
-<td>${p.patient_name??'-'}</td>
-<td>${p.birth_date?new Date(p.birth_date+'T00:00:00').toLocaleDateString('tr-TR'):'-'}</td>
-<td>${p.gender??'-'}</td>
-<td>${p.height_cm??'-'}${p.height_cm!=null?' cm':''}</td>
-<td>${p.weight_kg??'-'}${p.weight_kg!=null?' kg':''}</td>
-<td>${p.hospital_name??'-'}</td>
-<td>${p.surgical_clinic??p.department_name??'-'}</td>
-<td>${p.bed_number??'-'}</td>
-<td>${p.postoperative_day??'-'}</td>
-<td>
-<button class="btn btn-primary" onclick="editPatient('${p.id}')">Düzenle</button>
-<button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>
-${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}
-</td>
-</tr>`).join('')||'<tr><td colspan="12">Hasta bulunmuyor.</td></tr>';
+ document.getElementById('patientTable').innerHTML=patients.map(p=>`<tr><td><b>${p.patient_code}</b></td><td>${p.medical_record_no??'-'}</td><td>${p.patient_name??'-'}</td><td>${p.birth_date?new Date(p.birth_date+'T00:00:00').toLocaleDateString('tr-TR'):'-'}</td><td>${p.gender??'-'}</td><td>${p.height_cm??'-'} cm</td><td>${p.weight_kg??'-'} kg</td><td>${p.postoperative_day??'-'}</td><td><button class="btn btn-primary" onclick="editPatient('${p.id}')">Düzenle</button><button class="btn btn-primary" onclick="selectPatient('${p.id}')">Değerlendir</button>${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" onclick="deletePatient('${p.id}')">Sil</button>`:''}</td></tr>`).join('')||'<tr><td colspan="13">Hasta bulunmuyor.</td></tr>';
  const latestByPatient={};
  const grouped={};
  records.forEach(x=>{
@@ -1787,9 +1687,9 @@ ${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" 
  // Statistics
  const totalAssessments=records.length;
  const evaluatedPatients=new Set(records.map(x=>x.patient_id).filter(Boolean)).size;
- const lowCount=records.filter(x=>(x.scdiaps_risk||x.risk)==='DÜŞÜK').length;
- const midCount=records.filter(x=>(x.scdiaps_risk||x.risk)==='ORTA').length;
- const highCount=records.filter(x=>(x.scdiaps_risk||x.risk)==='YÜKSEK').length;
+ const lowCount=records.filter(x=>x.scdiaps_risk==='DÜŞÜK').length;
+ const midCount=records.filter(x=>x.scdiaps_risk==='ORTA').length;
+ const highCount=records.filter(x=>x.scdiaps_risk==='YÜKSEK').length;
  const newsValues=records.map(x=>Number(x.news2)).filter(Number.isFinite);
  const avgNews2=newsValues.length ? newsValues.reduce((a,b)=>a+b,0)/newsValues.length : 0;
  const maxNews2=newsValues.length ? Math.max(...newsValues) : 0;
@@ -1818,112 +1718,6 @@ ${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" 
  };
  Object.entries(statMap).forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.textContent=val});
 
-
- // Tüm hasta alanlarını kapsayan istatistikler
- const numAvg=(arr,key)=>{
-   const vals=arr.map(x=>Number(x[key])).filter(Number.isFinite);
-   return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
- };
- const ageOf=p=>{
-   if(!p.birth_date)return null;
-   const d=new Date(p.birth_date+'T00:00:00');
-   if(Number.isNaN(d.getTime()))return null;
-   const nowD=new Date();
-   let age=nowD.getFullYear()-d.getFullYear();
-   const m=nowD.getMonth()-d.getMonth();
-   if(m<0||(m===0&&nowD.getDate()<d.getDate()))age--;
-   return age>=0&&age<130?age:null;
- };
- const ageVals=patients.map(ageOf).filter(Number.isFinite);
- const avgAge=ageVals.length?ageVals.reduce((a,b)=>a+b,0)/ageVals.length:null;
- const avgHeight=numAvg(patients,'height_cm');
- const avgWeight=numAvg(patients,'weight_kg');
- const avgBMI=numAvg(patients,'bmi');
- const patientStatMap={
-   stAvgAge:avgAge==null?'—':avgAge.toFixed(1),
-   stAvgHeight:avgHeight==null?'—':avgHeight.toFixed(1),
-   stAvgWeight:avgWeight==null?'—':avgWeight.toFixed(1),
-   stAvgBMI:avgBMI==null?'—':avgBMI.toFixed(1)
- };
- Object.entries(patientStatMap).forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.textContent=val});
-
- const esc=v=>String(v??'—').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
- const fillDistribution=(id,arr,key,labelFn)=>{
-   const body=document.getElementById(id); if(!body)return;
-   const map={};
-   arr.forEach(x=>{
-     let raw=x[key];
-     if(raw===null||raw===undefined||String(raw).trim()==='') raw='Belirtilmemiş';
-     const label=labelFn?labelFn(raw):raw;
-     map[label]=(map[label]||0)+1;
-   });
-   const total=arr.length||0;
-   const rows=Object.entries(map).sort((a,b)=>b[1]-a[1]);
-   body.innerHTML=rows.length?rows.map(([k,n])=>`<tr><td>${esc(k)}</td><td><b>${n}</b></td><td>%${total?Math.round(n/total*100):0}</td></tr>`).join('')
-     :'<tr><td colspan="3">Veri bulunmuyor.</td></tr>';
- };
- fillDistribution('statsGenderTable',patients,'gender');
- fillDistribution('statsHospitalTable',patients,'hospital_name');
- fillDistribution('statsClinicTable',patients,'surgical_clinic');
- fillDistribution('statsPodTable',patients,'postoperative_day',x=>x==='Belirtilmemiş'?x:`Gün ${x}`);
-
- // Tüm alanların kapsam/tamlık verisini yalnızca Excel aktarımı için hazırla.
- const completenessLabels={
-   patient_code:'Hasta Kodu',
-   age:'Yaş',
-   postoperative_day:'Postoperatif Gün',
-   gender:'Cinsiyet',
-   medical_record_no:'Hasta T.C. Kimlik No / Dosya No',
-   national_id:'T.C. Kimlik No',
-   patient_name:'Hasta Adı Soyadı',
-   birth_date:'Doğum Tarihi',
-   height_cm:'Boy (cm)',
-   weight_kg:'Kilo (kg)',
-   bmi:'VKİ',
-   bed_number:'Yatak No',
-   surgical_clinic:'Cerrahi Klinikler Bölümü',
-   created_at:'Kayıt Tarihi',
-   created_by:'Kaydı Oluşturan',
-   assessed_at:'Değerlendirme Tarihi',
-   news2:'NEWS2',
-   news2_score:'NEWS2 Skoru',
-   scdiaps_score:'S-CDIAPS Skoru',
-   scdiaps_risk:'S-CDIAPS Risk Düzeyi',
-   risk:'Risk Düzeyi',
-   patient_id:'Hasta ID',
-   patient_identifier:'Hasta Tanımlayıcı',
-   reasons:'Risk Nedenleri',
-   recommended_action:'Önerilen İşlem'
- };
- const makeCompletenessRows=()=>{
-   const result=[];
-   [
-     {title:'Hasta',rows:patients},
-     {title:'Değerlendirme',rows:records}
-   ].forEach(src=>{
-     const keys=new Set();
-     src.rows.forEach(r=>Object.keys(r||{}).forEach(k=>keys.add(k)));
-     [...keys].sort().forEach(key=>{
-       // Teknik sistem anahtarları ekranda değil, Excel kapsam raporunda da mümkün olduğunca kullanıcı adıyla görünür.
-       if(key==='id') return;
-       const total=src.rows.length;
-       const filled=src.rows.filter(r=>{
-         const v=r?.[key];
-         return !(v===null||v===undefined||v==='');
-       }).length;
-       result.push({
-         'Veri Grubu':src.title,
-         'Veri Alanı':completenessLabels[key]||key,
-         'Dolu Kayıt':filled,
-         'Toplam Kayıt':total,
-         'Tamlık (%)':total?Math.round(filled/total*100):0
-       });
-     });
-   });
-   return result;
- };
- window.__statisticsCompletenessRows=makeCompletenessRows();
-
  const statsTable=document.getElementById('statsTable');
  if(statsTable){
    statsTable.innerHTML=[
@@ -1935,11 +1729,7 @@ ${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" 
      ['Orta risk',midCount+' (%'+pct(midCount)+')','Risk dağılımındaki pay'],
      ['Yüksek risk',highCount+' (%'+pct(highCount)+')','Risk dağılımındaki pay'],
      ['Son 7 gün değerlendirme',last7,'Son 7 gündeki değerlendirme sayısı'],
-     ['Son 30 gün değerlendirme',last30,'Son 30 gündeki değerlendirme sayısı'],
-     ['Ortalama yaş',avgAge==null?'—':avgAge.toFixed(1),'Doğum tarihi kayıtlı hastaların ortalama yaşı'],
-     ['Ortalama boy',avgHeight==null?'—':avgHeight.toFixed(1)+' cm','Boy bilgisi kayıtlı hastaların ortalaması'],
-     ['Ortalama kilo',avgWeight==null?'—':avgWeight.toFixed(1)+' kg','Kilo bilgisi kayıtlı hastaların ortalaması'],
-     ['Ortalama VKİ',avgBMI==null?'—':avgBMI.toFixed(1),'VKİ bilgisi kayıtlı hastaların ortalaması']
+     ['Son 30 gün değerlendirme',last30,'Son 30 gündeki değerlendirme sayısı']
    ].map(r=>`<tr><td>${r[0]}</td><td><b>${r[1]}</b></td><td>${r[2]}</td></tr>`).join('');
  }
 
@@ -1955,7 +1745,7 @@ async function selectPatient(id){
    const scopePatient=(patientCache||[]).find(x=>String(x.id)===String(id));
    if(!scopePatient||!canAccessPatient(scopePatient)){toast('Bu hastaya erişim yetkiniz yok.');return;}
  }
- const patient=patientCache.find(p=>String(p.id)===String(id));
+ const patient=patientCache.find(p=>p.id===id);
  if(!patient){toast('Hasta kaydı bulunamadı. Listeyi yenileyin.');return}
  const pid=document.getElementById('pid'); if(pid) pid.value=id;
  const identifier=document.getElementById('assessmentPatientIdentifier');
@@ -2161,7 +1951,7 @@ sb.auth.onAuthStateChange((event)=>{
 
       // Onaysız/reddedilmiş hesaplar eski bir oturumla sayfa yenileyerek sisteme dönemez.
       if(!p || p.approval_status!=='approved'){
-        /* Oturum sayfa yenilemede korunur; burada otomatik çıkış yapılmaz. */
+        await sb.auth.signOut({scope:'local'});
         try{localStorage.removeItem(SESSION_MARKER)}catch(e){}
         currentUser=null; currentProfile=null;
         return;
@@ -2185,7 +1975,7 @@ sb.auth.onAuthStateChange((event)=>{
     console.warn('Oturum geri yüklenemedi:',e);
     currentUser=null; currentProfile=null;
     // Hata durumunda eski/bozuk yerel oturumu temizle.
-    try{/* Oturum sayfa yenilemede korunur; burada otomatik çıkış yapılmaz. */}catch(x){}
+    try{await sb.auth.signOut({scope:'local'})}catch(x){}
     try{localStorage.removeItem(SESSION_MARKER)}catch(x){}
   }
 })();;
@@ -2301,87 +2091,6 @@ window.addEventListener('load',()=>{
     if(renderTurnstileWidgets() || tries>=120) clearInterval(wait);
   },250);
 });
-
-/* Klinik Değerlendirme: üstteki tekrar eden hasta bilgi kartı kaldırıldı.
-   Aşağıdaki dört alanın her biri aktif seçim alanıdır. Kullanıcı hangi alandan hastayı seçerse
-   diğer üç alan ve postoperatif gün otomatik olarak aynı hasta bilgileriyle doldurulur. */
-function getClinicalPatients(){
-  const list=Array.isArray(patientCache)&&patientCache.length ? patientCache : (window.currentPatients || window.__statisticsPatients || window.patients || window.allPatients || []);
-  return Array.isArray(list) ? list.filter(p=>isAdminUser() || canAccessPatient(p)) : [];
-}
-function clinicalIdentifier(p){ return p?.medical_record_no || p?.national_id || p?.patient_code || ''; }
-function clinicalName(p){ return p?.patient_name || ''; }
-function clinicalClinic(p){ return p?.surgical_clinic || ''; }
-function clinicalBed(p){ return p?.bed_number || ''; }
-
-function fillAssessmentPatientSelects(force=false){
-  const patients=getClinicalPatients();
-  const fields=[
-    ['assessmentPatientIdentifier',clinicalIdentifier],
-    ['assessmentPatientName',clinicalName],
-    ['assessmentSurgicalClinic',clinicalClinic],
-    ['assessmentBedNumber',clinicalBed]
-  ];
-  const signature=patients.map(p=>[
-    p.id,clinicalIdentifier(p),clinicalName(p),clinicalClinic(p),clinicalBed(p)
-  ].join('|')).join('||');
-
-  fields.forEach(([id,getText])=>{
-    const sel=document.getElementById(id);
-    if(!sel) return;
-    // Her 700 ms'de seçenekleri yeniden yazmak ilk tıklamada açılan menüyü kapatıyordu.
-    // Yalnızca hasta listesi gerçekten değiştiğinde seçenekleri yeniden oluştur.
-    if(!force && sel.dataset.patientSignature===signature) return;
-    const old=sel.value;
-    const options=['<option value="">Hasta seçiniz...</option>'];
-    patients.forEach(p=>{
-      const value=String(p.id ?? '');
-      const text=getText(p)||'Belirtilmemiş';
-      options.push(`<option value="${value}">${text}</option>`);
-    });
-    sel.innerHTML=options.join('');
-    sel.dataset.patientSignature=signature;
-    sel.disabled=patients.length===0;
-    if(old && patients.some(p=>String(p.id)===String(old))) sel.value=old;
-  });
-}
-
-function syncAssessmentPatient(id){
-  if(!id){
-    ['assessmentPatientIdentifier','assessmentPatientName','assessmentSurgicalClinic','assessmentBedNumber'].forEach(x=>{
-      const e=document.getElementById(x); if(e) e.value='';
-    });
-    const pid=document.getElementById('pid'); if(pid) pid.value='';
-    return;
-  }
-  const patient=getClinicalPatients().find(p=>String(p.id)===String(id));
-  if(!patient){ toast('Hasta kaydı bulunamadı.'); return; }
-  const values={
-    assessmentPatientIdentifier:String(patient.id),
-    assessmentPatientName:String(patient.id),
-    assessmentSurgicalClinic:String(patient.id),
-    assessmentBedNumber:String(patient.id)
-  };
-  Object.entries(values).forEach(([fieldId,value])=>{
-    const e=document.getElementById(fieldId); if(e) e.value=value;
-  });
-  const pid=document.getElementById('pid'); if(pid) pid.value=String(patient.id);
-  const pod=document.getElementById('pod');
-  if(pod && patient.postoperative_day!==null && patient.postoperative_day!==undefined) pod.value=patient.postoperative_day;
-}
-
-document.addEventListener('change',function(e){
-  const ids=['assessmentPatientIdentifier','assessmentPatientName','assessmentSurgicalClinic','assessmentBedNumber'];
-  if(ids.includes(e.target?.id)) syncAssessmentPatient(e.target.value);
-});
-
-// Sayfa ilk açıldığında mevcut önbellek varsa doldur.
-// Sürekli setInterval kullanmıyoruz; bu, ilk tıklamada açılan seçimi yeniden çizip kapatıyordu.
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',()=>fillAssessmentPatientSelects(true),{once:true});
-}else{
-  fillAssessmentPatientSelects(true);
-}
 </script>
 <div id="outcomeModal" class="outcome-modal hidden" aria-hidden="true"><div class="outcome-modal-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><h3 style="margin:0">24 Saatlik Klinik Sonuç</h3><button class="btn" onclick="closeOutcomeModal()">Kapat</button></div><p id="outcomeModalInfo" class="muted"></p><div class="field"><label>24 saat içinde klinik kötüleşme oldu mu?</label><div class="outcome-options"><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="false"><span><b>Hayır</b><br><small>Klinik kötüleşme gözlenmedi.</small></span></label><label class="outcome-option"><input type="radio" name="outcomeDeterioration" value="true"><span><b>Evet</b><br><small>Klinik kötüleşme gözlendi.</small></span></label></div></div><div class="field"><label>Kötüleşme türü (varsa)</label><select id="outcomeType"><option value="">Seçiniz</option><option value="NEWS2_ARTISI">NEWS2 belirgin artışı</option><option value="ACIL_MUDAHALE">Acil müdahale gereksinimi</option><option value="UST_DUZEY_BAKIM">Üst düzey bakım / yoğun bakım gereksinimi</option><option value="HEKIM_KLINIK_KOTULESME">Hekim tarafından klinik kötüleşme değerlendirmesi</option><option value="DIGER">Diğer</option></select></div><div class="field"><label>Açıklama</label><textarea id="outcomeDetails" rows="4" placeholder="Gerekirse klinik sonucu kısaca açıklayın."></textarea></div><div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px"><button class="btn" onclick="closeOutcomeModal()">İptal</button><button class="btn btn-primary" onclick="saveClinicalOutcome()">Sonucu Kaydet</button></div></div></div></body>
 </html>

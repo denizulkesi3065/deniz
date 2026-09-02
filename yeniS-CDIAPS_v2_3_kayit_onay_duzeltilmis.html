@@ -157,7 +157,7 @@ button,input,select{touch-action:manipulation}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body data-build="hasta-listesi-sutun-eslesmesi-duzeltildi">
+<body data-build="istatistik-tum-hasta-ve-degerlendirme-verileri">
 
 <div id="loginPage" class="login card">
   <div class="logo">S-CDIAPS</div>
@@ -350,6 +350,41 @@ button,input,select{touch-action:manipulation}
     <div class="stat-card"><div class="stat-label">Son 30 gün</div><div class="stat-value" id="st30d">0</div><div class="stat-foot">Değerlendirme</div></div>
     <div class="stat-card"><div class="stat-label">En yüksek NEWS2</div><div class="stat-value red" id="stMaxNews2">0</div><div class="stat-foot">Kayıtlı en yüksek değer</div></div>
     <div class="stat-card"><div class="stat-label">Yüksek risk oranı</div><div class="stat-value red" id="stHighPctCard">%0</div><div class="stat-foot">Tüm değerlendirmeler içinde</div></div>
+  </div>
+
+  <div class="card">
+    <h3>Hasta demografik ve klinik istatistikleri</h3>
+    <div class="grid4">
+      <div class="stat-card"><div class="stat-label">Ortalama yaş</div><div class="stat-value" id="stAvgAge">—</div><div class="stat-foot">Doğum tarihi olan hastalar</div></div>
+      <div class="stat-card"><div class="stat-label">Ortalama boy</div><div class="stat-value" id="stAvgHeight">—</div><div class="stat-foot">cm</div></div>
+      <div class="stat-card"><div class="stat-label">Ortalama kilo</div><div class="stat-value" id="stAvgWeight">—</div><div class="stat-foot">kg</div></div>
+      <div class="stat-card"><div class="stat-label">Ortalama VKİ</div><div class="stat-value" id="stAvgBMI">—</div><div class="stat-foot">Kayıtlı hastalar</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Cinsiyet dağılımı</h3>
+    <div class="table-wrap"><table><thead><tr><th>Cinsiyet</th><th>Hasta Sayısı</th><th>Oran</th></tr></thead><tbody id="statsGenderTable"></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <h3>Hastane / kurum dağılımı</h3>
+    <div class="table-wrap"><table><thead><tr><th>Hastane / Kurum</th><th>Hasta Sayısı</th><th>Oran</th></tr></thead><tbody id="statsHospitalTable"></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <h3>Cerrahi klinik dağılımı</h3>
+    <div class="table-wrap"><table><thead><tr><th>Cerrahi Klinik</th><th>Hasta Sayısı</th><th>Oran</th></tr></thead><tbody id="statsClinicTable"></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <h3>Postoperatif gün dağılımı</h3>
+    <div class="table-wrap"><table><thead><tr><th>Postoperatif Gün</th><th>Hasta Sayısı</th><th>Oran</th></tr></thead><tbody id="statsPodTable"></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <h3>Tüm kayıtlı veri alanlarının kapsam özeti</h3>
+    <div class="table-wrap"><table><thead><tr><th>Veri Alanı</th><th>Dolu Kayıt</th><th>Toplam Kayıt</th><th>Tamlık</th></tr></thead><tbody id="statsCompletenessTable"></tbody></table></div>
   </div>
 
   <div class="card">
@@ -1445,53 +1480,27 @@ function exportStatisticsExcel(){
   }
   const rows=(window.__statisticsRecords||[]);
   const patients=(window.__statisticsPatients||[]);
+  const cloneAll=arr=>arr.map(x=>Object.fromEntries(Object.entries(x||{}).map(([k,v])=>[k,v??''])));
 
-  const patientRows=patients.map(p=>({
-    'Hasta Kodu':p.patient_code||'',
-    'T.C. / Dosya No':p.medical_record_no||p.national_id||'',
-    'Hasta Adı Soyadı':p.patient_name||'',
-    'Doğum Tarihi':p.birth_date||'',
-    'Cinsiyet':p.gender||'',
-    'Boy (cm)':p.height_cm??'',
-    'Kilo (kg)':p.weight_kg??'',
-    'Postoperatif Gün':p.postoperative_day??''
-  }));
+  const patientRows=cloneAll(patients);
+  const assessmentRows=cloneAll(rows);
 
-  const assessmentRows=rows.map(x=>({
-    'Zaman':x.assessed_at ? new Date(x.assessed_at).toLocaleString('tr-TR') : '',
-    'TC / Dosya No':x.patient_identifier||'',
-    'Hasta Adı Soyadı':x.patient_name||'',
-    'Değerlendiren':x.evaluator_name||'',
-    'Risk':x.risk||'',
-    'NEWS2':x.news2??'',
-    'Neden':x.reasons||''
-  }));
-
-  const low=rows.filter(x=>x.risk==='DÜŞÜK').length;
-  const mid=rows.filter(x=>x.risk==='ORTA').length;
-  const high=rows.filter(x=>x.risk==='YÜKSEK').length;
-  const news=rows.map(x=>Number(x.news2)).filter(Number.isFinite);
-  const avg=news.length?news.reduce((a,b)=>a+b,0)/news.length:0;
   const summaryRows=[
     {'Gösterge':'Toplam hasta','Değer':patients.length},
     {'Gösterge':'Değerlendirilen hasta','Değer':new Set(rows.map(x=>x.patient_id).filter(Boolean)).size},
     {'Gösterge':'Toplam değerlendirme','Değer':rows.length},
-    {'Gösterge':'Ortalama NEWS2','Değer':Number(avg.toFixed(1))},
-    {'Gösterge':'Düşük risk','Değer':low},
-    {'Gösterge':'Orta risk','Değer':mid},
-    {'Gösterge':'Yüksek risk','Değer':high},
+    {'Gösterge':'Not','Değer':'Hasta ve değerlendirme kayıtlarında mevcut tüm alanlar ayrı sayfalarda eksiksiz aktarılmıştır.'}
   ];
 
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(summaryRows),'İstatistik Özeti');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(patientRows),'Hastalar');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(assessmentRows),'Değerlendirmeler');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(patientRows),'Tüm Hasta Verileri');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(assessmentRows),'Tüm Değerlendirme Verileri');
 
   const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
-  XLSX.writeFile(wb,`S-CDIAPS_istatistik_${stamp}.xlsx`);
-  toast('Excel dosyası oluşturuldu.');
+  XLSX.writeFile(wb,`S-CDIAPS_tum_veriler_istatistik_${stamp}.xlsx`);
+  toast('Tüm hasta ve değerlendirme verilerini içeren Excel dosyası oluşturuldu.');
 }
-
 async 
 async function runClinicalAdvisor(){
   const box=document.getElementById('aiAdvisorContent');
@@ -1757,6 +1766,78 @@ ${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" 
  };
  Object.entries(statMap).forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.textContent=val});
 
+
+ // Tüm hasta alanlarını kapsayan istatistikler
+ const numAvg=(arr,key)=>{
+   const vals=arr.map(x=>Number(x[key])).filter(Number.isFinite);
+   return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
+ };
+ const ageOf=p=>{
+   if(!p.birth_date)return null;
+   const d=new Date(p.birth_date+'T00:00:00');
+   if(Number.isNaN(d.getTime()))return null;
+   const nowD=new Date();
+   let age=nowD.getFullYear()-d.getFullYear();
+   const m=nowD.getMonth()-d.getMonth();
+   if(m<0||(m===0&&nowD.getDate()<d.getDate()))age--;
+   return age>=0&&age<130?age:null;
+ };
+ const ageVals=patients.map(ageOf).filter(Number.isFinite);
+ const avgAge=ageVals.length?ageVals.reduce((a,b)=>a+b,0)/ageVals.length:null;
+ const avgHeight=numAvg(patients,'height_cm');
+ const avgWeight=numAvg(patients,'weight_kg');
+ const avgBMI=numAvg(patients,'bmi');
+ const patientStatMap={
+   stAvgAge:avgAge==null?'—':avgAge.toFixed(1),
+   stAvgHeight:avgHeight==null?'—':avgHeight.toFixed(1),
+   stAvgWeight:avgWeight==null?'—':avgWeight.toFixed(1),
+   stAvgBMI:avgBMI==null?'—':avgBMI.toFixed(1)
+ };
+ Object.entries(patientStatMap).forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.textContent=val});
+
+ const esc=v=>String(v??'—').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+ const fillDistribution=(id,arr,key,labelFn)=>{
+   const body=document.getElementById(id); if(!body)return;
+   const map={};
+   arr.forEach(x=>{
+     let raw=x[key];
+     if(raw===null||raw===undefined||String(raw).trim()==='') raw='Belirtilmemiş';
+     const label=labelFn?labelFn(raw):raw;
+     map[label]=(map[label]||0)+1;
+   });
+   const total=arr.length||0;
+   const rows=Object.entries(map).sort((a,b)=>b[1]-a[1]);
+   body.innerHTML=rows.length?rows.map(([k,n])=>`<tr><td>${esc(k)}</td><td><b>${n}</b></td><td>%${total?Math.round(n/total*100):0}</td></tr>`).join('')
+     :'<tr><td colspan="3">Veri bulunmuyor.</td></tr>';
+ };
+ fillDistribution('statsGenderTable',patients,'gender');
+ fillDistribution('statsHospitalTable',patients,'hospital_name');
+ fillDistribution('statsClinicTable',patients,'surgical_clinic');
+ fillDistribution('statsPodTable',patients,'postoperative_day',x=>x==='Belirtilmemiş'?x:`Gün ${x}`);
+
+ // Hasta ve değerlendirme kayıtlarındaki tüm alanların doluluk/tamlık durumu
+ const completenessBody=document.getElementById('statsCompletenessTable');
+ if(completenessBody){
+   const sources=[
+     {title:'Hasta',rows:patients},
+     {title:'Değerlendirme',rows:records}
+   ];
+   const fieldCounts=[];
+   sources.forEach(src=>{
+     const keys=new Set();
+     src.rows.forEach(r=>Object.keys(r||{}).forEach(k=>keys.add(k)));
+     [...keys].sort().forEach(key=>{
+       const total=src.rows.length;
+       const filled=src.rows.filter(r=>{
+         const v=r?.[key];
+         return !(v===null||v===undefined||v==='');
+       }).length;
+       fieldCounts.push([`${src.title}: ${key}`,filled,total,total?Math.round(filled/total*100):0]);
+     });
+   });
+   completenessBody.innerHTML=fieldCounts.length?fieldCounts.map(r=>`<tr><td>${esc(r[0])}</td><td><b>${r[1]}</b></td><td>${r[2]}</td><td>%${r[3]}</td></tr>`).join('')
+     :'<tr><td colspan="4">Veri bulunmuyor.</td></tr>';
+ }
  const statsTable=document.getElementById('statsTable');
  if(statsTable){
    statsTable.innerHTML=[
@@ -1768,7 +1849,11 @@ ${currentProfile&&currentProfile.role==='admin'?`<button class="btn btn-danger" 
      ['Orta risk',midCount+' (%'+pct(midCount)+')','Risk dağılımındaki pay'],
      ['Yüksek risk',highCount+' (%'+pct(highCount)+')','Risk dağılımındaki pay'],
      ['Son 7 gün değerlendirme',last7,'Son 7 gündeki değerlendirme sayısı'],
-     ['Son 30 gün değerlendirme',last30,'Son 30 gündeki değerlendirme sayısı']
+     ['Son 30 gün değerlendirme',last30,'Son 30 gündeki değerlendirme sayısı'],
+     ['Ortalama yaş',avgAge==null?'—':avgAge.toFixed(1),'Doğum tarihi kayıtlı hastaların ortalama yaşı'],
+     ['Ortalama boy',avgHeight==null?'—':avgHeight.toFixed(1)+' cm','Boy bilgisi kayıtlı hastaların ortalaması'],
+     ['Ortalama kilo',avgWeight==null?'—':avgWeight.toFixed(1)+' kg','Kilo bilgisi kayıtlı hastaların ortalaması'],
+     ['Ortalama VKİ',avgBMI==null?'—':avgBMI.toFixed(1),'VKİ bilgisi kayıtlı hastaların ortalaması']
    ].map(r=>`<tr><td>${r[0]}</td><td><b>${r[1]}</b></td><td>${r[2]}</td></tr>`).join('');
  }
 
